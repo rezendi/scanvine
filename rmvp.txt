@@ -1,0 +1,17 @@
+Grab 5K verified users
+Hydrate those users, add selected to a list
+Get articles shared by those users
+Get article data
+Parse articles, associate authors
+Get sentiment data
+Store in DB
+Allocate credibility
+Show highest-rated articles / authors
+
+Metadata types:
+- Scientific
+- ld+json
+- og
+- twitter
+- custom
+- xpath
