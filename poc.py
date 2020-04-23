@@ -5,6 +5,22 @@ import urllib3
 from bs4 import BeautifulSoup
 import boto3
 
+import django, os
+from django.conf import settings
+if not settings.configured:
+    settings.configure(DEBUG=True)
+    settings.BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    settings.INSTALLED_APPS = [ 'public.apps.PublicConfig']
+    settings.DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(settings.BASE_DIR, 'db.sqlite3'),
+        }
+    }
+    django.setup()
+
+print ("base_dir %s", settings.BASE_DIR)
+
 # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 
 # Launch API
@@ -36,25 +52,36 @@ articles = []
 http = urllib3.PoolManager()
 for status in link_statuses:
     url = status['urls'][0]['expanded_url']
-    r = http.request('GET', url)
-    html = r.data.decode('utf-8')
-    soup = BeautifulSoup(html, "html.parser")
-    article = {'text':status['status'], 'url':url}
-    print(url)
-    if html.find("application/ld+json") > 0:
-        ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
-        article['url'] = ld['url'] if 'url' in ld else url
-        article['title'] = ld['headline'] if 'headline' in ld else ''
-        article['title'] = ld['title'] if 'title' in ld else article['title']
-        article['author'] = ld['author'] if 'author' in ld else ''
-        article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
-    if html.find("npr-vars") > 0:
-        npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-        npr = npr.partition("NPR.serverVars = ")[2]
-        npr = npr[:-2]
-        npr = json.loads(npr)
-        article['author'] = npr['byline'] if 'byline' in npr else article['author']
-    articles.append(article)
+    try:
+        r = http.request('GET', url)
+        html = r.data.decode('utf-8')
+        soup = BeautifulSoup(html, "html.parser")
+        article = {'text':status['status'], 'url':url, 'html':html}
+        print(url)
+        if html.find("application/ld+json") > 0:
+            ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
+            article['url'] = ld['url'] if 'url' in ld else url
+            article['title'] = ld['headline'] if 'headline' in ld else ''
+            article['title'] = ld['title'] if 'title' in ld else article['title']
+            article['author'] = ld['author'] if 'author' in ld else ''
+            article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
+        if html.find("npr-vars") > 0:
+            npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+            npr = npr.partition("NPR.serverVars = ")[2]
+            npr = npr[:-2]
+            npr = json.loads(npr)
+            article['author'] = npr['byline'] if 'byline' in npr else article['author']
+        articles.append(article)
+    except:
+        print("Error handling %s", url)
+
+from public.models import *
+
+# Save the articles
+
+for article in articles:
+    a = Article(status=0, url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
+    a.save()
 
 # Analyze the sentiment
 
@@ -64,7 +91,6 @@ for article in articles:
     sentiment = comprehend.detect_sentiment(Text=article['text'], LanguageCode='en')
     article['sentiment'] = sentiment['SentimentScore']
 
-print (json.dumps(articles, sort_keys=True))
 
 # Store all that to the DB (for the POC, SQLite)
 # https://docs.djangoproject.com/en/3.0/intro/tutorial02/
