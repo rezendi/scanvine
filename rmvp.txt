@@ -30,6 +30,7 @@ Sharer Category
 Shares
 ID
 SourceID (all Twitter to start)
+SharerID
 ArticleID
 Status
 Text
@@ -55,8 +56,6 @@ ID
 PublicationID
 AuthorID
 Status
-RelatedPublicationID
-RelatedPublicationType
 URL
 Title
 Data
@@ -71,7 +70,7 @@ CurrentCredibility
 TotalCredibility
 
 Collaborations
-CollaborationID
+ID
 AuthorID
 
 CredibilityTranches
