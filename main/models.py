@@ -32,6 +32,7 @@ class Collaboration(models.Model):
 class Publication(models.Model):
     name = models.CharField(max_length=255)
     url = models.URLField()
+    url_policy = models.CharField(max_length=255)
     average_credibility = models.IntegerField()
     total_credibility = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)

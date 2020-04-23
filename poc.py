@@ -73,39 +73,53 @@ shares = []
 http = urllib3.PoolManager()
 for status in link_statuses:
     print('status %s' % status['text'])
-    url = status['urls'][0]['expanded_url'] #TODO: handle multiple URLs
-    try:
-        r = http.request('GET', url)
-        html = r.data.decode('utf-8')
-        soup = BeautifulSoup(html, "html.parser")
-        article = {'text':status['text'], 'url':r.geturl(), 'html':html}
-        article['initial_url'] = url if url != article['url'] else None
-        print(url)
-        if html.find("application/ld+json") > 0:
-            ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
-            article['url'] = ld['url'] if 'url' in ld else url
-            article['title'] = ld['headline'] if 'headline' in ld else ''
-            article['title'] = ld['title'] if 'title' in ld else article['title']
-            article['author'] = ld['author'] if 'author' in ld else ''
-            article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
-        if html.find("npr-vars") > 0:
-            npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-            npr = npr.partition("NPR.serverVars = ")[2]
-            npr = npr[:-2]
-            npr = json.loads(npr)
-            article['author'] = npr['byline'] if 'byline' in npr else article['author']
-        a = Article(status=0, language='en', url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
-        a.save()
+    url = status['urls'][0]['expanded_url']
+    # TODO: handle multiple URLs
+    # TODO: filter out url cruft
+
+    s = None
+    existing = Share.objects.filter(twitter_id=status['id'])
+    if existing:
+        s = existing[0]
+    else:
         sharer = Sharer.objects.get(twitter_id=status['user_id'])
-        s = Share(source=0, language='en', status=0, sharer_id = sharer.id, article_id = a.id, twitter_id = status['id'], text=status['text'], url=url)
+        s = Share(source=0, language='en', status=0, sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
         s.save()
-        shares.append(s)
-    except twitter.error.TwitterError as twerr:
-        print("Twitter error handling %s %s", url, twerr)
-        raise
-    except Exception as err:
-        print("Error handling %s %s", url, err)
-        raise
+    shares.append(s)
+
+    a = None
+    existing = Article.objects.filter(initial_url=url)
+    if existing:
+        a = existing[0]
+    else:
+        try:
+            r = http.request('GET', url)
+            html = r.data.decode('utf-8')
+            soup = BeautifulSoup(html, "html.parser")
+            article = {'text':status['text'], 'url':r.geturl(), 'initial_url':url, 'html':html}
+            print(url)
+            if html.find("application/ld+json") > 0:
+                ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
+                article['url'] = ld['url'] if 'url' in ld else url
+                article['title'] = ld['headline'] if 'headline' in ld else ''
+                article['title'] = ld['title'] if 'title' in ld else article['title']
+                article['author'] = ld['author'] if 'author' in ld else ''
+                article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
+            if html.find("npr-vars") > 0:
+                npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+                npr = npr.partition("NPR.serverVars = ")[2]
+                npr = npr[:-2]
+                npr = json.loads(npr)
+                article['author'] = npr['byline'] if 'byline' in npr else article['author']
+    
+            a = Article(status=0, language='en', url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
+            a.save()
+        except:
+            raise
+
+    s.article_id = a.id
+    s.status = 1
+    s.save()
 
 # Analyze the sentiment
 
@@ -119,6 +133,7 @@ for share in shares:
     share.net_sentiment = score['Positive'] - score['Negative']
     share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
     share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
+    share.status=1
     share.save()
 
 
