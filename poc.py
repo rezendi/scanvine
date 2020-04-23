@@ -11,7 +11,7 @@ from django.conf import settings
 if not settings.configured:
     settings.configure(DEBUG=True)
     settings.BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    settings.INSTALLED_APPS = [ 'public.apps.PublicConfig']
+    settings.INSTALLED_APPS = [ 'main.apps.MainConfig']
     settings.DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -34,25 +34,36 @@ api.CreateList('verified', 'private', 'Proof of concept')
 
 # Get some verified users, add them to the DB
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
+users = []
+if False:
+    ids = api.GetFriendIDs(screen_name='verified', count=1000)
+    users = api.UsersLookup(user_id=ids[0:99], include_entities=False)
+    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
+    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+    for n in new:
+      s = Sharer(twitter_id=n['id'], status=0, name=n['name'], twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
+      s.save()
+    
+    # Take users from the DB, add them to a Twitter list
+    sharers = Sharer.objects.filter(status=0)[0:99]
+    for s in sharers:
+      list = api.CreateListsMember(owner_screen_name='scanvine', slug='verified', user_id=s.twitter_id)
+      s.status=1
+      s.save()    
+
 if True:
-  ids = api.GetFriendIDs(screen_name='verified', count=1000)
-  users = api.UsersLookup(user_id=ids[0:99], include_entities=False)
-  filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
-  new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
-  for n in new:
-    s = Sharer(twitter_id=n['id'], status=0, name=n['name'], twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
-    s.save()
+    next, prev, users = api.GetListMembersPaged(list_id=15084461, count=500, skip_status=True)
+    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
+    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+    for n in new:
+      s = Sharer(twitter_id=n['id'], status=0, name=n['name'], twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
+      s.save()
 
-# Take users from the DB, add them to a Twitter list
-sharers = Sharer.objects.filter(status=0)[0:99]
-for s in sharers:
-  list = api.CreateListsMember(owner_screen_name='scanvine', slug='verified', user_id=s.twitter_id)
-  s.status=1
-  s.save()
-
+    
 
 # Get list statuses, filter those with external links
-timeline = api.GetListTimeline(owner_screen_name='scanvine', slug='verified', count = 400, include_rts=1, return_json=True)
+# timeline = api.GetListTimeline(owner_screen_name='scanvine', slug='verified', count = 400, include_rts=1, return_json=True)
+timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
 link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
 link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
 
