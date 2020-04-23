@@ -3,7 +3,6 @@ from django.contrib import admin
 from .models import *
 
 admin.site.register(Sharer)
-admin.site.register(Source)
 admin.site.register(Author)
 admin.site.register(Collaboration)
 admin.site.register(Publication)

@@ -1,7 +1,8 @@
 import yaml
-import twitter
 import json
 import urllib3
+
+import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from bs4 import BeautifulSoup
 import boto3
 
@@ -19,9 +20,7 @@ if not settings.configured:
     }
     django.setup()
 
-print ("base_dir %s", settings.BASE_DIR)
-
-# https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from public.models import *
 
 # Launch API
 keys_file = open(".keys.yaml")
@@ -34,29 +33,37 @@ api = twitter.Api(consumer_key=parsed_keys['API_KEY'],
 # api.CreateList('test', 'private', 'Proof of concept')
 
 # Get some verified users, add them to the list
-if False:
+if True:
   ids = api.GetFriendIDs(screen_name='verified', count=5000, total_count=5000)
   users = api.UsersLookup(user_id=ids[0:99], include_entities=False)
   # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
   filtered = [{'id':u.id, 'name':u.name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
-  filtered_ids = [f['id'] for f in filtered]
-  api.CreateListsMember(owner_screen_name='scanvine', slug='test', user_id=filtered_ids)
+  new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+  for n in new:
+    s = Sharer(twitter_id=n['id'], status=0, name=n['name'], profile=n['desc'], category=0, verified=True)
+    s.save()
+  new_ids = [n['id'] for n in new]
+  print("new_ids %s" % new_ids)
+  api.CreateListsMember(owner_screen_name='scanvine', slug='test', user_id=new_ids)
+
 
 # Get list statuses, filter those with external links
 timeline = api.GetListTimeline(owner_screen_name='scanvine', slug='test', count = 400, include_rts=1, return_json=True)
-link_statuses = [{'status':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
+link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
 link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
 
 # Fetch those articles, pull their authors
 articles = []
+shares = []
 http = urllib3.PoolManager()
 for status in link_statuses:
-    url = status['urls'][0]['expanded_url']
+    print('status %s' % status['text'])
+    url = status['urls'][0]['expanded_url'] #TODO: handle multiple URLs
     try:
         r = http.request('GET', url)
         html = r.data.decode('utf-8')
         soup = BeautifulSoup(html, "html.parser")
-        article = {'text':status['status'], 'url':r.geturl(), 'html':html}
+        article = {'text':status['text'], 'url':r.geturl(), 'html':html}
         article['initial_url'] = url if url != article['url'] else None
         print(url)
         if html.find("application/ld+json") > 0:
@@ -72,26 +79,31 @@ for status in link_statuses:
             npr = npr[:-2]
             npr = json.loads(npr)
             article['author'] = npr['byline'] if 'byline' in npr else article['author']
-        articles.append(article)
-    except:
-        print("Error handling %s", url)
-
-from public.models import *
-
-# Save the articles
-
-for article in articles:
-    a = Article(status=0, url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
-    a.save()
+        a = Article(status=0, language='en', url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
+        a.save()
+        sharer = Sharer.objects.get(twitter_id=status['user_id'])
+        s = Share(source=0, language='en', status=0, sharer_id = sharer.id, article_id = a.id, twitter_id = status['id'], text=status['text'], url=url)
+        s.save()
+        shares.append(s)
+    except twitter.error.TwitterError as twerr:
+        print("Twitter error handling %s %s", url, twerr)
+        raise
+    except Exception as err:
+        print("Error handling %s %s", url, err)
+        raise
 
 # Analyze the sentiment
 
 sentiments = []
 comprehend = boto3.client(service_name='comprehend')
-for article in articles:
-    sentiment = comprehend.detect_sentiment(Text=article['text'], LanguageCode='en')
-    article['sentiment'] = sentiment['SentimentScore']
-
-# Save the sharer, share, author, etc. to DB as well
+for share in shares:
+    sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
+    score = sentiment['SentimentScore']
+    share.sentiment = score
+    # very basic sentiment math
+    share.net_sentiment = score['Positive'] - score['Negative']
+    share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
+    share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
+    share.save()
 
 

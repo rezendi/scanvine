@@ -3,18 +3,15 @@ from django.db import models
 # Create your models here.
 
 class Sharer(models.Model):
+    twitter_id = models.BigIntegerField(null=True)
+    twitter_list_id = models.BigIntegerField(null=True)
     status = models.IntegerField()
     verified = models.BooleanField()
     category = models.IntegerField()
     name = models.CharField(max_length=255)
     profile = models.CharField(max_length=1023)
-    metadata_change_date = models.DateTimeField('date published')
-    previous_metadata = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-class Source(models.Model):
-    name = models.CharField(max_length=255)
+    metadata_change_date = models.DateTimeField(null=True)
+    previous_metadata = models.TextField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,6 +53,7 @@ class PublicationParser(models.Model):
 class Article(models.Model):
     publication = models.ForeignKey(Publication, null=True, on_delete = models.SET_NULL)
     author = models.ForeignKey(Author, null=True, on_delete = models.SET_NULL)
+    language = models.CharField(max_length = 5)
     status = models.IntegerField()
     url = models.URLField()
     initial_url = models.URLField(null=True)
@@ -66,14 +64,16 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Share(models.Model):
-    source = models.ForeignKey(Source, on_delete=models.PROTECT)
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
+    twitter_id = models.BigIntegerField(null=True)
+    source = models.IntegerField(null=True)
+    language = models.CharField(max_length = 5)
     article = models.ForeignKey(Article, null=True, on_delete = models.SET_NULL)
     status = models.IntegerField()
     text = models.CharField(max_length=4095)
     url = models.URLField()
-    sentiment = models.CharField(max_length=1023)
-    net_sentiment = models.DecimalField(decimal_places = 2, max_digits = 4)
+    sentiment = models.CharField(null = True, max_length=1023)
+    net_sentiment = models.DecimalField(null = True, decimal_places = 2, max_digits = 4)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
