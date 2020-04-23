@@ -58,6 +58,7 @@ class Article(models.Model):
     author = models.ForeignKey(Author, null=True, on_delete = models.SET_NULL)
     status = models.IntegerField()
     url = models.URLField()
+    initial_url = models.URLField(null=True)
     title = models.CharField(max_length=255)
     contents = models.TextField()
     metadata = models.TextField()

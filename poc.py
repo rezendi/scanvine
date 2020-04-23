@@ -56,7 +56,8 @@ for status in link_statuses:
         r = http.request('GET', url)
         html = r.data.decode('utf-8')
         soup = BeautifulSoup(html, "html.parser")
-        article = {'text':status['status'], 'url':url, 'html':html}
+        article = {'text':status['status'], 'url':r.geturl(), 'html':html}
+        article['initial_url'] = url if url != article['url'] else None
         print(url)
         if html.find("application/ld+json") > 0:
             ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
@@ -91,12 +92,6 @@ for article in articles:
     sentiment = comprehend.detect_sentiment(Text=article['text'], LanguageCode='en')
     article['sentiment'] = sentiment['SentimentScore']
 
-
-# Store all that to the DB (for the POC, SQLite)
-# https://docs.djangoproject.com/en/3.0/intro/tutorial02/
-# DB schema:
-
-
-# Display to web
+# Save the sharer, share, author, etc. to DB as well
 
 
