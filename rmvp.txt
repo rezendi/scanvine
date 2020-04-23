@@ -15,3 +15,84 @@ Metadata types:
 - twitter
 - custom
 - xpath
+
+
+Sharer (Twitter user)
+ID
+Status
+Name
+Screen Name
+Verified
+Profile
+Previous Metadata 
+Sharer Category
+
+Shares
+ID
+SourceID (all Twitter to start)
+ArticleID
+Status
+Text
+URL
+Sentiment
+
+Publication
+ID
+Name
+URL
+AverageCredibility
+TotalCredibility
+
+Parser
+ID
+PublicationID
+Status
+AsOf
+ParserData
+
+Articles
+ID
+PublicationID
+AuthorID
+Status
+RelatedPublicationID
+RelatedPublicationType
+URL
+Title
+Data
+Metadata
+
+Authors
+ID
+Name
+IsCollaboration
+Metadata
+CurrentCredibility
+TotalCredibility
+
+Collaborations
+CollaborationID
+AuthorID
+
+CredibilityTranches
+SharerID
+AuthorID
+Quantity
+Category
+Tags
+
+Errors
+ID
+Type
+Status
+Data
+Metadata
+
+Job types:
+- SharersJob
+- SharesJob
+- SentimentsJob
+- FetchArticleJob
+- ParseArticleJob
+- CredibilityJob
+- ReputationJob
