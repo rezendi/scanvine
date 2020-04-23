@@ -4,6 +4,7 @@ from django.db import models
 
 class Sharer(models.Model):
     twitter_id = models.BigIntegerField(null=True)
+    twitter_screen_name = models.CharField(max_length=63)
     twitter_list_id = models.BigIntegerField(null=True)
     status = models.IntegerField()
     verified = models.BooleanField()
