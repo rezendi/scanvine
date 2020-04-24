@@ -30,6 +30,7 @@ class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
     individual = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborations')
 
+# might need to break this down into separate publication and site tables
 class Publication(models.Model):
     status = models.IntegerField()
     name = models.CharField(max_length=255)

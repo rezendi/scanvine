@@ -131,22 +131,22 @@ for status in link_statuses[0:1]:
     s.status = 1
     s.save()
 
-if not shares:
-    shares = Share.objects.all()
+shares = Share.objects.all() if not shares else shares
 
 # Analyze the sentiment, store to share
-sentiments = []
-comprehend = boto3.client(service_name='comprehend')
-for share in shares:
-    sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
-    score = sentiment['SentimentScore']
-    share.sentiment = score
-    # very basic sentiment math
-    share.net_sentiment = score['Positive'] - score['Negative']
-    share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
-    share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
-    share.status=2
-    share.save()
+if False:
+    sentiments = []
+    comprehend = boto3.client(service_name='comprehend')
+    for share in shares:
+        sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
+        score = sentiment['SentimentScore']
+        share.sentiment = score
+        # very basic sentiment math
+        share.net_sentiment = score['Positive'] - score['Negative']
+        share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
+        share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
+        share.status=2
+        share.save()
 
 # Create authors for articles
 
@@ -172,32 +172,5 @@ for article in Article.objects.all():
             article.save()
 
 # Allocate credibility
-# crude initial algorithm:
-# for each sharer, get list of shares
-# shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
-# 5040 credibility/day for maximum divisibility, N points means 5040/N cred for that share, truncate
-
-from functools import reduce
-
-for sharer in Sharer.objects.all():
-    shares = Share.objects.filter(sharer_id=sharer.id)
-    if not shares.exists():
-        continue
-    total_points = 0
-    for s in shares:
-        total_points += 2 if abs(s.net_sentiment) > 50 else 1
-    if total_points==0:
-        continue
-    cred_per_point = 5040 // total_points
-    for s in shares:
-        points = 2 if abs(s.net_sentiment) > 50 else 1
-        share_cred = cred_per_point * points
-        article = share.article
-        if not article:
-            continue
-        author = article.author
-        if not author:
-            continue
-        t = Tranche(status=0, tags='', sender=sharer.id, receiver=author.id, quantity = share_cred, category=sharer.category, type=author.status)
-        t.save()
-        
+from main import tasks
+tasks.allocate_credibility.delay()

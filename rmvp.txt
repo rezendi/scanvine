@@ -15,14 +15,7 @@ Phase II:
     Push to Otseko
     Expand admin interface
 
-Metadata types:
-- Scientific
-- ld+json
-- og
-- twitter
-- custom
-- xpath
-
+1. Split the tranches into a separate task.
 
 Job types:
 - SharersJob
@@ -32,3 +25,20 @@ Job types:
 - ParseArticleJob
 - CredibilityJob
 - ReputationJob
+
+Services:
+- TwitterService
+- ArticleService
+- SentimentService
+- SiteService
+- AuthorService
+
+
+Metadata types:
+- Scientific
+- ld+json
+- og
+- twitter
+- custom
+- xpath
+
