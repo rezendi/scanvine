@@ -1,12 +1,19 @@
-Grab 5K verified users
-Hydrate those users, add selected to a list
-Get articles shared by those users
-Get article data
-Parse articles, associate authors
-Get sentiment data
-Store in DB
-Allocate credibility
-Show highest-rated articles / authors
+Phase I:
+    Grab 5K verified users
+    Hydrate those users, add selected to a list
+    Get articles shared by those users
+    Get article data
+    Parse articles, associate authors
+    Get sentiment data
+    Store in DB
+    Allocate credibility
+    Show highest-rated articles / authors
+
+Phase II:
+    Servicify the services
+    Taskify the tasks
+    Push to Otseko
+    Expand admin interface
 
 Metadata types:
 - Scientific

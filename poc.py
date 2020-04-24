@@ -30,7 +30,8 @@ api = twitter.Api(consumer_key=parsed_keys['API_KEY'],
                   access_token_key=parsed_keys['TOKEN_KEY'],
                   access_token_secret=parsed_keys['TOKEN_SECRET'])
 #                 sleep_on_rate_limit=True)
-api.CreateList('verified', 'private', 'Proof of concept')
+if False:
+    api.CreateList('verified', 'private', 'Proof of concept')
 
 # Get some verified users, add them to the DB
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
@@ -51,7 +52,7 @@ if False:
       s.status=1
       s.save()    
 
-if True:
+if False:
     next, prev, users = api.GetListMembersPaged(list_id=15084461, count=500, skip_status=True)
     filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
@@ -63,20 +64,24 @@ if True:
 
 # Get list statuses, filter those with external links
 # timeline = api.GetListTimeline(owner_screen_name='scanvine', slug='verified', count = 400, include_rts=1, return_json=True)
-timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
-link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
+link_statuses = []
+if False:
+    timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
+    link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
+    link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
 
 # Fetch those articles, pull their authors
 articles = []
 shares = []
 http = urllib3.PoolManager()
-for status in link_statuses:
+for status in link_statuses[0:1]:
     print('status %s' % status['text'])
-    url = status['urls'][0]['expanded_url']
     # TODO: handle multiple URLs
-    # TODO: filter out url cruft
+    url = status['urls'][0]['expanded_url']
+    # TODO: filter out url cruft more elegantly
+    url = url.partition("?")[0]
 
+    # get existing share, if any, for idempotency
     s = None
     existing = Share.objects.filter(twitter_id=status['id'])
     if existing:
@@ -87,17 +92,20 @@ for status in link_statuses:
         s.save()
     shares.append(s)
 
+    # get existing article, if any, for idempotency
     a = None
     existing = Article.objects.filter(initial_url=url)
     if existing:
         a = existing[0]
     else:
+        # fetch and parse new article
         try:
             r = http.request('GET', url)
             html = r.data.decode('utf-8')
             soup = BeautifulSoup(html, "html.parser")
             article = {'text':status['text'], 'url':r.geturl(), 'initial_url':url, 'html':html}
-            print(url)
+            print("initial url %s" % url)
+            print("resolved url %s" % article['url'])
             if html.find("application/ld+json") > 0:
                 ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
                 article['url'] = ld['url'] if 'url' in ld else url
@@ -111,18 +119,22 @@ for status in link_statuses:
                 npr = npr[:-2]
                 npr = json.loads(npr)
                 article['author'] = npr['byline'] if 'byline' in npr else article['author']
-    
-            a = Article(status=0, language='en', url = article['url'], title = article.get('title', ''), contents = article['html'], metadata = {'author': article.get('author', '')})
+            a = Article(status=0, language='en', url = article['url'], initial_url=article['initial_url'],
+                        title = article.get('title', ''), contents = article['html'],
+                        metadata = json.dumps({'author': article.get('author', '')}))
             a.save()
         except:
             raise
 
+    # associate article with share, mark new pipeline status
     s.article_id = a.id
     s.status = 1
     s.save()
 
-# Analyze the sentiment
+if not shares:
+    shares = Share.objects.all()
 
+# Analyze the sentiment, store to share
 sentiments = []
 comprehend = boto3.client(service_name='comprehend')
 for share in shares:
@@ -133,7 +145,59 @@ for share in shares:
     share.net_sentiment = score['Positive'] - score['Negative']
     share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
     share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
-    share.status=1
+    share.status=2
     share.save()
 
+# Create authors for articles
 
+for article in Article.objects.all():
+    meta = json.loads(article.metadata)
+    name = ''
+    if 'name' in meta:
+        name = meta['name']
+    if 'author' in meta:
+        inner = meta['author']
+        if type(inner) is list:
+            name=inner[0]['name']
+        if type(inner) is dict:
+            name=inner['name']
+        else:
+            name=inner
+    if name != '':
+        existing = Author.objects.filter(name=name)
+        if not existing:
+            author=Author(status=0, name=name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+            author.save()
+            article.author_id = author.id
+            article.save()
+
+# Allocate credibility
+# crude initial algorithm:
+# for each sharer, get list of shares
+# shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
+# 5040 credibility/day for maximum divisibility, N points means 5040/N cred for that share, truncate
+
+from functools import reduce
+
+for sharer in Sharer.objects.all():
+    shares = Share.objects.filter(sharer_id=sharer.id)
+    if not shares.exists():
+        continue
+    total_points = 0
+    for s in shares:
+        total_points += 2 if abs(s.net_sentiment) > 50 else 1
+    if total_points==0:
+        continue
+    cred_per_point = 5040 // total_points
+    for s in shares:
+        points = 2 if abs(s.net_sentiment) > 50 else 1
+        share_cred = cred_per_point * points
+        article = share.article
+        if not article:
+            continue
+        author = article.author
+        if not author:
+            continue
+        t = Tranche(status=0, tags='', sender=sharer.id, receiver=author.id, quantity = share_cred, category=sharer.category, type=author.status)
+        t.save()
+        
