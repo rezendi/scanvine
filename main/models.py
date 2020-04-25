@@ -15,6 +15,8 @@ class Sharer(models.Model):
     previous_metadata = models.TextField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    #statuses
+    LISTED = 1
 
 class Author(models.Model):
     status = models.IntegerField()
@@ -70,6 +72,8 @@ class Article(models.Model):
     first_published_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    #statuses
+    AUTHOR_ASSOCIATED = 1
 
 class Share(models.Model):
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
@@ -84,6 +88,9 @@ class Share(models.Model):
     net_sentiment = models.DecimalField(null = True, decimal_places = 2, max_digits = 4)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    #statuses
+    ARTICLE_ASSOCIATED = 1
+    SENTIMENT_CALCULATED = 2
 
 class Tranche(models.Model):
     status = models.IntegerField()
