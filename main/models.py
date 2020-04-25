@@ -74,6 +74,8 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     #statuses
     AUTHOR_ASSOCIATED = 1
+    #error statuses
+    PARSING_ERROR = -1
 
 class Share(models.Model):
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
@@ -91,6 +93,8 @@ class Share(models.Model):
     #statuses
     ARTICLE_ASSOCIATED = 1
     SENTIMENT_CALCULATED = 2
+    #error statuses
+    ARTICLE_ERROR = -1
 
 class Tranche(models.Model):
     status = models.IntegerField()

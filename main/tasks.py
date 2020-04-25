@@ -81,27 +81,30 @@ def associate_articles():
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
         soup = BeautifulSoup(html, "html.parser")
-        article = {'url':r.geturl(), 'initial_url':share.url, 'html':html}
-        if html.find("application/ld+json") > 0:
-            ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
-            article['title'] = ld['headline'] if 'headline' in ld else ''
-            article['title'] = ld['title'] if 'title' in ld else article['title']
-            article['author'] = ld['author'] if 'author' in ld else ''
-            article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
-        if html.find("npr-vars") > 0:
-            npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-            npr = npr.partition("NPR.serverVars = ")[2]
-            npr = npr[:-2]
-            npr = json.loads(npr)
-            article['author'] = npr['byline'] if 'byline' in npr else article['author']
-
-        a = Article(status=0, language='en', url = share.url, initial_url=article['initial_url'],
+        article = {'url':r.geturl(), 'initial_url':share.url, 'html':html, 'status':0}
+        try:
+            if html.find("application/ld+json") > 0:
+                ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
+                article['title'] = ld['headline'] if 'headline' in ld else ''
+                article['title'] = ld['title'] if 'title' in ld else article['title']
+                article['author'] = ld['author'] if 'author' in ld else ''
+                article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
+            if html.find("npr-vars") > 0:
+                npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+                npr = npr.partition("NPR.serverVars = ")[2]
+                npr = npr[:-2]
+                npr = json.loads(npr)
+                article['author'] = npr['byline'] if 'byline' in npr else article['author']
+        except:
+            article['status'] = Article.PARSING_ERROR
+    
+        a = Article(status=article['status'], language='en', url = share.url, initial_url=article['initial_url'],
                     title = article.get('title', ''), contents = article['html'],
                     metadata = json.dumps({'author': article.get('author', '')}))
         a.save()
 
         share.article_id = a.id
-        share.status = Share.ARTICLE_ASSOCIATED
+        share.status = Share.ARTICLE_ERROR
         share.save()
 
 
