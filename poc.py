@@ -30,11 +30,8 @@ output = result.wait(timeout=None, interval=0.5)
 result = tasks.associate_articles.delay()
 output = result.wait(timeout=None, interval=0.5)
 
-result = tasks.associate_authors.delay()
+tasks.analyze_sentiment.delay()
 output = result.wait(timeout=None, interval=0.5)
-
-# tasks.analyze_sentiment.delay()
-# output = result.wait(timeout=None, interval=0.5)
 
 result = tasks.allocate_credibility.delay()
 output = result.wait(timeout=None, interval=0.5)

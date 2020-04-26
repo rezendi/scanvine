@@ -65,17 +65,19 @@ class Article(models.Model):
     language = models.CharField(max_length = 5)
     url = models.URLField()
     initial_url = models.URLField(null=True)
-    title = models.CharField(max_length=255)
+    title = models.CharField(null=True, max_length=255)
     contents = models.TextField()
-    metadata = models.TextField()
+    metadata = models.TextField(null=True)
     published_at = models.DateTimeField(null=True)
     first_published_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     #statuses
-    AUTHOR_ASSOCIATED = 1
+    METADATA_PARSED = 1
+    AUTHOR_ASSOCIATED = 2
     #error statuses
-    PARSING_ERROR = -1
+    METADATA_PARSE_ERROR = -1
+    AUTHOR_NOT_FOUND = -1
 
 class Share(models.Model):
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
@@ -94,7 +96,8 @@ class Share(models.Model):
     ARTICLE_ASSOCIATED = 1
     SENTIMENT_CALCULATED = 2
     #error statuses
-    ARTICLE_ERROR = -1
+    FETCH_ERROR = -1
+    ARTICLE_ERROR = -2
 
 class Tranche(models.Model):
     status = models.IntegerField()

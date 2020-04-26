@@ -1,4 +1,4 @@
-from celery import shared_task
+from celery import shared_task, group, signature
 import json
 from .models import *
 import yaml
@@ -71,70 +71,87 @@ def fetch_shares():
 
 @shared_task
 def associate_articles():
-    import urllib3
-    from bs4 import BeautifulSoup
-    http = urllib3.PoolManager()
+    jobs = []
     for share in Share.objects.filter(status=0):
         existing = Article.objects.filter(initial_url=share.url)
         if existing:
             continue
+        s = signature(associate_article(share.id))
+        jobs.append(s)
+    job = group(jobs)
+    job.apply_async()
+
+def associate_article(share_id):
+    import urllib3
+    share = Share.objects.get(id=share_id)
+    http = urllib3.PoolManager()
+    try:
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
-        soup = BeautifulSoup(html, "html.parser")
-        article = {'url':r.geturl(), 'initial_url':share.url, 'html':html, 'status':0}
-        try:
-            if html.find("application/ld+json") > 0:
-                ld = json.loads("".join(soup.find("script", {"type":"application/ld+json"}).contents))
-                article['title'] = ld['headline'] if 'headline' in ld else ''
-                article['title'] = ld['title'] if 'title' in ld else article['title']
-                article['author'] = ld['author'] if 'author' in ld else ''
-                article['author'] = article['author']['name'] if type(article['author']) is dict else article['author']
-            if html.find("npr-vars") > 0:
-                npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-                npr = npr.partition("NPR.serverVars = ")[2]
-                npr = npr[:-2]
-                npr = json.loads(npr)
-                article['author'] = npr['byline'] if 'byline' in npr else article['author']
-        except:
-            article['status'] = Article.PARSING_ERROR
-    
-        a = Article(status=article['status'], language='en', url = share.url, initial_url=article['initial_url'],
-                    title = article.get('title', ''), contents = article['html'],
-                    metadata = json.dumps({'author': article.get('author', '')}))
-        a.save()
+    except:
+         share.status = Share.FETCH_ERROR
+         share.save()
+         raise
 
-        share.article_id = a.id
-        share.status = Share.ARTICLE_ERROR
-        share.save()
+    article = Article(status=0, language='en', url = r.geturl(), initial_url=share.url, contents=html, title=None, metadata=None)
+    article.save()
+    share.article_id = article.id
+    share.status = Share.ARTICLE_ASSOCIATED
+    share.save()
+    s = signature(parse_article_metadata(article.id))
+    s.apply_async()
 
 
 @shared_task
-def associate_authors():
-    for article in Article.objects.filter(status=0):
+def parse_article_metadata(article_id):
+    from bs4 import BeautifulSoup
+    article = Article.objects.get(id=article_id)
+    author_name = None
+    try:
+        html = article.contents
+        soup = BeautifulSoup(html, "html.parser")
+        if html.find("application/ld+json") > 0:
+            article.metadata = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
+        if html.find("npr-vars") > 0:
+            npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+            article.metadata = npr.partition("NPR.serverVars = ")[2][:-2]
+
+        # TODO replace with various different metadata parsers
         meta = json.loads(article.metadata)
-        name = ''
+        article.title = meta['headline'] if 'headline' in meta else article.title
+        article.title = meta['title'] if 'title' in meta else article.title        
+        if 'byline' in meta:
+            author_name = meta['byline']
         if 'name' in meta:
-            name = meta['name']
+            author_name = meta['name']
         if 'author' in meta:
             inner = meta['author']
             if type(inner) is list:
                 subinner = inner[0]
                 if type(subinner) is dict:
-                    name = subinner['name']
+                    author_name = subinner['name']
                 else:
-                    name = subinner
+                    author_name = subinner
             if type(inner) is dict:
-                name=inner['name']
+                author=inner['name']
             else:
-                name=inner
-        if name != '':
-            existing = Author.objects.filter(name=name)
-            if not existing:
-                author=Author(status=0, name=name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-                author.save()
-                article.author_id = author.id
-                article.status = article.AUTHOR_ASSOCIATED
-                article.save()
+                author=inner
+    except:
+        print("Metadata parse error")
+        article.status = Article.METADATA_PARSE_ERROR
+        article.save()
+
+    if author_name:
+        existing = Author.objects.filter(name=author_name)
+        if not existing:
+            author=Author(status=0, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+            author.save()
+            article.author_id = author.id
+            article.status = article.AUTHOR_ASSOCIATED
+            article.save()
+    else:
+         article.status = Article.AUTHOR_NOT_FOUND
+         article.save()
 
 
 # Get sentiment from AWS
