@@ -17,7 +17,9 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 #                 sleep_on_rate_limit=True)
 
 
-# Get some verified users, add them to the DB
+LIST_ID = 1254145545246916608
+
+# Get a tranche of verified users, add them to the DB if not there, add them to a Twitter list if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
 def update_sharers_list():
@@ -31,26 +33,20 @@ def update_sharers_list():
     
     # Take users from the DB, add them to a Twitter list
     sharers = Sharer.objects.filter(status=0)[0:99]
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
+    listed_ids = [u.id for u in listed]
+    new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
+    print("New to list: %s" % new_to_list)
+    list = api.CreateListsMember(list_id=LIST_ID, user_id=new_to_list)
     for s in sharers:
-      list = api.CreateListsMember(list_id=1254145545246916608, user_id=s.twitter_id)
       s.status = Sharer.LISTED
       s.save()    
-
-@shared_task
-def get_poc_sharers_list():
-    next, prev, users = api.GetListMembersPaged(list_id=15084461, count=500, skip_status=True)
-    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
-    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
-    for n in new:
-      s = Sharer(twitter_id=n['id'], status=Sharer.LISTED, name=n['name'], twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
-      s.save()
-
 
 # Get list statuses, filter those with external links
 @shared_task
 def fetch_shares():
-    # timeline = api.GetListTimeline(owner_screen_name='scanvine', slug='verified', count = 400, include_rts=1, return_json=True)
-    timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
+    timeline = api.GetListTimeline(list_id=LIST_ID, count = 400, include_rts=1, return_json=True)
+    # timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
     link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
     link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
     
@@ -67,9 +63,12 @@ def fetch_shares():
         if existing:
             continue
         else:
-            sharer = Sharer.objects.get(twitter_id=status['user_id'])
-            s = Share(source=0, language='en', status=0, sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
-            s.save()
+            try:
+                sharer = Sharer.objects.get(twitter_id=status['user_id'])
+                s = Share(source=0, language='en', status=0, sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
+                s.save()
+            except:
+                print("Sharer not found %s" % status['user_id'])
 
 
 @shared_task
@@ -96,13 +95,12 @@ def associate_article(share_id):
          share.save()
          raise
 
-    article = Article(status=0, language='en', url = r.geturl(), initial_url=share.url, contents=html, title=None, metadata=None)
+    article = Article(status=0, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
     article.save()
     share.article_id = article.id
     share.status = Share.ARTICLE_ASSOCIATED
     share.save()
-    s = signature(parse_article_metadata(article.id))
-    s.apply_async()
+    signature(parse_article_metadata(article.id)).apply_async()
 
 
 @shared_task
@@ -139,22 +137,23 @@ def parse_article_metadata(article_id):
                 author=inner['name']
             else:
                 author=inner
+
+        if author_name:
+            existing = Author.objects.filter(name=author_name)
+            if not existing:
+                author=Author(status=0, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+                author.save()
+                article.author_id = author.id
+                article.status = article.AUTHOR_ASSOCIATED
+                article.save()
+        else:
+             article.status = Article.AUTHOR_NOT_FOUND
+             article.save()
+    
     except:
         print("Metadata parse error")
         article.status = Article.METADATA_PARSE_ERROR
         article.save()
-
-    if author_name:
-        existing = Author.objects.filter(name=author_name)
-        if not existing:
-            author=Author(status=0, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-            author.save()
-            article.author_id = author.id
-            article.status = article.AUTHOR_ASSOCIATED
-            article.save()
-    else:
-         article.status = Article.AUTHOR_NOT_FOUND
-         article.save()
 
 
 # Get sentiment from AWS
@@ -182,7 +181,7 @@ def analyze_sentiment():
 @shared_task
 def allocate_credibility():
     for sharer in Sharer.objects.all():
-        shares = Share.objects.filter(sharer_id=sharer.id, net_sentiment__isnull=False)
+        shares = Share.objects.filter(sharer_id=sharer.id, status=SENTIMENT_CALCULATED, net_sentiment__isnull=False)
         if not shares.exists():
             continue
         total_points = 0
@@ -202,4 +201,6 @@ def allocate_credibility():
                 continue
             t = Tranche(status=0, tags='', sender=sharer.id, receiver=author.id, quantity = share_cred, category=sharer.category, type=author.status)
             t.save()
+            s.status = CREDIBILITY_ALLOCATED
+            s.save()
             
