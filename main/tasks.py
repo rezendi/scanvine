@@ -1,16 +1,14 @@
-from celery import shared_task, group, signature
+import os
 import json
-from .models import *
-import yaml
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from celery import shared_task, group, signature
+from .models import *
 
 # Launch Twitter API - TODO move this to TwitterService
-keys_file = open(".keys.yaml")
-parsed_keys = yaml.load(keys_file, Loader=yaml.SafeLoader)
-api = twitter.Api(consumer_key=parsed_keys['API_KEY'],
-                  consumer_secret=parsed_keys['API_SECRET'],
-                  access_token_key=parsed_keys['TOKEN_KEY'],
-                  access_token_secret=parsed_keys['TOKEN_SECRET'])
+api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
+                  consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
+                  access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
+                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''))
 #                 sleep_on_rate_limit=True)
 
 

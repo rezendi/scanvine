@@ -1,4 +1,5 @@
 .env
+env.env
 .git
 .gitignore
 .DS_Store
@@ -14,5 +15,6 @@ __pycache__
 .Python
 build/
 dist/
+data/
 flower
 db.sqlite3
