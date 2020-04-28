@@ -2,62 +2,51 @@ from django.contrib import admin
 
 from .models import *
 
+class ScanvineAdmin(admin.ModelAdmin):
+    list_per_page = 100
+    ordering = ('-created_at',)
+    list_filter = ('created_at', 'updated_at', 'status')
+
 @admin.register(Sharer)
-class SharerAdmin(admin.ModelAdmin):
+class SharerAdmin(ScanvineAdmin):
     list_display = ('twitter_screen_name', 'name', 'profile')
-    ordering = ('created_at',)
     search_fields = ('twitter_screen_name', 'name', 'profile')
-    list_filter = ('created_at', 'updated_at')
 
 @admin.register(Article)
-class ArticleAdmin(admin.ModelAdmin):
-    list_display = ('created_at', 'title',)
-    ordering = ('created_at',)
+class ArticleAdmin(ScanvineAdmin):
+    list_display = ('created_at', 'status', 'publication', 'title',)
+    list_filter = ('created_at', 'publication')
     search_fields = ('title',)
-    list_filter = ('created_at',)
 
 @admin.register(Author)
-class AuthorAdmin(admin.ModelAdmin):
+class AuthorAdmin(ScanvineAdmin):
     list_display = ('created_at', 'name',)
-    ordering = ('created_at',)
     search_fields = ('name',)
-    list_filter = ('created_at', 'updated_at')
 
 admin.site.register(Collaboration)
 
 @admin.register(Publication)
-class PublicationAdmin(admin.ModelAdmin):
+class PublicationAdmin(ScanvineAdmin):
     list_display = ('name', 'url', 'average_credibility', 'total_credibility')
-    ordering = ('-created_at',)
     search_fields = ('name',)
-    list_filter = ('created_at', 'updated_at')
 
 @admin.register(MetadataParser)
-class MetadataParserAdmin(admin.ModelAdmin):
+class MetadataParserAdmin(ScanvineAdmin):
     list_display = ('name',)
-    ordering = ('-created_at',)
     search_fields = ('contents',)
-    list_filter = ('created_at', 'updated_at')
 
 @admin.register(PublicationParser)
-class PublicationParserAdmin(admin.ModelAdmin):
+class PublicationParserAdmin(ScanvineAdmin):
     list_display = ('publication', 'parser', 'as_of')
-    ordering = ('-created_at',)
-    list_filter = ('created_at', 'updated_at')
 
 @admin.register(Share)
-class ShareAdmin(admin.ModelAdmin):
-    list_display = ('sharer', 'text', 'url', 'article')
-    ordering = ('-created_at',)
+class ShareAdmin(ScanvineAdmin):
+    list_display = ('sharer', 'status', 'url', 'article')
     search_fields = ('text',)
-    list_filter = ('created_at')
-    list_filter = ('created_at',)
 
 @admin.register(Tranche)
 class TrancheAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'tags')
-    ordering = ('-created_at',)
     search_fields = ('tags',)
-    list_filter = ('created_at',)
 
 # possibly eventually https://stackoverflow.com/questions/5544629/retrieve-list-of-tasks-in-a-queue-in-celery/9369466#9369466

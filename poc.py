@@ -23,8 +23,11 @@ if not settings.configured:
 from main.models import *
 from main import tasks
 
-#result = tasks.update_sharers_list.delay()
-#output = result.wait(timeout=None, interval=0.5)
+result = tasks.update_sharers_list.delay()
+output = result.wait(timeout=None, interval=0.5)
+
+result = tasks.ingest_sharers_list.delay()
+output = result.wait(timeout=None, interval=0.5)
 
 result = tasks.fetch_shares.delay()
 output = result.wait(timeout=None, interval=0.5)
@@ -32,9 +35,9 @@ output = result.wait(timeout=None, interval=0.5)
 result = tasks.associate_articles.delay()
 output = result.wait(timeout=None, interval=0.5)
 
-#tasks.analyze_sentiment.delay()
-#output = result.wait(timeout=None, interval=0.5)
+tasks.analyze_sentiment.delay()
+output = result.wait(timeout=None, interval=0.5)
 
-#result = tasks.allocate_credibility.delay()
-#output = result.wait(timeout=None, interval=0.5)
+result = tasks.allocate_credibility.delay()
+output = result.wait(timeout=None, interval=0.5)
 

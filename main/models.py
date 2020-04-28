@@ -3,7 +3,11 @@ from django.db import models
 # Create your models here.
 
 class Sharer(models.Model):
-    status = models.IntegerField(db_index=True)
+    class Status(models.IntegerChoices):
+        CREATED = 0
+        LISTED = 1
+    
+    status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField()
     twitter_list_id = models.BigIntegerField(null=True)
     twitter_id = models.BigIntegerField(null=True, db_index=True)
@@ -15,11 +19,16 @@ class Sharer(models.Model):
     previous_metadata = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    #statuses
-    LISTED = 1
+
+    def __str__(self):
+        return "%s (%s)" % (self.twitter_screen_name, self.id)
+
 
 class Author(models.Model):
-    status = models.IntegerField(db_index=True)
+    class Status(models.IntegerChoices):
+        CREATED = 0
+
+    status = models.IntegerField(db_index=True, choices=Status.choices)
     name = models.CharField(max_length=255)
     is_collaboration = models.BooleanField()
     metadata = models.TextField()
@@ -28,9 +37,14 @@ class Author(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return "%s (%s)" % (self.name, self.id)
+
+
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
     individual = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborations')
+
 
 # might need to break this down into separate publication and site tables
 class Publication(models.Model):
@@ -43,6 +57,10 @@ class Publication(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return "%s (%s)" % (self.name, self.id)
+
+
 class MetadataParser(models.Model):
     status = models.IntegerField()
     name = models.CharField(max_length=255)
@@ -50,6 +68,10 @@ class MetadataParser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def __str__(self):
+        return "%s (%s)" % (self.name, self.id)
+
+
 class PublicationParser(models.Model):
     publication = models.ForeignKey(Publication, on_delete = models.PROTECT)
     parser = models.ForeignKey(MetadataParser, on_delete = models.PROTECT)
@@ -58,11 +80,20 @@ class PublicationParser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
 class Article(models.Model):
+    class Status(models.IntegerChoices):
+        CREATED = 0
+        METADATA_PARSED = 1
+        AUTHOR_ASSOCIATED = 2
+        #errors
+        METADATA_PARSE_ERROR = -1
+        AUTHOR_NOT_FOUND = -2
+    
     publication = models.ForeignKey(Publication, null=True, blank=True, on_delete = models.SET_NULL)
     author = models.ForeignKey(Author, null=True, blank=True, on_delete = models.SET_NULL)
     language = models.CharField(max_length = 5, db_index=True)
-    status = models.IntegerField(db_index=True)
+    status = models.IntegerField(choices=Status.choices, db_index=True)
     url = models.URLField(db_index=True)
     initial_url = models.URLField(null=True, blank=True)
     title = models.CharField(blank=True, max_length=255)
@@ -72,17 +103,24 @@ class Article(models.Model):
     first_published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
-    #statuses
-    METADATA_PARSED = 1
-    AUTHOR_ASSOCIATED = 2
-    #error statuses
-    METADATA_PARSE_ERROR = -1
-    AUTHOR_NOT_FOUND = -1
+
+    def __str__(self):
+        return "%s (%s)" % (self.title, self.id)
+
 
 class Share(models.Model):
+    class Status(models.IntegerChoices):
+        CREATED = 0
+        ARTICLE_ASSOCIATED = 1
+        SENTIMENT_CALCULATED = 2
+        CREDIBILITY_ALLOCATED = 3
+        #errors
+        FETCH_ERROR = -1
+        ARTICLE_ERROR = -2
+
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
     article = models.ForeignKey(Article, null=True, blank=True, on_delete = models.SET_NULL)
-    status = models.IntegerField(db_index=True)
+    status = models.IntegerField(choices=Status.choices, db_index=True)
     twitter_id = models.BigIntegerField(null=True, db_index=True)
     source = models.IntegerField(default=0, db_index=True)
     language = models.CharField(max_length = 5, db_index=True)
@@ -92,13 +130,10 @@ class Share(models.Model):
     net_sentiment = models.DecimalField(null = True, decimal_places = 2, max_digits = 4, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    #statuses
-    ARTICLE_ASSOCIATED = 1
-    SENTIMENT_CALCULATED = 2
-    CREDIBILITY_ALLOCATED = 3
-    #error statuses
-    FETCH_ERROR = -1
-    ARTICLE_ERROR = -2
+
+    def __str__(self):
+        return "Share %s" % (self.id)
+
 
 class Tranche(models.Model):
     source = models.IntegerField()
