@@ -1,0 +1,19 @@
+{% extends "admin/change_list.html" %}
+{% block content_title %}
+    <h1> Jobs </h1>
+{% endblock %}
+{% block result_list %}
+    <div>
+        <ul>
+        <li><a href="update_sharers">Update sharers</a>
+        <li><a href="ingest_sharers">Ingest sharers</a>
+        <li><a href="fetch_shares">Fetch shares</a>
+        <li><a href="associate_articles">Associate articles</a>
+        <li><a href="parse_unparsed">Parse unparsed</a>
+        <li><a href="analyze_sentiment">Analyze sentiment</a>
+        <li><a href="allocate_credibility">Allocate credibility</a>
+        <li><a href="agglomerate_credibility">Agglomerate credibility</a>
+        </ul>
+    </div>
+{% endblock %}
+{% block pagination %}{% endblock %}

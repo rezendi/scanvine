@@ -40,6 +40,9 @@ class Author(models.Model):
     def __str__(self):
         return "%s (%s)" % (self.name, self.id)
 
+    def get_absolute_url(self):
+        return "/authors/%s" % self.id
+
 
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
@@ -59,6 +62,9 @@ class Publication(models.Model):
 
     def __str__(self):
         return "%s (%s)" % (self.name, self.id)
+
+    def get_absolute_url(self):
+        return "/publications/%s" % self.id
 
 
 class MetadataParser(models.Model):
@@ -144,5 +150,11 @@ class Tranche(models.Model):
     category = models.IntegerField()
     type = models.IntegerField()
     tags = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class Job(models.Model):
+    status = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
