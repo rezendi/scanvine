@@ -4,6 +4,11 @@ import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/tw
 from celery import shared_task, group, signature
 from .models import *
 
+if not 'DJANGO_SECRET_KEY' in os.environ:
+    from dotenv import load_dotenv
+    project_folder = os.path.expanduser('~/dev/private/scanvine')
+    load_dotenv(os.path.join(project_folder, '.env'))
+
 # Launch Twitter API - TODO move this to TwitterService
 api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   consumer_secret=os.getenv('TWITTER_API_SECRET', ''),

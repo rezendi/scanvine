@@ -4,5 +4,6 @@ boto3 == 1.12.43
 celery == 4.4.2
 flower == 0.9.4
 python-twitter == 3.5
+python-dotenv == 0.13.0
 requests == 2.23.0
 urllib3 == 1.25.9

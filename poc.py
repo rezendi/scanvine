@@ -2,6 +2,11 @@ import django, os
 from django.conf import settings
 from celery import Celery
 
+if not 'DJANGO_SECRET_KEY' in os.environ:
+    from dotenv import load_dotenv
+    project_folder = os.path.expanduser('~/dev/private/scanvine')
+    load_dotenv(os.path.join(project_folder, '.env'))
+
 if not settings.configured:
     settings.configure(DEBUG=True)
     settings.BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,8 +29,8 @@ from main import tasks
 # result = tasks.get_poc_sharers_list.delay()
 # output = result.wait(timeout=None, interval=0.5)
 
-result = tasks.fetch_shares.delay()
-output = result.wait(timeout=None, interval=0.5)
+# result = tasks.fetch_shares.delay()
+# output = result.wait(timeout=None, interval=0.5)
 
 result = tasks.associate_articles.delay()
 output = result.wait(timeout=None, interval=0.5)
