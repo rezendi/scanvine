@@ -1,5 +1,6 @@
 import os
 import json
+import urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
 from .models import *
@@ -9,13 +10,14 @@ if not 'DJANGO_SECRET_KEY' in os.environ:
     project_folder = os.path.expanduser('~/dev/private/scanvine')
     load_dotenv(os.path.join(project_folder, '.env'))
 
-# Launch Twitter API - TODO move this to TwitterService
+# Launch Twitter API - TODO move this to TwitterService?
 api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
                   access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
                   access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''))
 #                 sleep_on_rate_limit=True)
 
+http = urllib3.PoolManager()
 
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
@@ -50,9 +52,10 @@ def ingest_sharers_list():
 # Get list statuses, filter those with external links
 @shared_task
 def fetch_shares():
-    timeline = api.GetListTimeline(list_id=LIST_ID, count = 400, include_rts=1, return_json=True)
-    # timeline = api.GetListTimeline(list_id=15084461, count = 400, include_rts=1, return_json=True)
-    link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
+    timeline = api.GetListTimeline(list_id=LIST_ID, count = 200, include_rts=True, return_json=True)
+    print("Got %s unfiltered statuses" % len(timeline))
+    link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
+                      'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
     link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
 
     print("Got %s statuses" % len(link_statuses))
@@ -70,50 +73,55 @@ def fetch_shares():
         existing = Share.objects.filter(twitter_id=status['id'])
         if existing:
             continue
-        else:
-            try:
-                sharer = Sharer.objects.get(twitter_id=status['user_id'])
-                s = Share(source=0, language='en', status=Share.Status.CREATED,
-                          sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
-                s.save()
-                new_share_count += 1
-            except:
-                print("Sharer not found %s %s %s" % (status['user_id'], status['id'], status['text']))
+        sharer = Sharer.objects.filter(twitter_id=status['user_id'])
+        if not sharer:
+            print("Sharer not found %s %s" % (status['user_id'], status['screen_name']))
+            continue
+        sharer = sharer[0]
+        s = Share(source=0, language='en', status=Share.Status.CREATED,
+                  sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
+        s.save()
+        new_share_count += 1
 
     print("%s new shares" % new_share_count)
 
 
 @shared_task
 def associate_articles():
-    jobs = []
     for share in Share.objects.filter(status=Share.Status.CREATED):
         existing = Article.objects.filter(initial_url=share.url)
         if existing:
             continue
-        s = signature(associate_article(share.id))
-        jobs.append(s)
-    job = group(jobs)
-    job.apply_async()
+        s = associate_article.signature((share.id,))
+        print("signature %s" % s)
+        s.apply_async()
 
+
+@shared_task
 def associate_article(share_id):
-    import urllib3
     share = Share.objects.get(id=share_id)
-    http = urllib3.PoolManager()
     try:
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
-    except:
-         share.status = Share.Status.FETCH_ERROR
-         share.save()
-         return
+        article = Article(status=Article.Status.CREATED, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
+        article.save()
+        share.article_id = article.id
+        share.status = Share.Status.ARTICLE_ASSOCIATED
+        share.save()
+        s = parse_article_metadata.signature((article.id,))
+        s.apply_async()
+    except Exception as ex:
+        print("Article fetch error %s" % ex)
+        share.status = Share.Status.FETCH_ERROR
+        share.save()
 
-    article = Article(status=Article.Status.CREATED, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
-    article.save()
-    share.article_id = article.id
-    share.status = Share.Status.ARTICLE_ASSOCIATED
-    share.save()
-    signature(parse_article_metadata(article.id)).apply_async()
 
+@shared_task
+def parse_unparsed_articles():
+    for article in Article.objects.filter(status = Article.Status.CREATED):
+        s = parse_article_metadata.signature((article.id,))
+        s.apply_async()
+        
 
 @shared_task
 def parse_article_metadata(article_id):
@@ -162,8 +170,8 @@ def parse_article_metadata(article_id):
              article.status = Article.Status.AUTHOR_NOT_FOUND
              article.save()
     
-    except:
-        print("Metadata parse error")
+    except Exception as ex:
+        print("Metadata parse error %s" % ex)
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()
 
@@ -175,6 +183,7 @@ def analyze_sentiment():
     sentiments = []
     comprehend = boto3.client(service_name='comprehend')
     for share in Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED):
+        print("Calling AWS")
         sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
         score = sentiment['SentimentScore']
         share.sentiment = score
