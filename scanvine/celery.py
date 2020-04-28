@@ -4,7 +4,7 @@ from celery import Celery
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'scanvine.settings')
 
-app = Celery('scanvine', backend='rpc://')
+app = Celery('scanvine', broker = 'amqp://guest:guest@localhost:5672', backend = 'rpc://')
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.

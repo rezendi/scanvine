@@ -3,39 +3,43 @@ version: '3.5'
 services:
   django:
     build: .
-    image: &app app
+    image: &scanvine scanvine
+    env_file: .env
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     ports:
       - "8000:8000"
-    env_file: &envfile
-      - ./env.env
     volumes:
       - .:/code
     depends_on:
-      - broker
       - db
+      - rabbitmq
 
   worker:
     build: .
-    image: *app
+    image: *scanvine
     restart: on-failure
-    env_file: *envfile
+    env_file: .env
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
     command: ["celery", "worker", "--app=scanvine", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO"]
     volumes:
       - ./app:/app
     depends_on:
-      - broker
+      - db
+      - rabbitmq
 
   flower:
-    image: zoomeranalytics/flower:0.9.1-4.0.2
+    image: mher/flower
     restart: on-failure
-    env_file: *envfile
+    command: ["flower", "--broker=amqp://guest:guest@rabbitmq:5672"]
     ports:
       - "5555:5555"
     depends_on:
-      - broker
+      - rabbitmq
 
-  broker:
+  rabbitmq:
     image: rabbitmq
     restart: on-failure
     ports:
