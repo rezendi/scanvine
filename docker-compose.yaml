@@ -1,0 +1,27 @@
+version: '2'
+services:
+
+  django:
+    build: .
+    command: python manage.py runserver
+    ports:
+      - "8000:8000"
+    # env_file: ./.env.production
+    volumes:
+      - .:/code
+    depends_on:
+      - rabbitmq
+      - db
+
+  rabbitmq:
+    image: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=scanvine
+      - POSTGRES_PASSWORD=grapevine
