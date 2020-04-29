@@ -3,6 +3,7 @@ import json
 import urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
+from .article_parsers import *
 from .models import *
 
 if not 'DJANGO_SECRET_KEY' in os.environ:
@@ -125,6 +126,7 @@ def parse_unparsed_articles():
 @shared_task
 def parse_article_metadata(article_id):
     article = Article.objects.get(id=article_id)
+    domain = None
     try:
         parsed = urllib3.util.parse_url(article.url)
         domain = parsed.host
@@ -133,6 +135,7 @@ def parse_article_metadata(article_id):
         if existing:
             publication = existing[0]
         else:
+            print("Creating publication for %s url %s" % (domain, article.url))
             publication = Publication(status=0, name='', domain=domain, average_credibility=0, total_credibility=0)
             publication.save()
         article.publication = publication
@@ -145,7 +148,7 @@ def parse_article_metadata(article_id):
 
     html = article.contents
     try:
-        (metadata, title, author_name) = parse_article(html)
+        (metadata, title, author_name) = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
         article.title = title if title else article.title
         if author_name:
@@ -218,36 +221,34 @@ def allocate_credibility():
             
 
 from bs4 import BeautifulSoup
-def parse_article(html):
-    metadata = ''
-    title = ''
-    author_name = ''
+def parse_article(domain, html):
+    metadata = title = author_name = ''
     soup = BeautifulSoup(html, "html.parser")
-    if html.find("application/ld+json") > 0:
-        metadata = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
-    if html.find("npr-vars") > 0:
-        npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-        metadata = npr.partition("NPR.serverVars = ")[2][:-2]
-
-    # TODO replace with various different metadata parsers
-    meta = json.loads(metadata)
-    title = meta['headline'] if 'headline' in meta else title
-    title = meta['title'] if 'title' in meta else title        
-    if 'byline' in meta:
-        author_name = meta['byline']
-    if 'name' in meta:
-        author_name = meta['name']
-    if 'author' in meta:
-        inner = meta['author']
-        if type(inner) is list:
-            subinner = inner[0]
-            if type(subinner) is dict:
-                author_name = subinner['name']
-            else:
-                author_name = subinner
-        if type(inner) is dict:
-            author_name=inner['name']
-        else:
-            author_name=inner
     
+    parser_contents = None
+    publications = Publication.objects.filter(domain=domain)
+    if publications:
+        parsers = PublicationParser.objects.filter(publication_id=publications[0].id, status=1)
+        if parsers:
+            parser_contents = parsers[0].contents
+    
+    #special case for dev/test
+    if domain=='npr.org':
+        parsers = Metadata.Parser.objects.filter(name="NPR")
+        parser_contents = parsers[0].contents if parsers else "{'method':'npr_parser'}"
+    
+    if parser_contents:
+        parser_values = json.loads(parser_contents)
+        method = parser_values['method']
+        parser = locals()[method]
+        (metadata, title, author_name) = parser(html, soup)
+    
+    if metadata:
+        return (metadata, title, author_name)
+
+    # custom parsing not applicable, let's try generic parsing
+    if html.find("application/ld+json") > 0:
+        (metadata, title, author_name) = json_ld_parser(soup)
+    
+    # try other genetic parsing: meta tags, OpenGrab, Twitter, Google, etc.
     return (metadata, title, author_name)
