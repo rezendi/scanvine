@@ -20,25 +20,35 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 
 http = urllib3.PoolManager()
 
+verified_ids_cursor = -1
+
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
-def update_sharers_list():
-    ids = api.GetFriendIDs(screen_name='verified', count=5000, total_count=5000)
-    users = api.UsersLookup(user_id=ids[0:99], include_entities=False)
-    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
+def get_potential_sharer_ids():
+    (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=1000, cursor = verified_ids_cursor)
+    chunks = [lst[i:i + 100] for i in range(0, len(verified_ids), 100)]
+    for chunk in chunks:
+        add_new_sharers.signature((chunk,)).apply_async
+
+# Get a tranche of verified users, add them to the DB if not there
+# https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
+@shared_task
+def add_new_sharers(verified_ids):
+    users = api.UsersLookup(user_id=verified_ids[0:99], include_entities=False)
+    filtered = get_sharers_from_users(users)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
       s = Sharer(twitter_id=n['id'], status=Sharer.Status.CREATED, name=n['name'],
                  twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
       s.save()
 
-LIST_ID = 1254145545246916608
 
+LIST_ID = 1255581634486648833
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task
-def ingest_sharers_list():
+def ingest_sharers():
     sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
     listed_ids = [u.id for u in listed]
@@ -49,6 +59,7 @@ def ingest_sharers_list():
         for s in sharers:
           s.status = Sharer.Status.LISTED
           s.save()    
+
 
 # Get list statuses, filter those with external links
 @shared_task
@@ -252,3 +263,10 @@ def parse_article(domain, html):
     
     # try other genetic parsing: meta tags, OpenGrab, Twitter, Google, etc.
     return (metadata, title, author_name)
+
+
+def get_sharers_from_users(users):
+    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
+    # TODO: only get desired users
+    return filtered
+    

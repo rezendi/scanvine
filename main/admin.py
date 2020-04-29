@@ -66,7 +66,7 @@ class JobAdmin(ScanvineAdmin):
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
-            path('update_sharers/',         self.update_sharers),
+            path('add_new_sharers/',         self.add_new_sharers),
             path('ingest_sharers/',         self.ingest_sharers),
             path('fetch_shares/',           self.fetch_shares),
             path('associate_articles/',     self.associate_articles),
@@ -76,12 +76,12 @@ class JobAdmin(ScanvineAdmin):
         ]
         return my_urls + urls
     
-    def update_sharers(self, request):
-        update_sharers_list.delay()
+    def add_new_sharers(self, request):
+        add_new_sharers.delay()
         return redirect('/admin/main/job/')
         
     def ingest_sharers(self, request):
-        ingest_sharers_list.delay()
+        ingest_sharers.delay()
         return redirect('/admin/main/job/')
 
     def fetch_shares(self, request):
