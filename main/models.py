@@ -53,7 +53,7 @@ class Collaboration(models.Model):
 class Publication(models.Model):
     status = models.IntegerField(db_index=True)
     name = models.CharField(max_length=255)
-    url = models.URLField()
+    domain = models.CharField(db_index=True, max_length=255)
     url_policy = models.CharField(max_length=255, blank=True, default='')
     average_credibility = models.IntegerField()
     total_credibility = models.IntegerField()
@@ -91,10 +91,12 @@ class Article(models.Model):
     class Status(models.IntegerChoices):
         CREATED = 0
         METADATA_PARSED = 1
-        AUTHOR_ASSOCIATED = 2
+        PUBLISHER_ASSOCIATED = 2
+        AUTHOR_ASSOCIATED = 3
         #errors
-        METADATA_PARSE_ERROR = -1
-        AUTHOR_NOT_FOUND = -2
+        PUBLICATION_PARSE_ERROR = -1
+        METADATA_PARSE_ERROR = -2
+        AUTHOR_NOT_FOUND = -3
     
     publication = models.ForeignKey(Publication, null=True, blank=True, on_delete = models.SET_NULL)
     author = models.ForeignKey(Author, null=True, blank=True, on_delete = models.SET_NULL)

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from django.shortcuts import redirect
 from celery import Celery
 from .tasks import *
 from .models import *
@@ -16,8 +17,8 @@ class SharerAdmin(ScanvineAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(ScanvineAdmin):
-    list_display = ('title', 'status', 'publication', 'created_at',)
-    list_filter = ('created_at', 'publication')
+    list_display = ('id', 'title', 'status', 'publication', 'created_at',)
+    list_filter = ('created_at', 'status')
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
 
@@ -31,7 +32,7 @@ admin.site.register(Collaboration)
 
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
-    list_display = ('name', 'url', 'average_credibility', 'total_credibility')
+    list_display = ('domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name',)
 
 @admin.register(MetadataParser)
@@ -77,31 +78,31 @@ class JobAdmin(ScanvineAdmin):
     
     def update_sharers(self, request):
         update_sharers_list.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
         
     def ingest_sharers(self, request):
         ingest_sharers_list.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
     def fetch_shares(self, request):
         fetch_shares.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
     def associate_articles(self, request):
         associate_articles.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
     def parse_unparsed(self, request):
         parse_unparsed_articles.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
     def analyze_sentiment(self, request):
         analyze_sentiment.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
     def allocate_credibility(self, request):
         allocate_credibility.delay()
-        return super().changelist_view(request);
+        return redirect('/admin/main/job/')
 
 
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad

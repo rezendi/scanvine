@@ -66,7 +66,7 @@ def fetch_shares():
         # print('status %s' % status['text'])
         # TODO: handle multiple URLs
         url = status['urls'][0]['expanded_url']
-        # TODO: filter out url cruft more elegantly
+        # TODO: filter out url cruft more elegantly, depending on site eg not for YouTube
         url = url.partition("?")[0]
     
         # get existing share, if any, for idempotency
@@ -89,17 +89,16 @@ def fetch_shares():
 @shared_task
 def associate_articles():
     for share in Share.objects.filter(status=Share.Status.CREATED):
-        existing = Article.objects.filter(initial_url=share.url)
-        if existing:
-            continue
         s = associate_article.signature((share.id,))
-        print("signature %s" % s)
         s.apply_async()
 
 
 @shared_task
 def associate_article(share_id):
     share = Share.objects.get(id=share_id)
+    existing = Article.objects.filter(initial_url=share.url)
+    if existing:
+        return
     try:
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
@@ -118,60 +117,52 @@ def associate_article(share_id):
 
 @shared_task
 def parse_unparsed_articles():
-    for article in Article.objects.filter(status = Article.Status.CREATED):
+    for article in Article.objects.filter(status__lte=Article.Status.CREATED):
         s = parse_article_metadata.signature((article.id,))
         s.apply_async()
         
 
 @shared_task
 def parse_article_metadata(article_id):
-    from bs4 import BeautifulSoup
     article = Article.objects.get(id=article_id)
-    author_name = None
     try:
-        html = article.contents
-        soup = BeautifulSoup(html, "html.parser")
-        if html.find("application/ld+json") > 0:
-            article.metadata = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
-        if html.find("npr-vars") > 0:
-            npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-            article.metadata = npr.partition("NPR.serverVars = ")[2][:-2]
+        parsed = urllib3.util.parse_url(article.url)
+        domain = parsed.host
+        publication = None
+        existing = Publication.objects.filter(domain=domain)
+        if existing:
+            publication = existing[0]
+        else:
+            publication = Publication(status=0, name='', domain=domain, average_credibility=0, total_credibility=0)
+            publication.save()
+        article.publication = publication
+        article.status = Article.Status.PUBLISHER_ASSOCIATED
+        article.save()
+    except Exception as ex1:
+        print("Publication parse error %s" % ex1)
+        article.status = Article.Status.PUBLICATION_PARSE_ERROR
+        article.save()
 
-        # TODO replace with various different metadata parsers
-        meta = json.loads(article.metadata)
-        article.title = meta['headline'] if 'headline' in meta else article.title
-        article.title = meta['title'] if 'title' in meta else article.title        
-        if 'byline' in meta:
-            author_name = meta['byline']
-        if 'name' in meta:
-            author_name = meta['name']
-        if 'author' in meta:
-            inner = meta['author']
-            if type(inner) is list:
-                subinner = inner[0]
-                if type(subinner) is dict:
-                    author_name = subinner['name']
-                else:
-                    author_name = subinner
-            if type(inner) is dict:
-                author=inner['name']
-            else:
-                author=inner
-
+    html = article.contents
+    try:
+        (metadata, title, author_name) = parse_article(html)
+        article.metadata = metadata if metadata else article.metadata
+        article.title = title if title else article.title
         if author_name:
+            author = None
             existing = Author.objects.filter(name=author_name)
+            if existing:
+                author = existing[0]
             if not existing:
                 author=Author(status=Author.Status.CREATED, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
                 author.save()
-                article.author_id = author.id
-                article.status = Article.Status.AUTHOR_ASSOCIATED
-                article.save()
+            article.author_id = author.id
+            article.status = Article.Status.AUTHOR_ASSOCIATED
         else:
-             article.status = Article.Status.AUTHOR_NOT_FOUND
-             article.save()
-    
-    except Exception as ex:
-        print("Metadata parse error %s" % ex)
+            article.status = Article.Status.AUTHOR_NOT_FOUND
+        article.save()
+    except Exception as ex2:
+        print("Metadata parse error %s" % ex2)
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()
 
@@ -225,3 +216,38 @@ def allocate_credibility():
             s.status = Share.Status.CREDIBILITY_ALLOCATED
             s.save()
             
+
+from bs4 import BeautifulSoup
+def parse_article(html):
+    metadata = ''
+    title = ''
+    author_name = ''
+    soup = BeautifulSoup(html, "html.parser")
+    if html.find("application/ld+json") > 0:
+        metadata = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
+    if html.find("npr-vars") > 0:
+        npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+        metadata = npr.partition("NPR.serverVars = ")[2][:-2]
+
+    # TODO replace with various different metadata parsers
+    meta = json.loads(metadata)
+    title = meta['headline'] if 'headline' in meta else title
+    title = meta['title'] if 'title' in meta else title        
+    if 'byline' in meta:
+        author_name = meta['byline']
+    if 'name' in meta:
+        author_name = meta['name']
+    if 'author' in meta:
+        inner = meta['author']
+        if type(inner) is list:
+            subinner = inner[0]
+            if type(subinner) is dict:
+                author_name = subinner['name']
+            else:
+                author_name = subinner
+        if type(inner) is dict:
+            author_name=inner['name']
+        else:
+            author_name=inner
+    
+    return (metadata, title, author_name)
