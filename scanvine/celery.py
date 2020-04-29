@@ -13,10 +13,10 @@ app = Celery('scanvine', broker = 'amqp://guest:guest@localhost:5672', backend =
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # set rate limit for tasks to avoid Twitter rate limiting
-app.control.rate_limit('main.get_potential_sharer_ids', '1/m')
-app.control.rate_limit('main.add_new_sharers', '20/m')
-app.control.rate_limit('main.ingest_sharers', '40/h')
-app.control.rate_limit('main.fetch_shares', '1/s')
+app.control.rate_limit('main.tasks.get_potential_sharer_ids', '1/m')
+app.control.rate_limit('main.tasks.add_new_sharers', '20/m')
+app.control.rate_limit('main.tasks.ingest_sharers', '40/h')
+app.control.rate_limit('main.tasks.fetch_shares', '1/s')
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()

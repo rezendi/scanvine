@@ -25,9 +25,11 @@ http = urllib3.PoolManager()
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
 def get_potential_sharer_ids():
-    verified_ids_cursor = -1 # TODO move this to runtime scope
-    (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=1000, cursor = verified_ids_cursor)
-    chunks = [lst[i:i + 100] for i in range(0, len(verified_ids), 100)]
+    # verified_ids_cursor = -1 # TODO move this to runtime scope
+    # (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=5000, cursor = verified_ids_cursor)
+    (next, prev, members) = api.GetListMembersPaged(list_id=2129346)
+    verified_ids = [u.id for u in members]
+    chunks = [verified_ids[i:i + 100] for i in range(0, len(verified_ids), 100)]
     for chunk in chunks:
         add_new_sharers.signature((chunk,)).apply_async
 
@@ -112,6 +114,7 @@ def associate_article(share_id):
     if existing:
         return
     try:
+        print("Fetching %s" % share.url)
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
         article = Article(status=Article.Status.CREATED, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
@@ -137,6 +140,7 @@ def parse_unparsed_articles():
 @shared_task
 def parse_article_metadata(article_id):
     article = Article.objects.get(id=article_id)
+    print("Parsing article %s" % article.url)
     domain = None
     try:
         parsed = urllib3.util.parse_url(article.url)
@@ -159,9 +163,10 @@ def parse_article_metadata(article_id):
 
     html = article.contents
     try:
-        (metadata, title, author_name) = parse_article(domain, html)
+        metadata = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
-        article.title = title if title else article.title
+        article.title = metadata['title'] if 'title' in metadata else article.title
+        author_name = metadata['author'] if 'author' in metadata else None
         if author_name:
             author = None
             existing = Author.objects.filter(name=author_name)
@@ -171,14 +176,16 @@ def parse_article_metadata(article_id):
                 author=Author(status=Author.Status.CREATED, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
                 author.save()
             article.author_id = author.id
+            print("Author associated to article %s" % article.url)
             article.status = Article.Status.AUTHOR_ASSOCIATED
         else:
-            article.status = Article.Status.AUTHOR_NOT_FOUND
+            article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
         article.save()
     except Exception as ex2:
-        print("Metadata parse error %s" % ex2)
+        print("Metadata parse error %s for %s" % (ex2, article.url))
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()
+        raise ex2
 
 
 # Get sentiment from AWS
@@ -233,8 +240,8 @@ def allocate_credibility():
 
 from bs4 import BeautifulSoup
 def parse_article(domain, html):
-    metadata = title = author_name = ''
     soup = BeautifulSoup(html, "html.parser")
+    metadata = {'title' : soup.title.string}
     
     parser_contents = None
     publications = Publication.objects.filter(domain=domain)
@@ -243,27 +250,30 @@ def parse_article(domain, html):
         if parsers:
             parser_contents = parsers[0].contents
     
-    #special case for dev/test
-    if domain=='npr.org':
-        parsers = Metadata.Parser.objects.filter(name="NPR")
-        parser_contents = parsers[0].contents if parsers else "{'method':'npr_parser'}"
+    # custom parsing not applicable, let's try generic parsing
+    if html.find("application/ld+json") > 0:
+        metadata.update(json_ld_parser(soup))
     
+    if html.find("<meta ") > 0:
+        metadata = meta_parser(soup)
+
+    # get parser from db
+    parser_contents = ''
+    publications = Publication.objects.filter(domain=domain)
+    if publications:
+        parsers = PublicationParser.objects.filter(publication_id=publications[0].id, status__gte=0)
+        if parsers:
+            parser_contents = parsers[0].contents
+    #special case for dev/test
+    parser_contents = "{'method':'npr_parser'}" if domain=='npr.org' and not parsers else parser_contents
+
     if parser_contents:
         parser_values = json.loads(parser_contents)
         method = parser_values['method']
         parser = locals()[method]
-        (metadata, title, author_name) = parser(html, soup)
+        metadata.update(parser(soup))
     
-    if metadata:
-        return (metadata, title, author_name)
-
-    # custom parsing not applicable, let's try generic parsing
-    if html.find("application/ld+json") > 0:
-        (metadata, title, author_name) = json_ld_parser(soup)
-    
-    # try other genetic parsing: meta tags, OpenGrab, Twitter, Google, etc.
-    return (metadata, title, author_name)
-
+    return metadata
 
 def get_sharers_from_users(users):
     filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]

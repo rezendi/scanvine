@@ -1,19 +1,27 @@
 import json
 
 def npr_parser(html, soup):
-    if html.find("npr-vars") > 0:
-        npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-        metadata = npr.partition("NPR.serverVars = ")[2][:-2]
-        return (metadata, metadata['title'], metadata['byline'])
+    npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
+    metadata = npr.partition("NPR.serverVars = ")[2][:-2]
+    metadata['author'] = metadata['byline']
+    return metadata
 
 def json_ld_parser(soup):
-    metadata = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
-    meta = json.loads(metadata)
-    title = meta['headline'] if 'headline' in meta else ''
-    title = meta['title'] if 'title' in meta else title
-    author_name = ''
-    if 'author' in meta:
-        inner = meta['author']
+    metastring = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
+    try:
+        metadata = json.loads(metastring)
+        if type(metadata) is list:
+            metadata = metadata[0]
+    except Exception as ex:
+        print("Could not parse LD-JSON %s" % metastring)
+        return {}
+
+    if 'headline' in metadata and not 'title' in metadata:
+        metadata['title'] = metadata['headline']
+
+    author_name = None
+    if 'author' in metadata:
+        inner = metadata['author']
         if type(inner) is list:
             subinner = inner[0]
             if type(subinner) is dict:
@@ -24,6 +32,52 @@ def json_ld_parser(soup):
             author_name=inner['name']
         else:
             author_name=inner
-    if not author_name and 'name' in meta:
-        author_name = meta['name']
-    return (metadata, title, author_name)
+        metadata['author_field'] = metadata['author']
+    if not author_name and 'name' in metadata:
+        author_name = metadata['name']
+    if author_name:
+        metadata['author'] = author_name
+    return metadata
+
+def meta_parser(soup):
+    metadata = {}
+    for meta in soup.find_all("meta"):
+        attrs = meta.attrs
+        keys = list(attrs)
+        if 'name' in keys and 'content' in keys:
+            metadata[attrs['name']] = attrs['content']
+        if len(keys)==2 and 'content' in keys:
+            idx = 1 if keys[0]=='content' else 0
+            metadata[keys[idx]] = attrs['content']
+
+    if not 'author' in metadata:
+        author = soup.find("meta", {"name":"author"})
+        if not author:
+            author = soup.find("meta", {"property":"author"})
+        if not author:
+            author = soup.find("meta", {"itemprop":"author"})
+        if not author:
+            author = soup.find("meta", {"property":"og:author"})
+        if not author:
+            author = soup.find("meta", {"property":"twitter:author"})
+        if not author:
+            author = soup.find("meta", {"property":"sailthru:author"})
+        if author:
+            metadata['author'] = author.contents
+
+    if not 'title' in metadata:
+        title = soup.find("meta", {"name":"title"})
+        if not title:
+            title = soup.find("meta", {"property":"title"})
+        if not title:
+            title = soup.find("meta", {"itemprop":"title"})
+        if not title:
+            title = soup.find("meta", {"property":"og:title"})
+        if not title:
+            title = soup.find("meta", {"property":"twitter:title"})
+        if not title:
+            title = soup.find("meta", {"property":"sailthru:title"})
+        if title:
+            metadata['title'] = title.contents
+
+    return metadata

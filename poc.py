@@ -23,14 +23,11 @@ if not settings.configured:
 from main.models import *
 from main import tasks
 
-result = tasks.get_potential_sharer_ids().delay()
-output = result.wait(timeout=None, interval=0.5)
+# result = tasks.get_potential_sharer_ids.delay()
+# output = result.wait(timeout=None, interval=0.5)
 
-result = tasks.add_new_sharers.delay()
-output = result.wait(timeout=None, interval=0.5)
-
-result = tasks.ingest_sharers.delay()
-output = result.wait(timeout=None, interval=0.5)
+# result = tasks.ingest_sharers.delay()
+# output = result.wait(timeout=None, interval=0.5)
 
 result = tasks.fetch_shares.delay()
 output = result.wait(timeout=None, interval=0.5)
