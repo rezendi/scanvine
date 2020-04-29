@@ -20,12 +20,12 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 
 http = urllib3.PoolManager()
 
-verified_ids_cursor = -1
 
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
 def get_potential_sharer_ids():
+    verified_ids_cursor = -1 # TODO move this to runtime scope
     (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=1000, cursor = verified_ids_cursor)
     chunks = [lst[i:i + 100] for i in range(0, len(verified_ids), 100)]
     for chunk in chunks:
