@@ -50,6 +50,18 @@ LIST_ID = 1255581634486648833
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task
+def refresh_sharers():
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
+    filtered = get_sharers_from_users(listed)
+    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+    for n in new:
+      s = Sharer(twitter_id=n['id'], status=Sharer.Status.LISTED, name=n['name'],
+                 twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
+      s.save()
+
+
+# Take users from the DB, add them to our Twitter list if not there already
+@shared_task
 def ingest_sharers():
     sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
@@ -243,13 +255,6 @@ def parse_article(domain, html):
     soup = BeautifulSoup(html, "html.parser")
     metadata = {'title' : soup.title.string}
     
-    parser_contents = None
-    publications = Publication.objects.filter(domain=domain)
-    if publications:
-        parsers = PublicationParser.objects.filter(publication_id=publications[0].id, status=1)
-        if parsers:
-            parser_contents = parsers[0].contents
-    
     # custom parsing not applicable, let's try generic parsing
     if html.find("application/ld+json") > 0:
         metadata.update(json_ld_parser(soup))
@@ -258,17 +263,14 @@ def parse_article(domain, html):
         metadata = meta_parser(soup)
 
     # get parser from db
-    parser_contents = ''
+    parser_rules = ''
     publications = Publication.objects.filter(domain=domain)
     if publications:
-        parsers = PublicationParser.objects.filter(publication_id=publications[0].id, status__gte=0)
-        if parsers:
-            parser_contents = parsers[0].contents
+        parser_rules = publications[0].parser_rules
     #special case for dev/test
-    parser_contents = "{'method':'npr_parser'}" if domain=='npr.org' and not parsers else parser_contents
-
-    if parser_contents:
-        parser_values = json.loads(parser_contents)
+    parser_rules = "{'method':'npr_parser'}" if domain=='npr.org' and not publications else parser_rules
+    if parser_rules:
+        parser_values = json.loads(parser_rules)
         method = parser_values['method']
         parser = locals()[method]
         metadata.update(parser(soup))

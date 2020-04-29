@@ -55,6 +55,7 @@ class Publication(models.Model):
     name = models.CharField(max_length=255)
     domain = models.CharField(db_index=True, max_length=255)
     url_policy = models.CharField(max_length=255, blank=True, default='')
+    parser_rules = models.TextField(blank=True, default='')
     average_credibility = models.IntegerField()
     total_credibility = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -65,26 +66,6 @@ class Publication(models.Model):
 
     def get_absolute_url(self):
         return "/publications/%s" % self.id
-
-
-class MetadataParser(models.Model):
-    status = models.IntegerField()
-    name = models.CharField(max_length=255)
-    contents = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return "%s (%s)" % (self.name, self.id)
-
-
-class PublicationParser(models.Model):
-    publication = models.ForeignKey(Publication, on_delete = models.PROTECT)
-    parser = models.ForeignKey(MetadataParser, on_delete = models.PROTECT)
-    status = models.IntegerField()
-    as_of = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Article(models.Model):

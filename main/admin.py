@@ -17,10 +17,18 @@ class SharerAdmin(ScanvineAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(ScanvineAdmin):
+    change_form_template = "admin/article_change_form.html"
     list_display = ('id', 'title', 'status', 'publication', 'created_at',)
     list_filter = ('created_at', 'status')
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
+
+    def response_change(self, request, obj):
+        print("obj %s" % obj.id)
+        if "_reparse" in request.POST:
+            parse_article_metadata.delay(obj.id)
+            return redirect('/admin/main/article/%s/' % obj.id)
+        return super().response_change(request, obj)
 
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
@@ -34,15 +42,6 @@ admin.site.register(Collaboration)
 class PublicationAdmin(ScanvineAdmin):
     list_display = ('domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name',)
-
-@admin.register(MetadataParser)
-class MetadataParserAdmin(ScanvineAdmin):
-    list_display = ('name',)
-    search_fields = ('contents',)
-
-@admin.register(PublicationParser)
-class PublicationParserAdmin(ScanvineAdmin):
-    list_display = ('publication', 'parser', 'as_of')
 
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
@@ -66,7 +65,8 @@ class JobAdmin(ScanvineAdmin):
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
-            path('add_new_sharers/',         self.add_new_sharers),
+            path('add_new_sharers/',        self.add_new_sharers),
+            path('refresh_sharers/',        self.refresh_sharers),
             path('ingest_sharers/',         self.ingest_sharers),
             path('fetch_shares/',           self.fetch_shares),
             path('associate_articles/',     self.associate_articles),
@@ -77,7 +77,11 @@ class JobAdmin(ScanvineAdmin):
         return my_urls + urls
     
     def add_new_sharers(self, request):
-        add_new_sharers.delay()
+        get_potential_sharer_ids.delay()
+        return redirect('/admin/main/job/')
+        
+    def refresh_sharers(self, request):
+        refresh_sharers.delay()
         return redirect('/admin/main/job/')
         
     def ingest_sharers(self, request):

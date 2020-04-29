@@ -14,6 +14,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # set rate limit for tasks to avoid Twitter rate limiting
 app.control.rate_limit('main.tasks.get_potential_sharer_ids', '1/m')
+app.control.rate_limit('main.tasks.refresh_sharers', '6/m')
 app.control.rate_limit('main.tasks.add_new_sharers', '20/m')
 app.control.rate_limit('main.tasks.ingest_sharers', '40/h')
 app.control.rate_limit('main.tasks.fetch_shares', '1/s')
