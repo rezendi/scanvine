@@ -142,11 +142,14 @@ def associate_article(share_id):
         share.save()
 
 
-@shared_task
+@shared_task()
 def parse_unparsed_articles():
-    for article in Article.objects.filter(status__lte=Article.Status.CREATED):
+    job = log_job("parse_unparsed_articles")
+    articles = Article.objects.filter(status__lte=Article.Status.CREATED)
+    for article in articles:
         s = parse_article_metadata.signature((article.id,))
         s.apply_async()
+    log_job("parsed %s articles" % len(articles), job, Job.Status.COMPLETED)
         
 
 @shared_task
@@ -282,3 +285,10 @@ def get_sharers_from_users(users):
     # TODO: only get desired users
     return filtered
     
+def log_job(action, job = None, status = None):
+    if job is None:
+        job = Job(status = Job.Status.LAUNCHED, actions='')
+    job.status = job.status if status == None else status
+    job.actions = action + " \n" + job.actions
+    job.save();
+    return job
