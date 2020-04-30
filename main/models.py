@@ -62,7 +62,7 @@ class Publication(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "%s (%s)" % (self.name, self.id)
+        return self.domain
 
     def get_absolute_url(self):
         return "/publications/%s" % self.id

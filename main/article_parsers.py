@@ -48,12 +48,14 @@ def meta_parser(soup):
             metadata[attrs['name']] = attrs['content']
         if len(keys)==2 and 'content' in keys:
             idx = 1 if keys[0]=='content' else 0
-            metadata[keys[idx]] = attrs['content']
+            metadata[attrs[keys[idx]]] = attrs['content']
 
     if not 'author' in metadata:
         author = soup.find("meta", {"name":"author"})
         if not author:
             author = soup.find("meta", {"property":"author"})
+        if not author:
+            author = soup.find("meta", {"property":"article:author"})
         if not author:
             author = soup.find("meta", {"itemprop":"author"})
         if not author:
@@ -63,7 +65,9 @@ def meta_parser(soup):
         if not author:
             author = soup.find("meta", {"property":"sailthru:author"})
         if author:
-            metadata['author'] = author.contents
+            author_name = author['content']
+            if author_name:
+                metadata['author'] = author_name
 
     if not 'title' in metadata:
         title = soup.find("meta", {"name":"title"})
@@ -78,6 +82,8 @@ def meta_parser(soup):
         if not title:
             title = soup.find("meta", {"property":"sailthru:title"})
         if title:
-            metadata['title'] = title.contents
+            title_text = title['content']
+            if title_text:
+                metadata['title'] = title_text
 
     return metadata
