@@ -144,6 +144,10 @@ class Job(models.Model):
         # errors
         ERROR = -1
     status = models.IntegerField(choices=Status.choices, db_index=True)
+    name = models.CharField(max_length=255, db_index=True)
     actions = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "%s %s" % (self.name, self.id)

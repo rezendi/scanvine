@@ -57,6 +57,7 @@ class TrancheAdmin(admin.ModelAdmin):
 @admin.register(Job)
 class JobAdmin(ScanvineAdmin):
     change_list_template = 'admin/job_list.html'
+    list_filter = ('name', 'status', 'created_at', 'updated_at')
 
     def changelist_view(self, request, extra_context=None):
         return super().changelist_view(request, extra_context=extra_context)

@@ -25,21 +25,21 @@ http = urllib3.PoolManager()
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
 def get_potential_sharer_ids():
-    job = log_job("get_potential_sharer_ids")
+    job = launch_job("get_potential_sharer_ids")
     # verified_ids_cursor = -1 # TODO move this to runtime scope
     # (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=5000, cursor = verified_ids_cursor)
     (next, prev, members) = api.GetListMembersPaged(list_id=2129346)
     verified_ids = [u.id for u in members]
     chunks = [verified_ids[i:i + 100] for i in range(0, len(verified_ids), 100)]
     for chunk in chunks:
-        add_new_sharers.signature((chunk,)).apply_async
-    log_job("Potentialew sharers: %s" % len(verified_ids), job, Job.Status.COMPLETED)
+        add_new_sharers.signature((chunk,)).apply_async()
+    log_job(job, "Potential new sharers: %s" % len(verified_ids), Job.Status.COMPLETED)
 
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
 def add_new_sharers(verified_ids):
-    job = log_job("add_new_sharers")
+    job = launch_job("add_new_sharers")
     users = api.UsersLookup(user_id=verified_ids[0:99], include_entities=False)
     filtered = get_sharers_from_users(users)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
@@ -47,7 +47,7 @@ def add_new_sharers(verified_ids):
       s = Sharer(twitter_id=n['id'], status=Sharer.Status.CREATED, name=n['name'],
                  twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
       s.save()
-    log_job("New sharers: %s" % len(new), job, Job.Status.COMPLETED)
+    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
 
 
 LIST_ID = 1255581634486648833
@@ -55,7 +55,7 @@ LIST_ID = 1255581634486648833
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task
 def refresh_sharers():
-    job = log_job("refresh_sharers")
+    job = launch_job("refresh_sharers")
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
     filtered = get_sharers_from_users(listed)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
@@ -63,13 +63,13 @@ def refresh_sharers():
       s = Sharer(twitter_id=n['id'], status=Sharer.Status.LISTED, name=n['name'],
                  twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
       s.save()
-    log_job("New sharers: %s" % len(new), job, Job.Status.COMPLETED)
+    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
 
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task
 def ingest_sharers():
-    job = log_job("ingest_sharers")
+    job = launch_job("ingest_sharers")
     sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
     listed_ids = [u.id for u in listed]
@@ -79,25 +79,24 @@ def ingest_sharers():
         for s in sharers:
           s.status = Sharer.Status.LISTED
           s.save()    
-    log_job("New to list: %s" % len(new_to_list), job, Job.Status.COMPLETED)
+    log_job(job, "New to list: %s" % len(new_to_list), Job.Status.COMPLETED)
 
 
 # Get list statuses, filter those with external links
 @shared_task
 def fetch_shares():
-    job = log_job("fetch_shares")
+    job = launch_job("fetch_shares")
     timeline = api.GetListTimeline(list_id=LIST_ID, count = 200, include_rts=True, return_json=True)
-    print("Got %s unfiltered statuses" % len(timeline))
+    log_job(job, "Got %s unfiltered statuses" % len(timeline))
     link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
     link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
 
-    log_job("new statuses %s" % len(link_statuses), job, Job.Status.LAUNCHED)
+    log_job(job, "new statuses %s" % len(link_statuses), Job.Status.LAUNCHED)
 
     # Fetch those articles, pull their authors
     new_share_count = 0
     for status in link_statuses:
-        # print('status %s' % status['text'])
         # TODO: handle multiple URLs
         url = status['urls'][0]['expanded_url']
         # TODO: filter out url cruft more elegantly, depending on site eg not for YouTube
@@ -109,7 +108,7 @@ def fetch_shares():
             continue
         sharer = Sharer.objects.filter(twitter_id=status['user_id'])
         if not sharer:
-            print("Sharer not found %s %s" % (status['user_id'], status['screen_name']))
+            log_job(job, "Sharer not found %s %s" % (status['user_id'], status['screen_name']))
             continue
         sharer = sharer[0]
         s = Share(source=0, language='en', status=Share.Status.CREATED,
@@ -117,27 +116,29 @@ def fetch_shares():
         s.save()
         new_share_count += 1
 
-    log_job("new shares %s" % new_share_count, job, Job.Status.COMPLETED)
+    log_job(job, "new shares %s" % new_share_count, Job.Status.COMPLETED)
 
 
 @shared_task
 def associate_articles():
-    job = log_job("associate_articles")
-    for share in Share.objects.filter(status=Share.Status.CREATED):
+    job = launch_job("associate_articles")
+    shares = Share.objects.filter(status=Share.Status.CREATED)
+    for share in shares:
         s = associate_article.signature((share.id,))
         s.apply_async()
+    log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
 
 
 @shared_task
 def associate_article(share_id):
-    job = log_job("associate_article")
+    job = launch_job("associate_article")
     share = Share.objects.get(id=share_id)
     existing = Article.objects.filter(initial_url=share.url)
     if existing:
-        job = log_job("existing %s" % share.url, job, Job.Status.COMPLETED)
+        log_job(job, "existing %s" % share.url, Job.Status.COMPLETED)
         return
     try:
-        print("Fetching %s" % share.url)
+        log_job(job, "Fetching %s" % share.url)
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
         article = Article(status=Article.Status.CREATED, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
@@ -147,29 +148,28 @@ def associate_article(share_id):
         share.save()
         s = parse_article_metadata.signature((article.id,))
         s.apply_async()
-        log_job("associated %s" % share.url, job, Job.Status.COMPLETED)
+        log_job(job, "associated %s" % share.url, Job.Status.COMPLETED)
     except Exception as ex:
-        print("Article fetch error %s" % ex)
+        log_job(job, "Article fetch error %s" % ex, Job.Status.ERROR)
         share.status = Share.Status.FETCH_ERROR
         share.save()
-        log_job("error %s" % ex, job, Job.Status.COMPLETED)
 
 
 @shared_task()
 def parse_unparsed_articles():
-    job = log_job("parse_unparsed_articles")
+    job = launch_job("parse_unparsed_articles")
     articles = Article.objects.filter(status__lte=Article.Status.CREATED)
     for article in articles:
         s = parse_article_metadata.signature((article.id,))
         s.apply_async()
-    log_job("parsed %s articles" % len(articles), job, Job.Status.COMPLETED)
+    log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
         
 
 @shared_task
 def parse_article_metadata(article_id):
-    job = log_job("parse_article_metadata")
+    job = launch_job("parse_article_metadata")
     article = Article.objects.get(id=article_id)
-    print("Parsing article %s" % article.url)
+    log_job(job, "Parsing article %s" % article.url)
     domain = None
     try:
         parsed = urllib3.util.parse_url(article.url)
@@ -179,14 +179,14 @@ def parse_article_metadata(article_id):
         if existing:
             publication = existing[0]
         else:
-            print("Creating publication for %s url %s" % (domain, article.url))
+            log_job(job, "Creating publication for %s url %s" % (domain, article.url))
             publication = Publication(status=0, name='', domain=domain, average_credibility=0, total_credibility=0)
             publication.save()
         article.publication = publication
         article.status = Article.Status.PUBLISHER_ASSOCIATED
         article.save()
     except Exception as ex1:
-        print("Publication parse error %s" % ex1)
+        log_job(job, "Publication parse error %s" % ex1)
         article.status = Article.Status.PUBLICATION_PARSE_ERROR
         article.save()
 
@@ -204,23 +204,26 @@ def parse_article_metadata(article_id):
             if not existing:
                 author=Author(status=Author.Status.CREATED, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
                 author.save()
+                log_job(job, "Author created %s" % author.name)
             article.author_id = author.id
-            print("Author associated to article %s" % article.url)
+            log_job(job, "Author %s associated to article %s" % (author.name, article.url))
             article.status = Article.Status.AUTHOR_ASSOCIATED
         else:
             article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
         article.save()
     except Exception as ex2:
-        print("Metadata parse error %s for %s" % (ex2, article.url))
+        log_job(job, "Metadata parse error %s" % ex2, Job.Status.ERROR)
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()
         raise ex2
+
+    log_job(job, "Parsed %s" % article.url, Job.Status.COMPLETED)
 
 
 # Get sentiment from AWS
 @shared_task
 def analyze_sentiment():
-    job = log_job("analyze_sentiment")
+    job = launch_job("analyze_sentiment")
     import boto3
     sentiments = []
     comprehend = boto3.client(service_name='comprehend')
@@ -236,7 +239,7 @@ def analyze_sentiment():
         share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
         share.status = Share.Status.SENTIMENT_CALCULATED
         share.save()
-    log_job("analyzed %s sentiments" % len(shares), job, Job.Status.COMPLETED)
+    log_job(job, "analyzed %s sentiments" % len(shares), Job.Status.COMPLETED)
 
 
 # crude initial algorithm:
@@ -245,7 +248,7 @@ def analyze_sentiment():
 # 5040 credibility/day for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task
 def allocate_credibility():
-    job = log_job("allocate_credibility")
+    job = launch_job("allocate_credibility")
     for sharer in Sharer.objects.all():
         shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False)
         if not shares.exists():
@@ -269,7 +272,7 @@ def allocate_credibility():
             t.save()
             s.status = Share.Status.CREDIBILITY_ALLOCATED
             s.save()
-    log_job("allocated", job, Job.Status.COMPLETED)
+    log_job(job, "allocated", Job.Status.COMPLETED)
             
 
 from bs4 import BeautifulSoup
@@ -303,11 +306,15 @@ def get_sharers_from_users(users):
     filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
     # TODO: only get desired users
     return filtered
-    
-def log_job(action, job = None, status = None):
-    if job is None:
-        job = Job(status = Job.Status.LAUNCHED, actions='')
-    job.status = job.status if status == None else status
+
+def launch_job(name):
+    job = Job(status = Job.Status.LAUNCHED, name=name, actions='')
+    job.save()
+    return job
+
+def log_job(job, action, status = None):
+    if status is not None:
+        job.status = status
     job.actions = action + " \n" + job.actions
     job.save();
-    return job
+    print(action)
