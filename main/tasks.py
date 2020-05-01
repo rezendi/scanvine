@@ -3,7 +3,7 @@ import json
 import urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
-from .article_parsers import *
+from . import article_parsers
 from .models import *
 
 if not 'DJANGO_SECRET_KEY' in os.environ:
@@ -204,8 +204,8 @@ def parse_article_metadata(article_id):
     try:
         metadata = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
-        article.title = metadata['sv_title'] if 'sv_title' in metadata else article.title
-        author_name = metadata['sv_author'] if 'sv_author' in metadata else None
+        article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
+        author_name = metadata['sv_author'].strip() if 'sv_author' in metadata else None
         if author_name:
             author = None
             existing = Author.objects.filter(name=author_name)
@@ -290,26 +290,22 @@ def parse_article(domain, html):
     soup = BeautifulSoup(html, "html.parser")
     metadata = {'sv_title' : soup.title.string}
     
-    # first let's try generic parsing
-    if html.find("<meta ") > 0:
-        metadata.update(meta_parser(soup))
-
-    if html.find("application/ld+json") > 0:
-        metadata.update(json_ld_parser(soup))
-
-    # get parser from db
-    parser_rules = ''
+    # default to generic parsing by meta tags and application-LD
+    default_parser_rule_string = '[{"method":"meta_parser"}, {"method":"json_ld_parser"}]'
+    default_parser_rules = json.loads(default_parser_rule_string)
+    
+    # can override on per-publication basis
+    parser_rules = None
     publications = Publication.objects.filter(domain=domain)
     if publications:
-        parser_rules = publications[0].parser_rules
+        parser_rule_string = publications[0].parser_rules
+        parser_rules = default_parser_rules + json.loads(parser_rule_string)
+
     #special case for dev/test
-    parser_rules = "{'method':'npr_parser'}" if domain=='www.npr.org' and not publications else parser_rules
-    if parser_rules:
-        print("NPR Parser")
-        parser_values = json.loads(parser_rules)
-        method = parser_values['method']
-        parser = locals()[method]
-        metadata.update(parser(soup))
+    for rule in parser_rules:
+        parser = getattr(article_parsers, rule['method'])
+        retval = parser(soup=soup)
+        metadata.update(retval)
     
     return metadata
 

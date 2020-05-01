@@ -1,9 +1,13 @@
 import json
 
-def npr_parser(html, soup):
+def npr_parser(soup):
     npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
-    metadata = npr.partition("NPR.serverVars = ")[2][:-2]
-    metadata['scanvine_author'] = metadata['byline']
+    metadata = json.loads(npr.partition("NPR.serverVars = ")[2][:-2])
+    print("metadata %s" % metadata)
+    author = metadata['byline']
+    if type(author) is list:
+        author = str(author) if len(author) != 1 else author[0]
+    metadata['sv_author'] = author
     return metadata
 
 def json_ld_parser(soup):
