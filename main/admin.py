@@ -35,6 +35,7 @@ class ArticleAdmin(ScanvineAdmin):
 
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
+    change_form_template = "admin/author_change_form.html"
     list_display = ('name', 'created_at',)
     search_fields = ('name',)
     view_on_site = True
