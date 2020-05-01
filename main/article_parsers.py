@@ -3,40 +3,38 @@ import json
 def npr_parser(html, soup):
     npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
     metadata = npr.partition("NPR.serverVars = ")[2][:-2]
-    metadata['author'] = metadata['byline']
+    metadata['scanvine_author'] = metadata['byline']
     return metadata
 
 def json_ld_parser(soup):
-    metastring = "".join(soup.find("script", {"type":"application/ld+json"}).contents)
-    try:
-        metadata = json.loads(metastring)
-        if type(metadata) is list:
-            metadata = metadata[0]
-    except Exception as ex:
-        print("Could not parse LD-JSON %s" % metastring)
-        return {}
-
-    if 'headline' in metadata and not 'title' in metadata:
-        metadata['title'] = metadata['headline']
+    ld_jsons = soup.find_all("script", {"type":"application/ld+json"})
+    metadata ={}
+    for ld_json in ld_jsons:
+        metastring = "".join(ld_json.contents)
+        try:
+            vals = json.loads(metastring)
+            if type(vals) is list:
+                vals = vals[0]
+        except Exception as ex:
+            print("Could not parse LD-JSON %s" % metastring)
+            return {}
+        metadata.update(vals)
+    
+    if 'headline' in metadata:
+        metadata['sv_title'] = metadata['headline']
+    if 'title' in metadata:
+        metadata['sv_title'] = metadata['title']
 
     author_name = None
     if 'author' in metadata:
+        print("got author %s" % metadata['author'])
         inner = metadata['author']
         if type(inner) is list:
             subinner = inner[0]
-            if type(subinner) is dict:
-                author_name = subinner['name']
-            else:
-                author_name = subinner
-        if type(inner) is dict:
-            author_name=inner['name']
-        else:
-            author_name=inner
-        metadata['author_field'] = metadata['author']
-    if not author_name and 'name' in metadata:
-        author_name = metadata['name']
-    if author_name:
-        metadata['author'] = author_name
+            metadata['sv_author'] = subinner['name'] if type(subinner) is dict else subinner
+        metadata['sv_author'] = inner['name'] if type(inner) is dict else inner
+    if 'sv_author' not in metadata and 'name' in metadata:
+        metadata['sv_author'] = metadata['name']
     return metadata
 
 def meta_parser(soup):
@@ -71,7 +69,7 @@ def meta_parser(soup):
             if 'content' in author:
                 author_name = author['content']
             if author_name:
-                metadata['author'] = author_name
+                metadata['sv_author'] = author_name
 
     if not 'title' in metadata:
         title = soup.find("meta", {"name":"title"})
@@ -92,6 +90,6 @@ def meta_parser(soup):
             if 'content' in title:
                 title_text = title['content']
             if title_text:
-                metadata['title'] = title_text
+                metadata['sv_title'] = title_text
 
     return metadata

@@ -165,6 +165,16 @@ def parse_unparsed_articles():
     log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
         
 
+@shared_task()
+def reparse_publication_articles(publication_id):
+    job = launch_job("reparse_publication_articles")
+    articles = Article.objects.filter(publication_id = publication_id)
+    for article in articles:
+        s = parse_article_metadata.signature((article.id,))
+        s.apply_async()
+    log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
+        
+
 @shared_task
 def parse_article_metadata(article_id):
     job = launch_job("parse_article_metadata")
@@ -194,8 +204,8 @@ def parse_article_metadata(article_id):
     try:
         metadata = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
-        article.title = metadata['title'] if 'title' in metadata else article.title
-        author_name = metadata['author'] if 'author' in metadata else None
+        article.title = metadata['sv_title'] if 'sv_title' in metadata else article.title
+        author_name = metadata['sv_author'] if 'sv_author' in metadata else None
         if author_name:
             author = None
             existing = Author.objects.filter(name=author_name)
@@ -278,14 +288,14 @@ def allocate_credibility():
 from bs4 import BeautifulSoup
 def parse_article(domain, html):
     soup = BeautifulSoup(html, "html.parser")
-    metadata = {'title' : soup.title.string}
+    metadata = {'sv_title' : soup.title.string}
     
-    # custom parsing not applicable, let's try generic parsing
+    # first let's try generic parsing
+    if html.find("<meta ") > 0:
+        metadata.update(meta_parser(soup))
+
     if html.find("application/ld+json") > 0:
         metadata.update(json_ld_parser(soup))
-    
-    if html.find("<meta ") > 0:
-        metadata = meta_parser(soup)
 
     # get parser from db
     parser_rules = ''
@@ -293,8 +303,9 @@ def parse_article(domain, html):
     if publications:
         parser_rules = publications[0].parser_rules
     #special case for dev/test
-    parser_rules = "{'method':'npr_parser'}" if domain=='npr.org' and not publications else parser_rules
+    parser_rules = "{'method':'npr_parser'}" if domain=='www.npr.org' and not publications else parser_rules
     if parser_rules:
+        print("NPR Parser")
         parser_values = json.loads(parser_rules)
         method = parser_values['method']
         parser = locals()[method]

@@ -22,11 +22,11 @@ class ArticleAdmin(ScanvineAdmin):
     list_filter = ('created_at', 'status')
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
+    exclude = ('contents',)
 
     def response_change(self, request, obj):
-        print("obj %s" % obj.id)
         if "_reparse" in request.POST:
-            parse_article_metadata.delay(obj.id)
+            parse_article_metadata(obj.id)
             return redirect('/admin/main/article/%s/' % obj.id)
         return super().response_change(request, obj)
 
@@ -40,8 +40,15 @@ admin.site.register(Collaboration)
 
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
+    change_form_template = "admin/publication_change_form.html"
     list_display = ('domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name',)
+
+    def response_change(self, request, obj):
+        if "_reparse" in request.POST:
+            reparse_publication_articles(obj.id)
+            return redirect('/admin/main/publication/%s/' % obj.id)
+        return super().response_change(request, obj)
 
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
