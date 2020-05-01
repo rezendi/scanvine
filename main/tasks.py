@@ -299,7 +299,8 @@ def parse_article(domain, html):
     publications = Publication.objects.filter(domain=domain)
     if publications:
         parser_rule_string = publications[0].parser_rules
-        parser_rules = default_parser_rules + json.loads(parser_rule_string)
+        if parser_rule_string:
+            parser_rules = default_parser_rules + json.loads(parser_rule_string)
 
     #special case for dev/test
     for rule in parser_rules:
