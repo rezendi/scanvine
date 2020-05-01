@@ -3,6 +3,8 @@
     <h1> Jobs </h1>
 {% endblock %}
 {% block object-tools %}
+    <table>
+        <tr><td>
     <div>
         <ul>
         <li><a href="add_new_sharers">Add new sharers</a>
@@ -16,4 +18,23 @@
         <li><a href="agglomerate_credibility">Agglomerate credibility</a>
         </ul>
     </div>
+        </td><td>
+    <div>
+        {% for job in latest_jobs %}
+            <LI>{{job.name}} {{job.created_at}}
+        {% endfor %}
+    </div>
+        </td><td>
+    <div>
+        {% for key, val in counts.items %}
+            <LI>{{key}} {{val}}
+        {% endfor %}
+    </div>
+        </td><td>
+    <div>
+        {% for key, val in latest.items %}
+            <LI>{{key}} <a href="/admin/main/{{key}}/{{val.id}}">{{val}}</a>
+        {% endfor %}
+    </div>
+        </td></tr></table>
 {% endblock %}

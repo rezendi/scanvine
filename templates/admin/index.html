@@ -1,5 +1,14 @@
 {% extends "admin/index.html" %}
 
 {% block sidebar %}
-    {{block.super}}
+    <div id="content-related">
+        <div class="module" id="recent-actions-module">
+            <LI>Most recent run and result of each scheduled job
+            <LI>Most recent publication, article, author, sharer, share
+        </div>
+    </div>
+    <H3>Dashboard</H3>
+    <UL>
+        <LI>total publications, articles, authors, sharers, shares
+    </UL>
 {% endblock %}

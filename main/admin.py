@@ -5,6 +5,9 @@ from celery import Celery
 from .tasks import *
 from .models import *
 
+admin.site.site_header = admin.site.site_title = "Scanvine"
+admin.site.index_title = "Administration"
+ 
 class ScanvineAdmin(admin.ModelAdmin):
     list_per_page = 100
     ordering = ('-created_at',)
@@ -67,6 +70,38 @@ class JobAdmin(ScanvineAdmin):
     list_filter = ('name', 'status', 'created_at', 'updated_at')
 
     def changelist_view(self, request, extra_context=None):
+
+        latest_jobs=[]
+        job_names = Job.objects.values('name').distinct()
+        for job_name in job_names:
+            jobs = Job.objects.filter(name=job_name['name'])[:1]
+            if len(jobs)>0:
+                latest_jobs.append(jobs[0])
+        latest_jobs.sort(key=lambda j:j.created_at, reverse=True)
+
+        counts = {
+            'publications' : Publication.objects.count(),
+            'articles' : Article.objects.count(),
+            'authors' : Author.objects.count(),
+            'share' : Share.objects.count(),
+            'sharers' : Sharer.objects.count()
+        }
+        
+        latest = {
+            'publication' : Publication.objects.all().order_by("-created_at")[:1],
+            'article' : Article.objects.order_by("-created_at")[:1],
+            'author' : Author.objects.order_by("-created_at")[:1],
+            'share' : Share.objects.order_by("-created_at")[:1],
+            'sharer' : Sharer.objects.order_by("-created_at")[:1],
+        }
+        for key, val in latest.items():
+            latest[key] = latest[key][0] if val else None
+
+        extra_context={
+            'latest_jobs':latest_jobs,
+            'counts' : counts,
+            'latest' : latest,
+        }
         return super().changelist_view(request, extra_context=extra_context)
 
     def get_urls(self):
