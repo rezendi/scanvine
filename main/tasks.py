@@ -188,7 +188,7 @@ def parse_article_metadata(article_id):
         parsed = urllib3.util.parse_url(article.url)
         domain = parsed.host
         publication = None
-        existing = Publication.objects.filter(domain=domain)
+        existing = Publication.objects.filter(domain__iexact=domain)
         if existing:
             publication = existing[0]
         else:
@@ -329,7 +329,7 @@ def parse_article(domain, html):
     
     # can override on per-publication basis
     parser_rules = default_parser_rules
-    publications = Publication.objects.filter(domain=domain)
+    publications = Publication.objects.filter(domain__iexact=domain)
     if publications:
         parser_rule_string = publications[0].parser_rules
         if parser_rule_string:

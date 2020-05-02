@@ -23,7 +23,7 @@ services:
     env_file: .env
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
-    command: ["celery", "worker", "--app=scanvine", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO", "-B"]
+    command: ["celery", "worker", "--app=scanvine", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO", "--beat"]
     volumes:
     volumes:
       - .:/app

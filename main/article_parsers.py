@@ -93,8 +93,8 @@ def get_author_for(metadata):
     author_string = author_string.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
     if author_string.find(",") == -1:
         name = author_string
-        existing = Author.objects.filter(name=name)
-        existing = existing.filter(twitter_screen_name=twitter_name) if twitter_name else existing
+        existing = Author.objects.filter(name__iexact=name)
+        existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
             return existing[0] # TODO handle multiple matches
         else:
@@ -110,8 +110,8 @@ def get_author_for(metadata):
     print("names %s" % names)
     authors = []
     for name in names:
-        existing = Author.objects.filter(name=name)
-        existing = existing.filter(twitter_screen_name=twitter_name) if twitter_name else existing
+        existing = Author.objects.filter(name__iexact=name)
+        existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
             authors.append(existing[0]) # TODO handle multiple matches
         else:
