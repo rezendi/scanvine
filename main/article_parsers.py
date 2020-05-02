@@ -31,14 +31,7 @@ def json_ld_parser(soup):
 
     author_name = None
     if 'author' in metadata:
-        print("got author %s" % metadata['author'])
-        inner = metadata['author']
-        if type(inner) is list:
-            subinner = inner[0]
-            metadata['sv_author'] = subinner['name'] if type(subinner) is dict else subinner
-        metadata['sv_author'] = inner['name'] if type(inner) is dict else inner
-    if 'sv_author' not in metadata and 'name' in metadata:
-        metadata['sv_author'] = metadata['name']
+        metadata['sv_author'] = metadata['author']
     return metadata
 
 def meta_parser(soup):
@@ -48,18 +41,18 @@ def meta_parser(soup):
         keys = list(attrs)
         if 'name' in keys and 'content' in keys:
             metadata[attrs['name']] = attrs['content']
+        if 'property' in keys and 'content' in keys:
+            metadata[attrs['property']] = attrs['content']
+        if 'itemprop' in keys and 'content' in keys:
+            metadata[attrs['itemprop']] = attrs['content']
         if len(keys)==2 and 'content' in keys:
             idx = 1 if keys[0]=='content' else 0
             metadata[attrs[keys[idx]]] = attrs['content']
 
-    if not 'author' in metadata:
-        author = soup.find("meta", {"name":"author"})
-        if not author:
-            author = soup.find("meta", {"property":"author"})
-        if not author:
-            author = soup.find("meta", {"property":"article:author"})
-        if not author:
-            author = soup.find("meta", {"itemprop":"author"})
+    if 'author' in metadata:
+        metadata['sv_author'] = metadata['author']
+    else:
+        author = soup.find("meta", {"property":"article:author"})
         if not author:
             author = soup.find("meta", {"property":"og:author"})
         if not author:
@@ -75,14 +68,10 @@ def meta_parser(soup):
             if author_name:
                 metadata['sv_author'] = author_name
 
-    if not 'title' in metadata:
-        title = soup.find("meta", {"name":"title"})
-        if not title:
-            title = soup.find("meta", {"property":"title"})
-        if not title:
-            title = soup.find("meta", {"itemprop":"title"})
-        if not title:
-            title = soup.find("meta", {"property":"og:title"})
+    if 'title' in metadata:
+        metadata['sv_author'] = metadata['title']
+    else:
+        title = soup.find("meta", {"property":"og:title"})
         if not title:
             title = soup.find("meta", {"property":"twitter:title"})
         if not title:

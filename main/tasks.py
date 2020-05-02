@@ -213,6 +213,7 @@ def parse_article_metadata(article_id):
             author = None
             existing = Author.objects.filter(name=author_name)
             existing = existing.filter(twitter_screen_name=twitter_name) if twitter_name else existing
+            print("existing %s" % existing)
             if existing:
                 author = existing[0]
             if not existing:
@@ -331,12 +332,6 @@ def recalculate_credibility(share_id, new_quantity):
     
     
 
-def clean_up_url(url):
-    # TODO: filter out url cruft more elegantly, depending on site
-    if url.find("youtube.com") >= 0:
-        return url
-    return url.partition("?")[0]
-
 from bs4 import BeautifulSoup
 def parse_article(domain, html):
     soup = BeautifulSoup(html, "html.parser")
@@ -359,6 +354,14 @@ def parse_article(domain, html):
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
         metadata.update(retval)
+
+    if 'sv_author' in metadata:
+        inner = metadata['sv_author']
+        if type(inner) is list:
+            names = [x['name'] if type(x) is dict else x for x in inner]
+            metadata['sv_author'] = names[0] if len(names)==1 else str(names)
+        elif type(inner) is dict:
+            metadata['sv_author'] = inner['name']
     
     return metadata
 
@@ -378,3 +381,10 @@ def log_job(job, action, status = None):
     job.actions = action + " \n" + job.actions
     job.save();
     print(action)
+
+def clean_up_url(url):
+    # TODO: filter out url cruft more elegantly, depending on site
+    if url.find("youtube.com") >= 0:
+        return url
+    return url.partition("?")[0]
+
