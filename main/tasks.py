@@ -35,6 +35,23 @@ def get_potential_sharer_ids():
         add_new_sharers.signature((chunk,)).apply_async()
     log_job(job, "Potential new sharers: %s" % len(verified_ids), Job.Status.COMPLETED)
 
+
+# Take users from the DB, add them to our Twitter list if not there already
+@shared_task
+def ingest_sharers():
+    job = launch_job("ingest_sharers")
+    sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
+    listed_ids = [u.id for u in listed]
+    new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
+    if new_to_list:
+        list = api.CreateListsMember(list_id=LIST_ID, user_id=new_to_list)
+        for s in sharers:
+          s.status = Sharer.Status.LISTED
+          s.save()    
+    log_job(job, "New to list: %s" % len(new_to_list), Job.Status.COMPLETED)
+
+
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task
@@ -52,7 +69,7 @@ def add_new_sharers(verified_ids):
 
 LIST_ID = 1255581634486648833
 
-# Take users from the DB, add them to our Twitter list if not there already
+# Take users from our Twitter list, add them to the DB if not there already
 @shared_task
 def refresh_sharers():
     job = launch_job("refresh_sharers")
@@ -64,22 +81,6 @@ def refresh_sharers():
                  twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
       s.save()
     log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
-
-
-# Take users from the DB, add them to our Twitter list if not there already
-@shared_task
-def ingest_sharers():
-    job = launch_job("ingest_sharers")
-    sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
-    listed_ids = [u.id for u in listed]
-    new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
-    if new_to_list:
-        list = api.CreateListsMember(list_id=LIST_ID, user_id=new_to_list)
-        for s in sharers:
-          s.status = Sharer.Status.LISTED
-          s.save()    
-    log_job(job, "New to list: %s" % len(new_to_list), Job.Status.COMPLETED)
 
 
 # Get list statuses, filter those with external links
@@ -99,8 +100,7 @@ def fetch_shares():
     for status in link_statuses:
         # TODO: handle multiple URLs
         url = status['urls'][0]['expanded_url']
-        # TODO: filter out url cruft more elegantly, depending on site eg not for YouTube
-        url = url.partition("?")[0]
+        url = clean_up_url(url)
     
         # get existing share, if any, for idempotency
         existing = Share.objects.filter(twitter_id=status['id'])
@@ -141,7 +141,8 @@ def associate_article(share_id):
         log_job(job, "Fetching %s" % share.url)
         r = http.request('GET', share.url)
         html = r.data.decode('utf-8')
-        article = Article(status=Article.Status.CREATED, language='en', url = r.geturl(), initial_url=share.url, contents=html, title='', metadata='')
+        final_url =  clean_up_url(r.geturl())
+        article = Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, contents=html, title='', metadata='')
         article.save()
         share.article_id = article.id
         share.status = Share.Status.ARTICLE_ASSOCIATED
@@ -205,14 +206,21 @@ def parse_article_metadata(article_id):
         metadata = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
         article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
-        author_name = metadata['sv_author'].strip() if 'sv_author' in metadata else None
+        author_name = str(metadata['sv_author']).strip() if 'sv_author' in metadata else None
+        twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
+        twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
         if author_name:
             author = None
             existing = Author.objects.filter(name=author_name)
+            existing = existing.filter(twitter_screen_name=twitter_name) if twitter_name else existing
             if existing:
                 author = existing[0]
             if not existing:
-                author=Author(status=Author.Status.CREATED, name=author_name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+                # TODO: handle collaborations
+                author=Author(status=Author.Status.CREATED, name=author_name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
+                              is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+                author.twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
+                author.twitter_screen_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
                 author.save()
                 log_job(job, "Author created %s" % author.name)
             article.author_id = author.id
@@ -252,16 +260,14 @@ def analyze_sentiment():
     log_job(job, "analyzed %s sentiments" % len(shares), Job.Status.COMPLETED)
 
 
-# crude initial algorithm:
-# for each sharer, get list of shares
-# shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
-# 5040 credibility/day for maximum divisibility, N points means 5040/N cred for that share, truncate
+# for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
+# 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task
 def allocate_credibility():
     job = launch_job("allocate_credibility")
     for sharer in Sharer.objects.all():
         shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False)
-        if not shares.exists():
+        if not shares:
             continue
         total_points = 0
         for s in shares:
@@ -270,20 +276,66 @@ def allocate_credibility():
             continue
         cred_per_point = 5040 // total_points
         for share in shares:
-            points = 2 if abs(share.net_sentiment) > 50 else 1
-            share_cred = cred_per_point * points
             article = share.article
-            if not article:
+            if not share.article:
                 continue
-            author = article.author
-            if not author:
-                continue
-            t = Tranche(source=0, status=0, tags='', sender=sharer.id, receiver=author.id, quantity = share_cred, category=sharer.category, type=author.status)
+            if share.net_sentiment < - 10:
+                points = -2 if share.net_sentiment -50 else -1
+            else:
+                points = 2 if share.net_sentiment -50 else 1
+            share_cred = cred_per_point * points
+            t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
             t.save()
             s.status = Share.Status.CREDIBILITY_ALLOCATED
             s.save()
     log_job(job, "allocated", Job.Status.COMPLETED)
-            
+
+
+# for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
+@shared_task
+def set_reputations():
+    shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
+    for share in shares:
+        tranche = Tranche.objects.get(receiver=share.id)
+        article = share.article
+        author = article.author
+        if author is not None:
+            author.total_credibility += tranche.quantity
+            author.current_credibility += tranche.quantity
+            author.save()
+        publication = article.publication
+        if publication is not None:
+            publication.total_credibility += tranche.quantity
+            publication.average_credibility += publication.total_credibility / Article.objects.count(publication_id=publication.id)
+            publication.save()
+        share.status = Share.Status.AGGREGATES_UPDATED
+
+
+@shared_task
+def recalculate_credibility(share_id, new_quantity):
+    tranche = Tranche.objects.get(receiver=share_id)
+    old_quantity = tranche_quantity
+    tranche.quantity = new_quantity
+    tranche.save()
+    article = share.article
+    author = article.author
+    if author is not None:
+        author.total_credibility += new_quantity - old_quantity
+        author.current_credibility += new_quantity - old_quantity
+        author.save()
+        publication = article.publication
+    if publication is not None:
+        publication.total_credibility += new_quantity - old_quantity
+        publication.average_credibility += publication.total_credibility / Publication.objects.count()
+        publication.save()
+    
+    
+
+def clean_up_url(url):
+    # TODO: filter out url cruft more elegantly, depending on site
+    if url.find("youtube.com") >= 0:
+        return url
+    return url.partition("?")[0]
 
 from bs4 import BeautifulSoup
 def parse_article(domain, html):
@@ -295,7 +347,7 @@ def parse_article(domain, html):
     default_parser_rules = json.loads(default_parser_rule_string)
     
     # can override on per-publication basis
-    parser_rules = None
+    parser_rules = default_parser_rules
     publications = Publication.objects.filter(domain=domain)
     if publications:
         parser_rule_string = publications[0].parser_rules

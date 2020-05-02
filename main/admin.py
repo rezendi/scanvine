@@ -108,14 +108,15 @@ class JobAdmin(ScanvineAdmin):
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
-            path('add_new_sharers/',        self.add_new_sharers),
+#            path('add_new_sharers/',        self.add_new_sharers),
+#            path('ingest_sharers/',         self.ingest_sharers),
             path('refresh_sharers/',        self.refresh_sharers),
-            path('ingest_sharers/',         self.ingest_sharers),
             path('fetch_shares/',           self.fetch_shares),
             path('associate_articles/',     self.associate_articles),
             path('parse_unparsed/',         self.parse_unparsed),
             path('analyze_sentiment/',      self.analyze_sentiment),
             path('allocate_credibility/',   self.allocate_credibility),
+            path('set_reputations/',        self.set_reputations),
         ]
         return my_urls + urls
     
@@ -149,6 +150,10 @@ class JobAdmin(ScanvineAdmin):
 
     def allocate_credibility(self, request):
         allocate_credibility.delay()
+        return redirect('/admin/main/job/')
+
+    def set_reputations(self, request):
+        set_reputations.delay()
         return redirect('/admin/main/job/')
 
 

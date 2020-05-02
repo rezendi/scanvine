@@ -4,8 +4,8 @@ from django.db import models
 
 class Sharer(models.Model):
     class Status(models.IntegerChoices):
-        CREATED = 0
         LISTED = 1
+        CREATED = 0
     
     status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField()
@@ -34,8 +34,8 @@ class Author(models.Model):
     twitter_id = models.BigIntegerField(null=True, db_index=True)
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
     metadata = models.TextField(blank=True, default='')
-    current_credibility = models.IntegerField()
-    total_credibility = models.IntegerField()
+    current_credibility = models.BigIntegerField()
+    total_credibility = models.BigIntegerField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,8 +58,8 @@ class Publication(models.Model):
     domain = models.CharField(db_index=True, max_length=255)
     url_policy = models.CharField(max_length=255, blank=True, default='')
     parser_rules = models.TextField(blank=True, default='')
-    average_credibility = models.IntegerField()
-    total_credibility = models.IntegerField()
+    average_credibility = models.BigIntegerField()
+    total_credibility = models.BigIntegerField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -72,10 +72,10 @@ class Publication(models.Model):
 
 class Article(models.Model):
     class Status(models.IntegerChoices):
-        CREATED = 0
-        METADATA_PARSED = 1
-        PUBLISHER_ASSOCIATED = 2
         AUTHOR_ASSOCIATED = 3
+        PUBLISHER_ASSOCIATED = 2
+        METADATA_PARSED = 1
+        CREATED = 0
         #errors
         PUBLICATION_PARSE_ERROR = -1
         METADATA_PARSE_ERROR = -2
@@ -101,10 +101,11 @@ class Article(models.Model):
 
 class Share(models.Model):
     class Status(models.IntegerChoices):
-        CREATED = 0
-        ARTICLE_ASSOCIATED = 1
-        SENTIMENT_CALCULATED = 2
+        AGGREGATES_UPDATED = 4
         CREDIBILITY_ALLOCATED = 3
+        SENTIMENT_CALCULATED = 2
+        ARTICLE_ASSOCIATED = 1
+        CREATED = 0
         #errors
         FETCH_ERROR = -1
         ARTICLE_ERROR = -2
@@ -131,7 +132,7 @@ class Tranche(models.Model):
     status = models.IntegerField()
     sender = models.BigIntegerField(db_index=True)
     receiver = models.BigIntegerField(db_index=True)
-    quantity = models.BigIntegerField()
+    quantity = models.IntegerField()
     category = models.IntegerField()
     type = models.IntegerField()
     tags = models.CharField(max_length=255)
@@ -141,8 +142,8 @@ class Tranche(models.Model):
 
 class Job(models.Model):
     class Status(models.IntegerChoices):
-        LAUNCHED = 0
         COMPLETED = 1
+        LAUNCHED = 0
         # errors
         ERROR = -1
     status = models.IntegerField(choices=Status.choices, db_index=True)
