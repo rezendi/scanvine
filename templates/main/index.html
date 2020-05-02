@@ -1,0 +1,19 @@
+{% if articles %}
+    <ul>
+    {% for article in articles %}
+        <li>{{ article }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No articles are available.</p>
+{% endif %}
+
+{% if authors %}
+    <ul>
+    {% for author in authors %}
+        <li>{{ author }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No authors are available.</p>
+{% endif %}

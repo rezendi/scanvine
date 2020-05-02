@@ -11,18 +11,18 @@ admin.site.index_title = "Administration"
 class ScanvineAdmin(admin.ModelAdmin):
     list_per_page = 100
     ordering = ('-created_at',)
-    list_filter = ('created_at', 'updated_at', 'status')
+    list_filter = ('status', 'created_at', 'updated_at')
 
 @admin.register(Sharer)
 class SharerAdmin(ScanvineAdmin):
-    list_display = ('twitter_screen_name', 'name', 'profile')
+    list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     search_fields = ('twitter_screen_name', 'name', 'profile')
 
 @admin.register(Article)
 class ArticleAdmin(ScanvineAdmin):
     change_form_template = "admin/article_change_form.html"
     list_display = ('id', 'title', 'status', 'publication', 'created_at',)
-    list_filter = ('created_at', 'status')
+    list_filter = ('status', 'created_at')
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
     exclude = ('contents',)
@@ -36,7 +36,7 @@ class ArticleAdmin(ScanvineAdmin):
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
     change_form_template = "admin/author_change_form.html"
-    list_display = ('name', 'created_at',)
+    list_display = ('id', 'name', 'created_at',)
     search_fields = ('name',)
     view_on_site = True
 
@@ -45,7 +45,7 @@ admin.site.register(Collaboration)
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
     change_form_template = "admin/publication_change_form.html"
-    list_display = ('domain', 'name', 'average_credibility', 'total_credibility')
+    list_display = ('id', 'domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name',)
 
     def response_change(self, request, obj):
@@ -56,19 +56,21 @@ class PublicationAdmin(ScanvineAdmin):
 
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
-    list_display = ('sharer', 'status', 'url', 'article')
+    list_display = ('id', 'sharer', 'status', 'url', 'article')
     search_fields = ('text',)
     raw_id_fields = ("sharer", 'article')
 
 @admin.register(Tranche)
 class TrancheAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'tags')
+    list_display = ('id', 'quantity', 'tags', 'created_at',)
     search_fields = ('tags',)
 
 @admin.register(Job)
 class JobAdmin(ScanvineAdmin):
     change_list_template = 'admin/job_list.html'
-    list_filter = ('name', 'status', 'created_at', 'updated_at')
+    list_display = ('id', 'name', 'created_at',)
+    list_filter = ('status', 'name', 'created_at', 'updated_at')
 
     def changelist_view(self, request, extra_context=None):
 

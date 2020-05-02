@@ -11,7 +11,7 @@ if not 'DJANGO_SECRET_KEY' in os.environ:
     project_folder = os.path.expanduser('~/dev/private/scanvine')
     load_dotenv(os.path.join(project_folder, '.env'))
 
-# Launch Twitter API - TODO move this to TwitterService?
+# Launch Twitter API
 api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
                   access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
@@ -96,15 +96,16 @@ def fetch_shares():
     log_job(job, "new statuses %s" % len(link_statuses), Job.Status.LAUNCHED)
 
     # Fetch those articles, pull their authors
-    new_share_count = 0
+    count = 0
     for status in link_statuses:
-        # TODO: handle multiple URLs
+        # TODO: handle multiple URLs by picking best one
         url = status['urls'][0]['expanded_url']
         url = clean_up_url(url)
     
         # get existing share, if any, for idempotency
         existing = Share.objects.filter(twitter_id=status['id'])
         if existing:
+            log_job(job, "Share already found %s" % status['id'])
             continue
         sharer = Sharer.objects.filter(twitter_id=status['user_id'])
         if not sharer:
@@ -114,9 +115,9 @@ def fetch_shares():
         s = Share(source=0, language='en', status=Share.Status.CREATED,
                   sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
         s.save()
-        new_share_count += 1
+        count += 1
 
-    log_job(job, "new shares %s" % new_share_count, Job.Status.COMPLETED)
+    log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
 
 
 @shared_task
@@ -206,24 +207,8 @@ def parse_article_metadata(article_id):
         metadata = parse_article(domain, html)
         article.metadata = metadata if metadata else article.metadata
         article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
-        author_name = str(metadata['sv_author']).strip() if 'sv_author' in metadata else None
-        twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
-        twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
-        if author_name:
-            author = None
-            existing = Author.objects.filter(name=author_name)
-            existing = existing.filter(twitter_screen_name=twitter_name) if twitter_name else existing
-            print("existing %s" % existing)
-            if existing:
-                author = existing[0]
-            if not existing:
-                # TODO: handle collaborations
-                author=Author(status=Author.Status.CREATED, name=author_name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
-                              is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-                author.twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
-                author.twitter_screen_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
-                author.save()
-                log_job(job, "Author created %s" % author.name)
+        author = article_parsers.get_author_for(metadata)
+        if author:
             article.author_id = author.id
             log_job(job, "Author %s associated to article %s" % (author.name, article.url))
             article.status = Article.Status.AUTHOR_ASSOCIATED
@@ -358,10 +343,10 @@ def parse_article(domain, html):
     if 'sv_author' in metadata:
         inner = metadata['sv_author']
         if type(inner) is list:
-            names = [x['name'] if type(x) is dict else x for x in inner]
-            metadata['sv_author'] = names[0] if len(names)==1 else str(names)
+            names = [x['name'] if type(x) is dict and 'name' in x else x for x in inner]
+            metadata['sv_author'] = names[0] if len(names)==1 else ','.join(names)
         elif type(inner) is dict:
-            metadata['sv_author'] = inner['name']
+            metadata['sv_author'] = inner['name'] if 'name' in inner else None
     
     return metadata
 

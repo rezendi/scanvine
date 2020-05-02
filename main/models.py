@@ -6,6 +6,7 @@ class Sharer(models.Model):
     class Status(models.IntegerChoices):
         LISTED = 1
         CREATED = 0
+        DISABLED = -1
     
     status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField()
@@ -49,6 +50,9 @@ class Author(models.Model):
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
     individual = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborations')
+
+    def __str__(self):
+        return "%s (%s)" % (self.individual.name, self.partnership.name)
 
 
 # might need to break this down into separate publication and site tables

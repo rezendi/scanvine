@@ -2,6 +2,7 @@
 
 {% block submit_buttons_bottom %}
     {{ block.super }}
+    <a href="/admin/main/share/?article__id={{object_id}}">Shares</a>
     <div class="submit-row">
             <input type="submit" value="Reparse" name="_reparse">
     </div>

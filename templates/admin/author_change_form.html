@@ -3,4 +3,5 @@
 {% block submit_buttons_bottom %}
     {{ block.super }}
     <a href="/admin/main/article/?author__id={{object_id}}">Articles</a>
+    <a href="/admin/main/collaboration/?partnership__id={{object_id}}">Collaborators</a>
 {% endblock %}
