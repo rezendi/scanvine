@@ -118,7 +118,8 @@ def fetch_shares():
         count += 1
 
     log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
-
+    if count > 0:
+        associate_articles.signature().apply_async()
 
 @shared_task
 def associate_articles():
