@@ -25,7 +25,7 @@ class ArticleAdmin(ScanvineAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
-    #   exclude = ('contents',)
+    exclude = ('contents',)
 
     def response_change(self, request, obj):
         if "_reparse" in request.POST:

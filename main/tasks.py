@@ -131,7 +131,7 @@ def associate_articles():
     log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
 
 
-@shared_task
+@shared_task(rate_limit="1/s")
 def associate_article(share_id):
     job = launch_job("associate_article")
     share = Share.objects.get(id=share_id)

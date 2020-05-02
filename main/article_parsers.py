@@ -20,9 +20,13 @@ def json_ld_parser(soup):
     if 'title' in metadata:
         metadata['sv_title'] = metadata['title']
 
-    author_name = None
     if 'author' in metadata:
         metadata['sv_author'] = metadata['author']
+    elif '@graph' in metadata:
+        graph = metadata['@graph']
+        graph = graph[0] if type(graph) is list and len(graph)>0 else graph
+        if 'author' in graph:
+            metadata['sv_author'] = graph['author']
     return metadata
 
 def meta_parser(soup):
@@ -91,6 +95,9 @@ def get_author_for(metadata):
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
     author_string = str(metadata['sv_author']).strip()
     author_string = author_string.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
+    if not author_string:
+        return None
+
     if author_string.find(",") == -1:
         name = author_string
         existing = Author.objects.filter(name__iexact=name)
@@ -107,7 +114,6 @@ def get_author_for(metadata):
     names = author_string.split(",")
     names = [n.strip() for n in names]
     names = [n for n in names if len(n)>3]
-    print("names %s" % names)
     authors = []
     for name in names:
         existing = Author.objects.filter(name__iexact=name)
