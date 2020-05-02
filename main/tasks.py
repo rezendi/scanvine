@@ -23,7 +23,7 @@ http = urllib3.PoolManager()
 
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
-@shared_task
+@shared_task(rate_limit="30/h")
 def get_potential_sharer_ids():
     job = launch_job("get_potential_sharer_ids")
     # verified_ids_cursor = -1 # TODO move this to runtime scope
@@ -37,7 +37,7 @@ def get_potential_sharer_ids():
 
 
 # Take users from the DB, add them to our Twitter list if not there already
-@shared_task
+@shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
     sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
@@ -54,7 +54,7 @@ def ingest_sharers():
 
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
-@shared_task
+@shared_task(rate_limit="10/m")
 def add_new_sharers(verified_ids):
     job = launch_job("add_new_sharers")
     users = api.UsersLookup(user_id=verified_ids[0:99], include_entities=False)
@@ -70,7 +70,7 @@ def add_new_sharers(verified_ids):
 LIST_ID = 1255581634486648833
 
 # Take users from our Twitter list, add them to the DB if not there already
-@shared_task
+@shared_task(rate_limit="6/m")
 def refresh_sharers():
     job = launch_job("refresh_sharers")
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
@@ -84,7 +84,7 @@ def refresh_sharers():
 
 
 # Get list statuses, filter those with external links
-@shared_task
+@shared_task(rate_limit="30/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
     timeline = api.GetListTimeline(list_id=LIST_ID, count = 200, include_rts=True, return_json=True)
@@ -225,7 +225,7 @@ def parse_article_metadata(article_id):
 
 
 # Get sentiment from AWS
-@shared_task
+@shared_task(rate_limit="30/m")
 def analyze_sentiment():
     job = launch_job("analyze_sentiment")
     import boto3
