@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: flower
+  labels:
+    app.kubernetes.io/instance: scanvine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flower
+  serviceName: flower
+  template:
+    metadata:
+      labels:
+        app: flower
+    spec:
+      containers:
+      - name: flower
+        image: mher/flower
+        command: ["flower", "--broker=amqp://guest:guest@rabbitmq:5672"]
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flower
+  labels:
+    app.kubernetes.io/instance: scanvine
+spec:
+  type: ClusterIP  
+  ports:
+  - name: flower
+    port: 5555
+  selector:
+    app: flower

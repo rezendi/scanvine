@@ -1,0 +1,10 @@
+name: web
+command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+mountpath: /app
+forward:
+  - 8000:8000
+services:
+  - name: worker
+    mountpath: /app
+persistentVolume:
+  enabled: true
