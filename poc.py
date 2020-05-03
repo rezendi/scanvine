@@ -21,6 +21,17 @@ if not settings.configured:
     celery = Celery('scanvine', backend='rpc://')
 
 from main.models import *
+import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+
+api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
+                  consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
+                  access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
+                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''))
+
+verified_ids_cursor = -1
+(verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=200, cursor = verified_ids_cursor)
+print ("verified IDs %s" % verified_ids)
+
 from main import tasks
 
 # result = tasks.get_potential_sharer_ids.delay()
@@ -29,11 +40,11 @@ from main import tasks
 # result = tasks.ingest_sharers.delay()
 # output = result.wait(timeout=None, interval=0.5)
 
-result = tasks.fetch_shares.delay()
-output = result.wait(timeout=None, interval=0.5)
+# result = tasks.fetch_shares.delay()
+# output = result.wait(timeout=None, interval=0.5)
 
-result = tasks.associate_articles.delay()
-output = result.wait(timeout=None, interval=0.5)
+# result = tasks.associate_articles.delay()
+# output = result.wait(timeout=None, interval=0.5)
 
 # result = tasks.parse_unparsed_articles.delay()
 # output = result.wait(timeout=None, interval=0.5)

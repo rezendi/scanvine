@@ -1,6 +1,5 @@
-import os
-import json
-import urllib3
+import datetime, os
+import json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
 from . import article_parsers
@@ -238,10 +237,10 @@ def analyze_sentiment():
         sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
         score = sentiment['SentimentScore']
         share.sentiment = score
-        # very basic sentiment math
-        share.net_sentiment = score['Positive'] - score['Negative']
-        share.net_sentiment = 0.0 if score['Neutral'] > 0.5 else share.net_sentiment
-        share.net_sentiment = -0.01 if score['Mixed'] > 0.5 else share.net_sentiment #flag for later
+        # very very basic sentiment math
+        share.net_sentiment = score['Positive'] - score['Negative'] 
+        share.net_sentiment = 0.0 if score['Neutral'] > 0.75 else share.net_sentiment
+        share.net_sentiment = -0.01 if score['Mixed'] > 0.75 else share.net_sentiment #flag for later
         share.status = Share.Status.SENTIMENT_CALCULATED
         share.save()
     log_job(job, "analyzed %s sentiments" % len(shares), Job.Status.COMPLETED)
@@ -250,27 +249,26 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task
-def allocate_credibility():
+def allocate_credibility(year=0, month=0, day=0):
     job = launch_job("allocate_credibility")
+    date = datetime.date(year, month, day) if year>0 and month>0 and day>0 else datetime.date.today() - datetime.timedelta(days = 1)
+    log_job(job, "date %s" % date)
     for sharer in Sharer.objects.all():
-        shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False)
+        shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False, created_at=date)
         if not shares:
             continue
         total_points = 0
         for s in shares:
-            total_points += 2 if abs(s.net_sentiment) > 50 else 1
+            total_points += s.share_points()
         if total_points==0:
             continue
         cred_per_point = 5040 // total_points
         for share in shares:
             article = share.article
-            if not share.article:
+            author = share.author
+            if not share.article or not share.author:
                 continue
-            if share.net_sentiment < - 10:
-                points = -2 if share.net_sentiment -50 else -1
-            else:
-                points = 2 if share.net_sentiment -50 else 1
-            share_cred = cred_per_point * points
+            share_cred = cred_per_point * s.share_points()
             t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
             t.save()
             s.status = Share.Status.CREDIBILITY_ALLOCATED

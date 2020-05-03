@@ -23,7 +23,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY'] if 'DJANGO_SECRET_KEY' in os.environ else 'xxx'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
+    DEBUG = True
+else:
+    DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -73,13 +76,23 @@ WSGI_APPLICATION = 'scanvine.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'data/db.sqlite3'),
+if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
+    DATABASES = {
+        'default': {
+            'ENGINE':   'django.db.backends.postgresql_psycopg2',
+            'NAME':     os.environ['POSTGRES_DB'],
+            'USER':     os.environ['POSTGRES_USER'],
+            'PASSWORD': os.environ['POSTGRES_PASSWORD'],
+            'HOST':     os.environ['POSTGRES_HOST'],
+        }
     }
-}
-
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'data/db.sqlite3'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators

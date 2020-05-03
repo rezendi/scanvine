@@ -126,6 +126,15 @@ class Share(models.Model):
     net_sentiment = models.DecimalField(null = True, decimal_places = 2, max_digits = 4, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def share_points(self):
+        if self.net_sentiment is None:
+            return 0
+        if abs(self.net_sentiment) > 65:
+            return 3
+        if abs(self.net_sentiment) > 30:
+            return 2
+        return 1
 
     def __str__(self):
         return "Share %s" % (self.id)
