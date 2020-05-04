@@ -84,6 +84,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'USER':     os.environ['POSTGRES_USER'],
             'PASSWORD': os.environ['POSTGRES_PASSWORD'],
             'HOST':     os.environ['POSTGRES_HOST'],
+            'OPTIONS': {'sslmode': os.environ['POSTGRES_SSL_MODE']},
         }
     }
 else:
