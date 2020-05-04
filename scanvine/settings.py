@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-import json
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +25,7 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY'] if 'DJANGO_SECRET_KEY' in os.enviro
 # SECURITY WARNING: don't run with debug turned on in production!
 if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
     DEBUG = False
-    ALLOWED_HOSTS = json.loads(os.environ['ALLOWED_HOSTS'])
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'scanvine.com', 'www.scanvine.com', os.environ['HOST_IP']]
 else:
     DEBUG = True
     ALLOWED_HOSTS = []
