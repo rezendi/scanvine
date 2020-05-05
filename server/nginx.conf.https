@@ -15,7 +15,7 @@ http {
               server_name _;
 
               location /.well-known/acme-challenge/ {
-                allow all;
+                allow all
                 root /var/www/certbot;
               }
 
@@ -32,8 +32,6 @@ http {
               ssl_certificate_key /etc/letsencrypt/live/scanvine.com/privkey.pem;
               include /etc/letsencrypt/options-ssl-nginx.conf;
               ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-              ssl_protocols       TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
-              ssl_ciphers         HIGH:!aNULL:!MD5;
           
               location / {
                 proxy_pass http://django-app;
