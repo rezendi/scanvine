@@ -90,7 +90,7 @@ def fetch_shares():
     log_job(job, "Got %s unfiltered statuses" % len(timeline))
     tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-    tweets = [t for t in tweets if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
+    tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
     log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
 
     # Fetch those articles, pull their authors

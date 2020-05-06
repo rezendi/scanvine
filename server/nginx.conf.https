@@ -15,7 +15,6 @@ http {
               server_name _;
 
               location /.well-known/acme-challenge/ {
-                allow all
                 root /var/www/certbot;
               }
 
