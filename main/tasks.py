@@ -88,31 +88,30 @@ def fetch_shares():
     job = launch_job("fetch_shares")
     timeline = api.GetListTimeline(list_id=LIST_ID, count = 200, include_rts=True, return_json=True)
     log_job(job, "Got %s unfiltered statuses" % len(timeline))
-    link_statuses = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
+    tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-    link_statuses = [l for l in link_statuses if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
-
-    log_job(job, "new statuses %s" % len(link_statuses), Job.Status.LAUNCHED)
+    tweets = [t for t in tweets if json.dumps(l['urls'][0]['expanded_url']).find('twitter')<0]
+    log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
 
     # Fetch those articles, pull their authors
     count = 0
-    for status in link_statuses:
+    for tweet in tweets:
         # TODO: handle multiple URLs by picking best one
-        url = status['urls'][0]['expanded_url']
+        url = tweet['urls'][0]['expanded_url']
         url = clean_up_url(url)
     
         # get existing share, if any, for idempotency
-        existing = Share.objects.filter(twitter_id=status['id'])
+        existing = Share.objects.filter(twitter_id=tweet['id'])
         if existing:
-            log_job(job, "Share already found %s" % status['id'])
+            log_job(job, "Share already found %s" % tweet['id'])
             continue
-        sharer = Sharer.objects.filter(twitter_id=status['user_id'])
+        sharer = Sharer.objects.filter(twitter_id=tweet['user_id'])
         if not sharer:
-            log_job(job, "Sharer not found %s %s" % (status['user_id'], status['screen_name']))
+            log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
             continue
         sharer = sharer[0]
         s = Share(source=0, language='en', status=Share.Status.CREATED,
-                  sharer_id = sharer.id, twitter_id = status['id'], text=status['text'], url=url)
+                  sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
         s.save()
         count += 1
 
@@ -372,3 +371,27 @@ def clean_up_url(url):
         return url
     return url.partition("?")[0]
 
+def add_tweet(tweet_id):
+    tweet = api.GetStatus(tweet_id, include_entities=True)
+    sharer = Sharer.objects.filter(twitter_id=tweet.user.id)
+    if sharer:
+        sharer = sharer[0]
+    else:
+        sharer = Sharer(twitter_id=tweet.user.id, status=Sharer.Status.CREATED, name=tweet.user.name,
+                 twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
+        sharer.save()
+    share = Share.objects.filter(twitter_id=tweet.id)
+    if share:
+        share = share[0]
+    else:
+        share = Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    share.sharer_id = sharer.id
+    share.text = tweet.text
+    print("Urls %s" % tweet)
+    share.url = tweet.urls[0].expanded_url
+    share.save()
+    associate_article(share.id)
+
+def reparse_share(share_id):
+    share = Share.objects.get(id=share_id)
+    add_tweet(share.twitter_id)

@@ -13,10 +13,12 @@ class ScanvineAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
     list_filter = ('status', 'created_at', 'updated_at')
 
+
 @admin.register(Sharer)
 class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     search_fields = ('twitter_screen_name', 'name', 'profile')
+
 
 @admin.register(Article)
 class ArticleAdmin(ScanvineAdmin):
@@ -33,6 +35,7 @@ class ArticleAdmin(ScanvineAdmin):
             return redirect('/admin/main/article/%s/' % obj.id)
         return super().response_change(request, obj)
 
+
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
     change_form_template = "admin/author_change_form.html"
@@ -41,6 +44,7 @@ class AuthorAdmin(ScanvineAdmin):
     view_on_site = True
 
 admin.site.register(Collaboration)
+
 
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
@@ -54,17 +58,35 @@ class PublicationAdmin(ScanvineAdmin):
             return redirect('/admin/main/publication/%s/' % obj.id)
         return super().response_change(request, obj)
 
+
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
+    change_form_template = "admin/share_change_form.html"
     list_display = ('id', 'sharer', 'status', 'url', 'article')
     search_fields = ('text',)
     raw_id_fields = ("sharer", 'article')
+    actions = ['make_published']
+    
+    def get_search_results(self, request, queryset, search_term):
+        if (search_term.startswith("add:")):
+            tweet_id = search_term.rpartition(":")[2].rpartition("/")[2]
+            add_tweet(int(tweet_id))
+            return redirect('/admin/main/share/')
+        return super().get_search_results(request, queryset, search_term)
+
+    def response_change(self, request, obj):
+        if "_reparse" in request.POST:
+            reparse_share(obj.id)
+            return redirect('/admin/main/share/%s/' % obj.id)
+        return super().response_change(request, obj)
+ 
 
 @admin.register(Tranche)
 class TrancheAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'tags')
     list_display = ('id', 'quantity', 'tags', 'created_at',)
     search_fields = ('tags',)
+
 
 @admin.register(Job)
 class JobAdmin(ScanvineAdmin):
@@ -161,3 +183,5 @@ class JobAdmin(ScanvineAdmin):
 
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad
 # possibly eventually https://stackoverflow.com/questions/5544629/retrieve-list-of-tasks-in-a-queue-in-celery/9369466#9369466
+
+    

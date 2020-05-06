@@ -123,7 +123,7 @@ class Share(models.Model):
     text = models.CharField(max_length=4095)
     url = models.URLField()
     sentiment = models.CharField(blank = True, max_length=1023)
-    net_sentiment = models.DecimalField(null = True, decimal_places = 2, max_digits = 4, db_index=True)
+    net_sentiment = models.DecimalField(null = True, blank = True, decimal_places = 2, max_digits = 4, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
