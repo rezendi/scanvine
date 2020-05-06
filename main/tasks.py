@@ -339,6 +339,7 @@ def parse_article(domain, html):
         author = get_author_from(metadata, retval)
         metadata.update(retval)
 
+    print("author %s" % author)
     if author:
         metadata['sv_author'] = author
 
@@ -351,14 +352,15 @@ def get_sharers_from_users(users):
 
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
-    newval = metadata['sv_author'] if 'sv_author' in existing else None
+    newval = metadata['sv_author'] if 'sv_author' in metadata else None
+    print("newval %s" % newval)
     if not newval:
         return oldval
     if type(newval) is list:
         names = [x['name'] if type(x) is dict and 'name' in x else x for x in inner]
         return names[0] if len(names)==1 else ','.join(names)
     elif type(newval) is dict:
-        newval = inner['name'] if 'name' in inner else None
+        newval = newval['name'] if 'name' in newval else None
     if not oldval:
         return newval
     if newval.startswith("[") or newval.startswith("{"):
