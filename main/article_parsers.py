@@ -93,7 +93,7 @@ def get_author_for(metadata):
         return None
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
-    author_string = str(metadata['sv_author']).strip()
+    author_string = str(metadata['sv_author']).strip() if 'sv_author' in metadata else ''
     author_string = author_string.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
     if not author_string:
         return None

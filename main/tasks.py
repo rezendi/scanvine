@@ -203,7 +203,7 @@ def parse_article_metadata(article_id):
 
     html = article.contents
     try:
-        metadata = parse_article(domain, html)
+        metadata = parse_article(html, domain)
         article.metadata = metadata if metadata else article.metadata
         article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
         author = article_parsers.get_author_for(metadata)
@@ -316,7 +316,7 @@ def recalculate_credibility(share_id, new_quantity):
     
 
 from bs4 import BeautifulSoup
-def parse_article(domain, html):
+def parse_article(html, domain=''):
     soup = BeautifulSoup(html, "html.parser")
     metadata = {'sv_title' : soup.title.string}
     
@@ -361,7 +361,7 @@ def get_author_from(existing, metadata):
         newval = newval['name'] if 'name' in newval else None
     if not oldval:
         return newval
-    if newval.startswith("[") or newval.startswith("{"):
+    if newval and (newval.startswith("[") or newval.startswith("{")):
         return oldval
     return newval
     
