@@ -339,7 +339,6 @@ def parse_article(domain, html):
         author = get_author_from(metadata, retval)
         metadata.update(retval)
 
-    print("author %s" % author)
     if author:
         metadata['sv_author'] = author
 
@@ -353,7 +352,6 @@ def get_sharers_from_users(users):
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
     newval = metadata['sv_author'] if 'sv_author' in metadata else None
-    print("newval %s" % newval)
     if not newval:
         return oldval
     if type(newval) is list:
@@ -402,7 +400,6 @@ def add_tweet(tweet_id):
         share = Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     share.sharer_id = sharer.id
     share.text = tweet.text
-    print("Urls %s" % tweet)
     share.url = tweet.urls[0].expanded_url
     share.save()
     associate_article(share.id)

@@ -28,12 +28,17 @@ class ArticleAdmin(ScanvineAdmin):
     search_fields = ('title',)
     raw_id_fields = ("publication", 'author')
     exclude = ('contents',)
-
+    actions = ['reparse']
+    
     def response_change(self, request, obj):
         if "_reparse" in request.POST:
             parse_article_metadata(obj.id)
             return redirect('/admin/main/article/%s/' % obj.id)
         return super().response_change(request, obj)
+
+    def reparse(modeladmin, request, queryset):
+        for obj in queryset:
+            parse_article_metadata(obj.id)
 
 
 @admin.register(Author)
