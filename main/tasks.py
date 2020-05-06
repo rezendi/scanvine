@@ -332,20 +332,15 @@ def parse_article(domain, html):
         if parser_rule_string:
             parser_rules = default_parser_rules + json.loads(parser_rule_string)
 
-    #special case for dev/test
+    author = None
     for rule in parser_rules:
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
+        author = get_author_from(metadata, retval)
         metadata.update(retval)
 
-    if 'sv_author' in metadata:
-        inner = metadata['sv_author']
-        if type(inner) is list:
-            names = [x['name'] if type(x) is dict and 'name' in x else x for x in inner]
-            metadata['sv_author'] = names[0] if len(names)==1 else ','.join(names)
-        elif type(inner) is dict:
-            metadata['sv_author'] = inner['name'] if 'name' in inner else None
-    
+    metadata['sv_author'] = author
+
     return metadata
 
 def get_sharers_from_users(users):
@@ -353,6 +348,23 @@ def get_sharers_from_users(users):
     # TODO: only get desired users
     return filtered
 
+def get_author_from(existing, metadata):
+    oldval = existing['sv_author'] if 'sv_author' in existing else None
+    newval = metadata['sv_author'] if 'sv_author' in existing else None
+    if not newval:
+        return oldval
+    if type(newval) is list:
+        names = [x['name'] if type(x) is dict and 'name' in x else x for x in inner]
+        return names[0] if len(names)==1 else ','.join(names)
+    elif type(newval) is dict:
+        newval = inner['name'] if 'name' in inner else None
+    if not oldval:
+        return newval
+    if newval.startswith("[") or newval.startswith("{"):
+        return oldval
+    return newval
+    
+    
 def launch_job(name):
     job = Job(status = Job.Status.LAUNCHED, name=name, actions='')
     job.save()
