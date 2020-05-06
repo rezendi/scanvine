@@ -339,7 +339,8 @@ def parse_article(domain, html):
         author = get_author_from(metadata, retval)
         metadata.update(retval)
 
-    metadata['sv_author'] = author
+    if author:
+        metadata['sv_author'] = author
 
     return metadata
 

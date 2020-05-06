@@ -99,7 +99,7 @@ class JobAdmin(ScanvineAdmin):
         latest_jobs=[]
         job_names = Job.objects.values('name').distinct()
         for job_name in job_names:
-            jobs = Job.objects.filter(name=job_name['name'])[:1]
+            jobs = Job.objects.filter(name=job_name['name']).order_by("-created_at")[:1]
             if len(jobs)>0:
                 latest_jobs.append(jobs[0])
         latest_jobs.sort(key=lambda j:j.created_at, reverse=True)
