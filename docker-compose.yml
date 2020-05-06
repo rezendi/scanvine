@@ -12,7 +12,7 @@ services:
       - ./server/nginx.conf.https:/etc/nginx/nginx.conf
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+      - ./data/static:/static
     depends_on:
       - django
       - certbot
