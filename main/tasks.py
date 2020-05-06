@@ -355,7 +355,7 @@ def get_author_from(existing, metadata):
     if not newval:
         return oldval
     if type(newval) is list:
-        names = [x['name'] if type(x) is dict and 'name' in x else x for x in inner]
+        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
         return names[0] if len(names)==1 else ','.join(names)
     elif type(newval) is dict:
         newval = newval['name'] if 'name' in newval else None
