@@ -20,6 +20,10 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
+    'add-every-2-minutes': {
+        'task': 'main.tasks.get_potential_sharers',
+        'schedule': 120.0,
+    },
     'add-every-30-seconds': {
         'task': 'main.tasks.fetch_shares',
         'schedule': 30.0,
