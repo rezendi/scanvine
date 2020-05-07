@@ -24,6 +24,16 @@ class MetadataParserTests(TestCase):
         self.assertIsNotNone(article.author_id)
 
 class AuthorTests(TestCase):
+    def test_complex_name(self):
+        url = "http://test.com"
+        html = '<html><head><title>TestTitle1</title><meta name="author" content="Test Author | Associated Press, opinion contributor"></html>'
+        article = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=html, title='', metadata='')
+        article.save()
+        tasks.parse_article_metadata(article.id)
+        article.refresh_from_db()
+        self.assertIsNotNone(article.author_id)
+        self.assertEqual("Test Author", article.author.name)
+
     def test_complex_collaboration(self):
         url = "http://test.com"
         html = '<html><head><title>TestTitle1</title><meta name="author" content="Author1, Author2 | Associated Press, Author3, contributor"></html>'
