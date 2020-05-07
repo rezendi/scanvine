@@ -22,7 +22,7 @@ if not settings.configured:
 
 from main import tasks
 
-result = tasks.get_potential_sharer_ids.delay()
+result = tasks.get_potential_sharers.delay()
 output = result.wait(timeout=None, interval=0.5)
 
 # result = tasks.ingest_sharers.delay()

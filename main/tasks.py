@@ -25,12 +25,14 @@ http = urllib3.PoolManager()
 @shared_task(rate_limit="30/h")
 def get_potential_sharers():
     job = launch_job("get_potential_sharers")
-    previous_job = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="get_potential_sharers")
-    verified_cursor_string = previous_job.actions.partition["\n"][0]
+    verified_cursor = -1
+    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="get_potential_sharers").order_by("-created_at")
+    if previous_jobs:
+        verified_cursor_string = previous_jobs[0].actions.partition["\n"][0]
+        verified_cursor = int (verified_cursor_string)
     (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
     log_job(job, "Potential new sharers: %s" % len(users))
-    filtered = get_sharers_from_users(users)
-    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f.id))==0]
+    new = [u for u in users if not Sharer.objects.filter(twitter_id=u.id)]
     for n in new:
         s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name,name=n.name,
                    profile=n.description, category=0, verified=True)
