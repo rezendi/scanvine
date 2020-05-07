@@ -45,14 +45,14 @@ def get_potential_sharers():
     log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
 
 
-LIST_ID = 1258204180864368642
+LIST_IDS = [1258204180864368642]
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
     sharers = Sharer.objects.filter(status=Sharer.Status.LISTED)[0:99]
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[0], count=5000, include_entities=False, skip_status=True)
     listed_ids = [u.id for u in listed]
     new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
     if new_to_list:
@@ -66,7 +66,7 @@ def ingest_sharers():
 @shared_task(rate_limit="6/m")
 def refresh_sharers():
     job = launch_job("refresh_sharers")
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[0], count=5000, include_entities=False, skip_status=True)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
       s = Sharer(twitter_id=n['id'], status=Sharer.Status.LISTED, name=n['name'],
@@ -79,7 +79,16 @@ def refresh_sharers():
 @shared_task(rate_limit="30/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
-    timeline = api.GetListTimeline(list_id=LIST_ID, count = 200, include_rts=True, return_json=True)
+    list_id = LIST_IDS[0]
+    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")
+    if previous_jobs:
+        for action in previous_jobs[0].actions.split("\n"):
+            if action.startswith("list_id="):
+                latest_list_id = int(action.partition("=")[2])
+                idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
+                list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
+    log_job(job, "list_id=%s" %list_id)
+    timeline = api.GetListTimeline(list_id=list_id, count = 200, include_rts=True, return_json=True)
     log_job(job, "Got %s unfiltered statuses" % len(timeline))
     tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
@@ -397,7 +406,7 @@ def reparse_share(share_id):
     add_tweet(share.twitter_id)
 
 PROFILE_KEYWORDS = "journalist,journo,reporter,editor,author,writer,"
-PROFILE_KEYWORDS+= "investor,vc,venture capitalisst,entrepreneur,founder,CEO,"
+PROFILE_KEYWORDS+= "investor,vc,venture capitalist,entrepreneur,founder,CEO,"
 PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,"
 PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,professor,physicist,statistician,"
 PROFILE_KEYWORDS+= "senator,representative,"
