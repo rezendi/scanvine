@@ -418,14 +418,16 @@ def fix_sharers():
             match.save()
 
 def promote_matching_sharers():
+    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
     keywords = PROFILE_KEYWORDS.split(",")
     keywords = [k for k in keywords if len(k)>1]
     total = 0
     for keyword in keywords:
-        matching = Sharer.objects.filter(profile__icontains=keyword).filter(status=Sharer.Status.CREATED)
+        matching = Sharer.objects.filter(profile__iregex=r"%s%s%s" % (regex_prefix, keyword, regex_prefix)).filter(status=Sharer.Status.CREATED)
         print("keyword %s matches %s" % (keyword, len(matching)))
         total += len(matching)
         for match in matching:
+            continue
             match.status = Sharer.Status.SELECTED
             match.save()
     print("total %s" % total)
