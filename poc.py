@@ -22,8 +22,11 @@ if not settings.configured:
 
 from main import tasks
 
-result = tasks.get_potential_sharers.delay()
-output = result.wait(timeout=None, interval=0.5)
+#result = tasks.get_potential_sharers.delay()
+#output = result.wait(timeout=None, interval=0.5)
+
+tasks.promote_matching_sharers()
+#tasks.fix_sharers()
 
 # result = tasks.ingest_sharers.delay()
 # output = result.wait(timeout=None, interval=0.5)

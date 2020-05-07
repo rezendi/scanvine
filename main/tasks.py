@@ -45,13 +45,13 @@ def get_potential_sharers():
     log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
 
 
-LIST_ID = 1255581634486648833
+LIST_ID = 1258204180864368642
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
-    sharers = Sharer.objects.filter(status=Sharer.Status.CREATED)[0:99]
+    sharers = Sharer.objects.filter(status=Sharer.Status.LISTED)[0:99]
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
     listed_ids = [u.id for u in listed]
     new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
@@ -67,7 +67,6 @@ def ingest_sharers():
 def refresh_sharers():
     job = launch_job("refresh_sharers")
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_ID, count=5000, include_entities=False, skip_status=True)
-    filtered = get_sharers_from_users(listed)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
       s = Sharer(twitter_id=n['id'], status=Sharer.Status.LISTED, name=n['name'],
@@ -338,11 +337,6 @@ def parse_article(html, domain=''):
 
     return metadata
 
-def get_sharers_from_users(users):
-    filtered = [{'id':u.id, 'name':u.name, 'screen_name':u.screen_name, 'desc':u.description, 'v':u.verified} for u in users if not u.protected]
-    # TODO: only get desired users
-    return filtered
-
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
     newval = metadata['sv_author'] if 'sv_author' in metadata else None
@@ -401,3 +395,30 @@ def add_tweet(tweet_id):
 def reparse_share(share_id):
     share = Share.objects.get(id=share_id)
     add_tweet(share.twitter_id)
+
+PROFILE_KEYWORDS = "journalist,journo,reporter,editor,author,writer,"
+PROFILE_KEYWORDS+= "investor,vc,venture capitalisst,entrepreneur,founder,CEO,"
+PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,"
+PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,professor,physicist,statistician,"
+PROFILE_KEYWORDS+= "senator,representative,"
+
+def fix_sharers():
+        matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)
+        for match in matching:
+            match.status = Sharer.Status.CREATED
+            match.save()
+
+def promote_matching_sharers():
+    keywords = PROFILE_KEYWORDS.split(",")
+    keywords = [k for k in keywords if len(k)>1]
+    total = 0
+    for keyword in keywords:
+        matching = Sharer.objects.filter(profile__icontains=keyword).filter(status=Sharer.Status.CREATED)
+        print("keyword %s matches %s" % (keyword, len(matching)))
+        total += len(matching)
+        for match in matching:
+            match.status = Sharer.Status.SELECTED
+            match.save()
+    print("total %s" % total)
+
+

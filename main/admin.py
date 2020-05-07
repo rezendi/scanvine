@@ -18,6 +18,17 @@ class ScanvineAdmin(admin.ModelAdmin):
 class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     search_fields = ('twitter_screen_name', 'name', 'profile')
+    actions = ['deselect','list']
+
+    def deselect(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.status = Sharer.Status.DESELECTED
+            obj.save()
+
+    def list(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.status = Sharer.Status.LISTED
+            obj.save()
 
 
 @admin.register(Article)
@@ -138,7 +149,7 @@ class JobAdmin(ScanvineAdmin):
         urls = super().get_urls()
         my_urls = [
 #            path('add_new_sharers/',        self.add_new_sharers),
-#            path('ingest_sharers/',         self.ingest_sharers),
+            path('ingest_sharers/',         self.ingest_sharers),
             path('refresh_sharers/',        self.refresh_sharers),
             path('fetch_shares/',           self.fetch_shares),
             path('associate_articles/',     self.associate_articles),
@@ -149,10 +160,6 @@ class JobAdmin(ScanvineAdmin):
         ]
         return my_urls + urls
     
-    def add_new_sharers(self, request):
-        get_potential_sharer_ids.delay()
-        return redirect('/admin/main/job/')
-        
     def refresh_sharers(self, request):
         refresh_sharers.delay()
         return redirect('/admin/main/job/')

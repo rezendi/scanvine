@@ -4,9 +4,11 @@ from django.db import models
 
 class Sharer(models.Model):
     class Status(models.IntegerChoices):
-        LISTED = 1
+        LISTED = 2
+        SELECTED = 1
         CREATED = 0
-        DISABLED = -1
+        DESELECTED = -1
+        DISABLED = -2
     
     status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField()
