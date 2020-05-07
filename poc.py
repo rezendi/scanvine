@@ -11,12 +11,28 @@ if not settings.configured:
     settings.configure(DEBUG=True)
     settings.BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     settings.INSTALLED_APPS = [ 'main.apps.MainConfig']
-    settings.DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(settings.BASE_DIR, 'db.sqlite3'),
-        }
-    }
+    if 'SCANVINE_ENV' in os.environ:
+        print('environ %s' % os.environ['SCANVINE_ENV'])
+        if os.environ['SCANVINE_ENV']=='production':
+            raise Exception("Running POC in production!")
+            settings.DATABASES = {
+                'default': {
+                    'ENGINE':   'django.db.backends.postgresql_psycopg2',
+                    'NAME':     os.environ['POSTGRES_DB'],
+                    'USER':     os.environ['POSTGRES_USER'],
+                    'PASSWORD': os.environ['POSTGRES_PASSWORD'],
+                    'HOST':     os.environ['POSTGRES_HOST'],
+                    'PORT':     os.environ['POSTGRES_PORT'],
+                    'OPTIONS': {'sslmode': os.environ['POSTGRES_SSL_MODE']},
+                }
+            }
+        else:
+            settings.DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': os.path.join(settings.BASE_DIR, 'db.sqlite3'),
+                }
+            }
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
