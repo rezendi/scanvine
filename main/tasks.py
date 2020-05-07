@@ -226,6 +226,7 @@ def parse_article_metadata(article_id):
 
 
 # Get sentiment from AWS
+# TODO: batch process 25 at a time
 @shared_task(rate_limit="30/m")
 def analyze_sentiment():
     job = launch_job("analyze_sentiment")
@@ -236,12 +237,7 @@ def analyze_sentiment():
     for share in shares:
         print("Calling AWS")
         sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
-        score = sentiment['SentimentScore']
-        share.sentiment = score
-        # very very basic sentiment math
-        share.net_sentiment = score['Positive'] - score['Negative'] 
-        share.net_sentiment = 0.0 if score['Neutral'] > 0.75 else share.net_sentiment
-        share.net_sentiment = -0.01 if score['Mixed'] > 0.75 else share.net_sentiment #flag for later
+        share.calculate_sentiment(sentiment['SentimentScore'])
         share.status = Share.Status.SENTIMENT_CALCULATED
         share.save()
     log_job(job, "analyzed %s sentiments" % len(shares), Job.Status.COMPLETED)
@@ -253,28 +249,32 @@ def analyze_sentiment():
 def allocate_credibility(year=0, month=0, day=0):
     job = launch_job("allocate_credibility")
     date = datetime.date(year, month, day) if year>0 and month>0 and day>0 else datetime.date.today() - datetime.timedelta(days = 1)
+    end_date = date + datetime.timedelta(days=2)
     log_job(job, "date %s" % date)
+    total_points = 0
     for sharer in Sharer.objects.all():
-        shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False, created_at=date)
+        shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False,
+                                      created_at__range=(date, end_date))
         if not shares:
             continue
-        total_points = 0
+        points = 0
         for s in shares:
-            total_points += s.share_points()
-        if total_points==0:
+            points += s.share_points()
+        if points==0:
             continue
-        cred_per_point = 5040 // total_points
+        total_points += points
+        cred_per_point = 5040 // points
         for share in shares:
             article = share.article
-            author = share.author
-            if not share.article or not share.author:
+            author = article.author if article else None
+            if not article or not author:
                 continue
             share_cred = cred_per_point * s.share_points()
             t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
             t.save()
             s.status = Share.Status.CREDIBILITY_ALLOCATED
             s.save()
-    log_job(job, "allocated", Job.Status.COMPLETED)
+    log_job(job, "allocated %s" % total_points, Job.Status.COMPLETED)
 
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly

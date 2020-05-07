@@ -129,6 +129,13 @@ class Share(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def calculate_sentiment(self, score):
+        # very very basic sentiment math
+        self.sentiment = score
+        self.net_sentiment = score['Positive'] - score['Negative'] 
+        self.net_sentiment = 0.0 if score['Neutral'] > 0.75 else self.net_sentiment
+        self.net_sentiment = -0.01 if score['Mixed'] > 0.75 else self.net_sentiment #flag for later
+
     def share_points(self):
         if self.net_sentiment is None:
             return 0
