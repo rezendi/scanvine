@@ -23,17 +23,23 @@ http = urllib3.PoolManager()
 # Get a tranche of verified users, add them to the DB if not there
 # https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
 @shared_task(rate_limit="30/h")
-def get_potential_sharer_ids():
-    job = launch_job("get_potential_sharer_ids")
-    # verified_ids_cursor = -1 # TODO move this to runtime scope
-    # (verified_ids_cursor, previous_cusor, verified_ids) = api.GetFriendIDs(screen_name='verified', count=5000, cursor = verified_ids_cursor)
-    (next, prev, members) = api.GetListMembersPaged(list_id=2129346)
-    verified_ids = [u.id for u in members]
-    chunks = [verified_ids[i:i + 100] for i in range(0, len(verified_ids), 100)]
-    for chunk in chunks:
-        add_new_sharers.signature((chunk,)).apply_async()
-    log_job(job, "Potential new sharers: %s" % len(verified_ids), Job.Status.COMPLETED)
+def get_potential_sharers():
+    job = launch_job("get_potential_sharers")
+    previous_job = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="get_potential_sharers")
+    verified_cursor_string = previous_job.actions.partition["\n"][0]
+    (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
+    log_job(job, "Potential new sharers: %s" % len(users))
+    filtered = get_sharers_from_users(users)
+    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f.id))==0]
+    for n in new:
+        s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name,name=n.name,
+                   profile=n.description, category=0, verified=True)
+        s.save()
+    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
+    log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
 
+
+LIST_ID = 1255581634486648833
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task(rate_limit="30/h")
@@ -49,24 +55,6 @@ def ingest_sharers():
           s.status = Sharer.Status.LISTED
           s.save()    
     log_job(job, "New to list: %s" % len(new_to_list), Job.Status.COMPLETED)
-
-
-# Get a tranche of verified users, add them to the DB if not there
-# https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
-@shared_task(rate_limit="10/m")
-def add_new_sharers(verified_ids):
-    job = launch_job("add_new_sharers")
-    users = api.UsersLookup(user_id=verified_ids[0:99], include_entities=False)
-    filtered = get_sharers_from_users(users)
-    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
-    for n in new:
-      s = Sharer(twitter_id=n['id'], status=Sharer.Status.CREATED, name=n['name'],
-                 twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
-      s.save()
-    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
-
-
-LIST_ID = 1255581634486648833
 
 # Take users from our Twitter list, add them to the DB if not there already
 @shared_task(rate_limit="6/m")
