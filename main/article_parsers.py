@@ -128,11 +128,10 @@ def get_author_for(metadata, publication):
 
     # if we're here, we have a collaboration on our hands
     names = author_string.split(",")
-    names = [n.strip() for n in names]
+    names = [clean_author_name(n, publication) for n in names]
     names = [n for n in names if len(n)>3]
     authors = []
     for name in names:
-        name = clean_author_name(name, publication)
         existing = Author.objects.filter(name__iexact=name)
         existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
@@ -142,7 +141,7 @@ def get_author_for(metadata, publication):
             author.save()
             authors.append(author)
     
-    byline = Author(status=Author.Status.CREATED, name=author_string, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
+    byline = Author(status=Author.Status.CREATED, name=",".join(names), is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
     byline.save()
     for author in authors:
         collaboration = Collaboration(partnership = byline, individual = author)
@@ -155,7 +154,8 @@ def clean_author_string(string, publication):
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist"]
     for exclusion in exclusions:
-        newstring = newstring.replace(', %s' % exclusion,'')
+        newstring = newstring.replace(', %s' % exclusion,', ')
+        newstring = newstring.replace(',%s' % exclusion,',')
     newstring = newstring.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
     return newstring.strip()
 
@@ -177,5 +177,5 @@ def clean_author_name(name, publication):
         if existing:
             existing.name = newname
             existing.save()
-    return newname
+    return newname.strip()
     
