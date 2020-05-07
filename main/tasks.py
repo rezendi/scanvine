@@ -208,7 +208,7 @@ def parse_article_metadata(article_id):
         metadata = parse_article(html, domain)
         article.metadata = metadata if metadata else article.metadata
         article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
-        author = article_parsers.get_author_for(metadata)
+        author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
             log_job(job, "Author %s associated to article %s" % (author.name, article.url))
@@ -338,7 +338,7 @@ def parse_article(html, domain=''):
     for rule in parser_rules:
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
-        author = get_author_from(metadata, retval)
+        author = article_parsers.get_author_from(metadata, retval)
         metadata.update(retval)
 
     if author:
@@ -346,23 +346,7 @@ def parse_article(html, domain=''):
 
     return metadata
 
-def get_author_from(existing, metadata):
-    oldval = existing['sv_author'] if 'sv_author' in existing else None
-    newval = metadata['sv_author'] if 'sv_author' in metadata else None
-    if not newval:
-        return oldval
-    if type(newval) is list:
-        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
-        return names[0] if len(names)==1 else ','.join(names)
-    elif type(newval) is dict:
-        newval = newval['name'] if 'name' in newval else None
-    if not oldval:
-        return newval
-    if newval and (newval.startswith("[") or newval.startswith("{")):
-        return oldval
-    return newval
-    
-    
+
 def launch_job(name):
     job = Job(status = Job.Status.LAUNCHED, name=name, actions='')
     job.save()
@@ -406,10 +390,9 @@ def reparse_share(share_id):
     add_tweet(share.twitter_id)
 
 PROFILE_KEYWORDS = "journalist,journo,reporter,editor,author,writer,"
-PROFILE_KEYWORDS+= "investor,vc,venture capitalist,entrepreneur,founder,CEO,"
-PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,"
-PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,professor,physicist,statistician,"
-PROFILE_KEYWORDS+= "senator,representative,"
+PROFILE_KEYWORDS+= "investor,vc,venture capitalist,entrepreneur,founder,CEO,CTO,"
+PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,associate prof,assoc prof,professor,physicist,statistician,mathematician"
+PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,senator,representative,"
 
 def fix_sharers():
         matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)

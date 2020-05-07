@@ -88,18 +88,34 @@ def npr_parser(soup):
     metadata['sv_author'] = metadata['byline']
     return metadata
 
-def get_author_for(metadata):
+def get_author_from(existing, metadata):
+    oldval = existing['sv_author'] if 'sv_author' in existing else None
+    newval = metadata['sv_author'] if 'sv_author' in metadata else None
+    if not newval:
+        return oldval
+    if type(newval) is list:
+        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
+        return names[0] if len(names)==1 else ','.join(names)
+    elif type(newval) is dict:
+        newval = newval['name'] if 'name' in newval else None
+    if not oldval:
+        return newval
+    if newval and (newval.startswith("[") or newval.startswith("{")):
+        return oldval
+    return newval
+
+def get_author_for(metadata, publication):
     if not 'sv_author' in metadata:
         return None
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
-    author_string = str(metadata['sv_author']).strip() if 'sv_author' in metadata else ''
-    author_string = author_string.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
+    author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
+    author_string = clean_author_string(author_string, publication)
     if not author_string:
         return None
 
     if author_string.find(",") == -1:
-        name = author_string
+        name = clean_author_name(author_string, publication)
         existing = Author.objects.filter(name__iexact=name)
         existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
@@ -116,6 +132,7 @@ def get_author_for(metadata):
     names = [n for n in names if len(n)>3]
     authors = []
     for name in names:
+        name = clean_author_name(name, publication)
         existing = Author.objects.filter(name__iexact=name)
         existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
@@ -131,3 +148,34 @@ def get_author_for(metadata):
         collaboration = Collaboration(partnership = byline, individual = author)
         collaboration.save()
     return byline
+
+def clean_author_string(string, publication):
+    newstring = string
+    exclusions = [publication.name] if publication else []
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
+    exclusions+= ["correspondent", "contributor", "columnist"]
+    for exclusion in exclusions:
+        newstring = newstring.replace(', %s' % exclusion,'')
+    newstring = newstring.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
+    return newstring.strip()
+
+def clean_author_name(name, publication):
+    exclusions = [publication.name] if publication else []
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
+    exclusions+= ["correspondent", "contributor", "columnist"]
+    exclusions+= ["|"]
+    newname = name
+    for exclusion in exclusions:
+        newname = newname.replace(exclusion,'')
+        newname = newname.replace('  ',' ')
+        newname = newname.replace(exclusion.title(),'')
+        newname = newname.replace('  ',' ')
+    newname = newname.replace('  ',' ')
+
+    if newname != name:        
+        existing = Author.objects.filter(name=name)
+        if existing:
+            existing.name = newname
+            existing.save()
+    return newname
+    
