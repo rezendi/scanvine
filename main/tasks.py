@@ -412,7 +412,7 @@ def reparse_share(share_id):
 
 PROFILE_KEYWORDS = "journalist,journo,reporter,editor,author,writer,"
 PROFILE_KEYWORDS+= "investor,vc,venture capitalist,entrepreneur,founder,CEO,CTO,"
-PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,associate prof,assoc prof,professor,physicist,statistician,mathematician"
+PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,associate prof,assoc prof,professor,physicist,statistician,mathematician,"
 PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,senator,representative,"
 
 def fix_sharers():
@@ -425,15 +425,15 @@ def promote_matching_sharers():
     regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
     keywords = PROFILE_KEYWORDS.split(",")
     keywords = [k for k in keywords if len(k)>1]
-    total = 0
+    sharers = set()
     for keyword in keywords:
         matching = Sharer.objects.filter(profile__iregex=r"%s%s%s" % (regex_prefix, keyword, regex_prefix)).filter(status=Sharer.Status.CREATED)
         print("keyword %s matches %s" % (keyword, len(matching)))
-        total += len(matching)
         for match in matching:
+            sharers.add(match.id)
             continue
             match.status = Sharer.Status.SELECTED
             match.save()
-    print("total %s" % total)
+    print("total %s" % len(sharers))
 
 
