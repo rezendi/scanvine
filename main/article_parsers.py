@@ -215,7 +215,7 @@ def clean_author_name(name, publication):
     exclusions+= ["reuters", "AP", "AFP"]
     exclusions+= ["|"]
     newname = name if name else ''
-    re.sub("(<!--.*?-->)", "", newname)
+    newname = re.sub(r'<[^>]*>', "", newname)
     for exclusion in exclusions:
         newname = newname.replace(exclusion,'')
         newname = newname.replace('  ',' ')
