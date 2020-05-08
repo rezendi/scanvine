@@ -216,7 +216,7 @@ def parse_article_metadata(article_id):
         metadata = parse_article(article.contents, domain)
         pub_name = metadata['sv_publication'] if 'sv_publication' in metadata else ''
         if pub_name and not publication.name:
-            publication.name = pub_name
+            publication.name = pub_name.title()
             publication.save()
 
         article.metadata = metadata if metadata else article.metadata
