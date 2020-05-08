@@ -110,12 +110,15 @@ def get_author_for(metadata, publication):
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
     author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
-    author_string = clean_author_string(author_string, publication)
-    if not author_string:
+    names = clean_author_string(author_string, publication).split(",")
+    names = [clean_author_name(n, publication) for n in names]
+    names = [n for n in names if len(n)>3]
+
+    if len(names) == 0:
         return None
 
-    if author_string.find(",") == -1:
-        name = clean_author_name(author_string, publication)
+    if len(names) == 1:
+        name = names[0]
         existing = Author.objects.filter(name__iexact=name)
         existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
         if existing:
@@ -127,9 +130,6 @@ def get_author_for(metadata, publication):
             return author
 
     # if we're here, we have a collaboration on our hands
-    names = author_string.split(",")
-    names = [clean_author_name(n, publication) for n in names]
-    names = [n for n in names if len(n)>3]
     authors = []
     for name in names:
         existing = Author.objects.filter(name__iexact=name)
@@ -149,7 +149,7 @@ def get_author_for(metadata, publication):
     return byline
 
 def clean_author_string(string, publication):
-    newstring = string
+    newstring = string if string else ''
     exclusions = [publication.name] if publication else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist"]
@@ -164,7 +164,7 @@ def clean_author_name(name, publication):
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist"]
     exclusions+= ["|"]
-    newname = name
+    newname = name if name else ''
     for exclusion in exclusions:
         newname = newname.replace(exclusion,'')
         newname = newname.replace('  ',' ')

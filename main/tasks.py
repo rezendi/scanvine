@@ -79,6 +79,9 @@ def refresh_sharers():
 @shared_task(rate_limit="30/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
+
+    # get data from previous job, if any
+    since_id = None
     list_id = LIST_IDS[0]
     previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")
     if previous_jobs:
@@ -87,15 +90,24 @@ def fetch_shares():
                 latest_list_id = int(action.partition("=")[2])
                 idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
                 list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
-    log_job(job, "list_id=%s" %list_id)
-    timeline = api.GetListTimeline(list_id=list_id, count = 200, include_rts=True, return_json=True)
+            elif action.startswith("max_id="):
+                since_id = int(action.partition("=")[2])
+    log_job(job, "list_id=%s" % list_id)
+
+    # fetch the timeline, log its values
+    timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
     log_job(job, "Got %s unfiltered statuses" % len(timeline))
     tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
     tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
     log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
+    if timeline:
+        log_job(job, "max_id=%s" % timeline[0]['id'])
+        log_job(job, "min_id=%s" % timeline[-1]['id'])
+    elif since_id:
+        log_job(job, "max_id=%s" % since_id)
 
-    # Fetch those articles, pull their authors
+    # Store new shares to DB
     count = 0
     for tweet in tweets:
         # TODO: handle multiple URLs by picking best one
@@ -118,6 +130,8 @@ def fetch_shares():
         count += 1
 
     log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
+    
+    # Launch follow-up job to fetch associated articles
     if count > 0:
         associate_articles.signature().apply_async()
 

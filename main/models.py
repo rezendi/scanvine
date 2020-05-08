@@ -34,7 +34,7 @@ class Author(models.Model):
     status = models.IntegerField(db_index=True, choices=Status.choices)
     name = models.CharField(max_length=255)
     is_collaboration = models.BooleanField()
-    twitter_id = models.BigIntegerField(null=True, db_index=True)
+    twitter_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
     metadata = models.TextField(blank=True, default='')
     current_credibility = models.BigIntegerField()
