@@ -87,7 +87,9 @@ def meta_parser(soup):
             if not byline:
                 candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
                 for candidate in candidates:
-                    byline += candidate.text
+                    possible_byline = clean_author_name(candidate.text,'')
+                    if possible_byline:
+                        byline = possible_byline
         if byline:
             metadata['sv_author'] = byline
             

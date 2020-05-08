@@ -161,36 +161,44 @@ class JobAdmin(ScanvineAdmin):
         return my_urls + urls
     
     def refresh_sharers(self, request):
-        refresh_sharers.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            refresh_sharers.delay()
+            return redirect('/admin/main/job/')
         
     def ingest_sharers(self, request):
-        ingest_sharers.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            ingest_sharers.delay()
+            return redirect('/admin/main/job/')
 
     def fetch_shares(self, request):
-        fetch_shares.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            fetch_shares.delay()
+            return redirect('/admin/main/job/')
 
     def associate_articles(self, request):
-        associate_articles.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            associate_articles.delay()
+            return redirect('/admin/main/job/')
 
     def parse_unparsed(self, request):
-        parse_unparsed_articles.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            parse_unparsed_articles.delay()
+            return redirect('/admin/main/job/')
 
     def analyze_sentiment(self, request):
-        analyze_sentiment.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            analyze_sentiment.delay()
+            return redirect('/admin/main/job/')
 
     def allocate_credibility(self, request):
-        allocate_credibility.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            allocate_credibility.delay()
+            return redirect('/admin/main/job/')
 
     def set_reputations(self, request):
-        set_reputations.delay()
-        return redirect('/admin/main/job/')
+        if request.user.is_superuser:
+            set_reputations.delay()
+            return redirect('/admin/main/job/')
 
 
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad

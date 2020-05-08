@@ -360,6 +360,7 @@ def parse_article(html, domain=''):
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
         author = article_parsers.get_author_from(metadata, retval)
+        # print("rule author %s %s" % (rule, author))
         metadata.update(retval)
 
     if author:
