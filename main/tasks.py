@@ -246,15 +246,15 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task
-def allocate_credibility(year=0, month=0, day=0):
+def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     job = launch_job("allocate_credibility")
-    date = datetime.date(year, month, day) if year>0 and month>0 and day>0 else datetime.date.today() - datetime.timedelta(days = 1)
-    end_date = date + datetime.timedelta(days=2)
-    log_job(job, "date %s" % date)
+    end_date = date + datetime.timedelta(days=1)
+    start_date = end_date - datetime.timedelta(days=days)
+    log_job(job, "date range %s - %s" % (start_date, end_date))
     total_points = 0
     for sharer in Sharer.objects.all():
         shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False,
-                                      created_at__range=(date, end_date))
+                                      created_at__range=(start_date, end_date))
         if not shares:
             continue
         points = 0
@@ -263,15 +263,22 @@ def allocate_credibility(year=0, month=0, day=0):
         if points==0:
             continue
         total_points += points
-        cred_per_point = 5040 // points
+        cred_per_point = 5040 * days // points
         for share in shares:
             article = share.article
             author = article.author if article else None
             if not article or not author:
                 continue
             share_cred = cred_per_point * s.share_points()
-            t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
-            t.save()
+            existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
+            if existing:
+                tranche = existing[0]
+                tranche.category = sharer.category
+                tranche.quantity = share_cred
+                tranche.save()
+            else:
+                t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+                t.save()
             s.status = Share.Status.CREDIBILITY_ALLOCATED
             s.save()
     log_job(job, "allocated %s" % total_points, Job.Status.COMPLETED)
