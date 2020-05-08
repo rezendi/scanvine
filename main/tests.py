@@ -20,8 +20,14 @@ class AuthorTests(TestCase):
         article.save()
         tasks.parse_article_metadata(article.id)
         article.refresh_from_db()
-        self.assertIsNotNone(article.author_id)
+        author_id = article.author_id
+        self.assertIsNotNone(author_id)
         self.assertEqual("Test Author", article.author.name)
+        article2 = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=html, title='', metadata='')
+        article2.save()
+        tasks.parse_article_metadata(article2.id)
+        article2.refresh_from_db()
+        self.assertEqual(author_id, article2.author_id)
 
     def test_complex_collaboration(self):
         url = "http://test.com"
@@ -30,12 +36,18 @@ class AuthorTests(TestCase):
         article.save()
         tasks.parse_article_metadata(article.id)
         article.refresh_from_db()
-        self.assertIsNotNone(article.author_id)
+        author_id = article.author_id
+        self.assertIsNotNone(author_id)
         author = article.author
         self.assertEqual("Author1,Author2,Author3", author.name)
         self.assertTrue(author.is_collaboration)
         collabs = Collaboration.objects.filter(partnership_id=author.id)
         self.assertEqual(3, len(collabs))
+        article2 = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=html, title='', metadata='')
+        article2.save()
+        tasks.parse_article_metadata(article2.id)
+        article2.refresh_from_db()
+        self.assertEqual(author_id, article2.author_id)
 
 class EndToEndTest(TestCase):
     def test_share_fetch_parse(self):

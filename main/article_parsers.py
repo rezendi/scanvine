@@ -120,7 +120,9 @@ def get_author_for(metadata, publication):
     if len(names) == 1:
         name = names[0]
         existing = Author.objects.filter(name__iexact=name)
-        existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
+        if twitter_name:
+            print("Filtering by twitter_name %s" % twitter_name)
+            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
         if existing:
             return existing[0] # TODO handle multiple matches
         else:
@@ -133,20 +135,26 @@ def get_author_for(metadata, publication):
     authors = []
     for name in names:
         existing = Author.objects.filter(name__iexact=name)
-        existing = existing.filter(twitter_screen_name__iexact=twitter_name) if twitter_name else existing
+        if twitter_name:
+            print("Filtering by twitter_name %s" % twitter_name)
+            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
         if existing:
             authors.append(existing[0]) # TODO handle multiple matches
         else:
             author=Author(status=Author.Status.CREATED, name=name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
             author.save()
             authors.append(author)
-    
-    byline = Author(status=Author.Status.CREATED, name=",".join(names), is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
-    byline.save()
+
+    byline = ",".join(names)    
+    existing = Author.objects.filter(name__iexact=byline)
+    if existing:
+        return existing[0]
+    new_byline = Author(status=Author.Status.CREATED, name=byline, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
+    new_byline.save()
     for author in authors:
-        collaboration = Collaboration(partnership = byline, individual = author)
+        collaboration = Collaboration(partnership = new_byline, individual = author)
         collaboration.save()
-    return byline
+    return new_byline
 
 def clean_author_string(string, publication):
     newstring = string if string else ''
@@ -177,5 +185,5 @@ def clean_author_name(name, publication):
         if existing:
             existing.name = newname
             existing.save()
-    return newname.strip()
+    return newname.title().strip()
     
