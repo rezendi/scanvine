@@ -87,7 +87,7 @@ class ShareAdmin(ScanvineAdmin):
         if (search_term.startswith("add:")):
             tweet_id = search_term.rpartition(":")[2].rpartition("/")[2]
             add_tweet(int(tweet_id))
-            return redirect('/admin/main/share/')
+            return super().get_search_results(request, queryset, '')
         return super().get_search_results(request, queryset, search_term)
 
     def response_change(self, request, obj):

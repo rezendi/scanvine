@@ -82,9 +82,14 @@ def meta_parser(soup):
 
     # if nothing, search for tag with 'byline' in its class?
     if not 'sv_author' in metadata:
-        byline = soup.find(True, {"class" : lambda L: L and L.endswith('byline')})
+        byline = ''
+        for word in ['byline', 'contributor']:
+            if not byline:
+                candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
+                for candidate in candidates:
+                    byline += candidate.text
         if byline:
-            metadata['sv_author'] = byline.text
+            metadata['sv_author'] = byline
             
     return metadata
 
@@ -168,7 +173,7 @@ def clean_author_string(string, publication):
     newstring = string if string else ''
     exclusions = [publication.name] if publication else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "with"]
+    exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
     exclusions+= ["Reuters", "AP", "AFP"]
     for exclusion in exclusions:
         newstring = newstring.replace(', %s' % exclusion,', ')
@@ -179,10 +184,11 @@ def clean_author_string(string, publication):
 def clean_author_name(name, publication):
     exclusions = [publication.name] if publication else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "with"]
+    exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
     exclusions+= ["Reuters", "AP", "AFP"]
     exclusions+= ["|"]
     newname = name if name else ''
+    re.sub("(<!--.*?-->)", "", newname)
     for exclusion in exclusions:
         newname = newname.replace(exclusion,'')
         newname = newname.replace('  ',' ')
