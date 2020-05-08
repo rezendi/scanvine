@@ -80,6 +80,12 @@ def meta_parser(soup):
             if title_text:
                 metadata['sv_title'] = title_text
 
+    # if nothing, search for tag with 'byline' in its class?
+    if not 'sv_author' in metadata:
+        byline = soup.find(True, {"class" : lambda L: L and L.endswith('byline')})
+        if byline:
+            metadata['sv_author'] = byline.text
+            
     return metadata
 
 def npr_parser(soup):
@@ -96,11 +102,13 @@ def get_author_from(existing, metadata):
     if type(newval) is list:
         names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
         return names[0] if len(names)==1 else ','.join(names)
-    elif type(newval) is dict:
+    if type(newval) is dict:
         newval = newval['name'] if 'name' in newval else None
     if not oldval:
         return newval
     if newval and (newval.startswith("[") or newval.startswith("{")):
+        return oldval
+    if len(newval.split(" "))==1 and len(oldval.split(" "))>1:
         return oldval
     return newval
 
@@ -120,7 +128,7 @@ def get_author_for(metadata, publication):
     if len(names) == 1:
         name = names[0]
         existing = Author.objects.filter(name__iexact=name)
-        if twitter_name:
+        if len(existing) > 1 and twitter_name:
             print("Filtering by twitter_name %s" % twitter_name)
             existing = existing.filter(twitter_screen_name__iexact=twitter_name)
         if existing:
@@ -135,7 +143,7 @@ def get_author_for(metadata, publication):
     authors = []
     for name in names:
         existing = Author.objects.filter(name__iexact=name)
-        if twitter_name:
+        if len(existing) > 1 and twitter_name:
             print("Filtering by twitter_name %s" % twitter_name)
             existing = existing.filter(twitter_screen_name__iexact=twitter_name)
         if existing:
@@ -160,7 +168,8 @@ def clean_author_string(string, publication):
     newstring = string if string else ''
     exclusions = [publication.name] if publication else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist"]
+    exclusions+= ["correspondent", "contributor", "columnist", "with"]
+    exclusions+= ["Reuters", "AP", "AFP"]
     for exclusion in exclusions:
         newstring = newstring.replace(', %s' % exclusion,', ')
         newstring = newstring.replace(',%s' % exclusion,',')
@@ -170,7 +179,8 @@ def clean_author_string(string, publication):
 def clean_author_name(name, publication):
     exclusions = [publication.name] if publication else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist"]
+    exclusions+= ["correspondent", "contributor", "columnist", "with"]
+    exclusions+= ["Reuters", "AP", "AFP"]
     exclusions+= ["|"]
     newname = name if name else ''
     for exclusion in exclusions:
