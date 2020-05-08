@@ -31,7 +31,7 @@ def json_ld_parser(soup):
     pub = None
     if 'publisher' in metadata:
         pub = metadata['publisher']
-        pub = pub['name'] if type(pub) is dict and 'name' in pub else Nonw
+        pub = pub['name'] if type(pub) is dict and 'name' in pub else None
     if 'isPartOf' in metadata and not pub:
         pub = metadata['isPartOf']
         pub = pub['name'] if type(pub) is dict and 'name' in pub else None
