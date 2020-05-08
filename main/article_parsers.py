@@ -21,7 +21,9 @@ def json_ld_parser(soup):
         metadata['sv_title'] = metadata['title']
 
     if 'author' in metadata:
-        metadata['sv_author'] = metadata['author']
+        auth = metadata['author']
+        if type(auth) is str or type(auth) is list or (type(auth) is dict and 'name' in auth):
+            metadata['sv_author'] = metadata['author']
     elif '@graph' in metadata:
         graph = metadata['@graph']
         graph = graph[0] if type(graph) is list and len(graph)>0 else graph
@@ -37,8 +39,8 @@ def json_ld_parser(soup):
         pub = pub['name'] if type(pub) is dict and 'name' in pub else None
     if pub and type(pub) is str:
         metadata['sv_publication'] = str(pub).replace("The ","")
-        print("pub %s" % metadata['sv_publication'])
 
+    # print("0 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 0'
     return metadata
 
 def meta_parser(soup):
@@ -112,6 +114,7 @@ def meta_parser(soup):
         if pub and 'content' in pub:
             metadata['sv_publication'] = str(pub['content']).replace("The ","")
 
+    # print("1 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 1'
     return metadata
 
 def npr_parser(soup):
@@ -218,12 +221,14 @@ def clean_author_name(name, publication):
         newname = newname.replace('  ',' ')
         newname = newname.replace(exclusion.title(),'')
         newname = newname.replace('  ',' ')
-    newname = newname.replace('  ',' ')
+    newname = newname.replace('  ',' ').strip()
+    newname = newname.title() if newname.find(" ") > 0 else newname
 
     if newname != name:        
         existing = Author.objects.filter(name=name)
         if existing:
-            existing.name = newname
-            existing.save()
-    return newname.title().strip()
+            existing[0].name = newname
+            existing[0].save()
+
+    return newname
     
