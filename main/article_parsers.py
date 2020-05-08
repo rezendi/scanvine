@@ -27,6 +27,18 @@ def json_ld_parser(soup):
         graph = graph[0] if type(graph) is list and len(graph)>0 else graph
         if 'author' in graph:
             metadata['sv_author'] = graph['author']
+
+    pub = None
+    if 'publisher' in metadata:
+        pub = metadata['publisher']
+        pub = pub['name'] if type(pub) is dict and 'name' in pub else Nonw
+    if 'isPartOf' in metadata and not pub:
+        pub = metadata['isPartOf']
+        pub = pub['name'] if type(pub) is dict and 'name' in pub else None
+    if pub and type(pub) is str:
+        metadata['sv_publication'] = str(pub).replace("The ","")
+        print("pub %s" % metadata['sv_publication'])
+
     return metadata
 
 def meta_parser(soup):
@@ -89,16 +101,24 @@ def meta_parser(soup):
                 for candidate in candidates:
                     possible_byline = clean_author_name(candidate.text,'')
                     if possible_byline:
-                        byline = possible_byline
+                        byline = "%s, %s" % (byline, possible_byline) if byline else possible_byline
         if byline:
             metadata['sv_author'] = byline
-            
+
+    if 'publisher' in metadata:
+        metadata['sv_publication'] = metadata['publisher']
+    else:
+        pub = soup.find("meta", {"property":"og:site_name"})
+        if pub and 'content' in pub:
+            metadata['sv_publication'] = str(pub['content']).replace("The ","")
+
     return metadata
 
 def npr_parser(soup):
     npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
     metadata = json.loads(npr.partition("NPR.serverVars = ")[2][:-2])
     metadata['sv_author'] = metadata['byline']
+    metadata['sv_publication'] = "NPR"
     return metadata
 
 def get_author_from(existing, metadata):

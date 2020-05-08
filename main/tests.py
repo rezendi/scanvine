@@ -7,10 +7,11 @@ TEST_TWEET_ID = 1258151068892094468
 
 class MetadataParserTest(TestCase):
     def test_basic_parsing(self):
-        html = '<html><head><title>TestTitle1</title><meta name="author" content="TestAuthor1"></html>'
+        html = '<html><head><title>TestTitle1</title><meta name="author" content="TestAuthor1"><meta name="publisher" content="TestPub1"></html>'
         metadata = tasks.parse_article(html)
         self.assertEqual("TestTitle1", metadata['sv_title'])
         self.assertEqual("TestAuthor1", metadata['sv_author'])
+        self.assertEqual("TestPub1", metadata['sv_publication'])
 
 class AuthorTests(TestCase):
     def test_complex_name(self):

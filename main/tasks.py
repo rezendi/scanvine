@@ -212,14 +212,13 @@ def parse_article_metadata(article_id):
         article.publication = publication
         article.status = Article.Status.PUBLISHER_ASSOCIATED
         article.save()
-    except Exception as ex1:
-        log_job(job, "Publication parse error %s" % ex1)
-        article.status = Article.Status.PUBLICATION_PARSE_ERROR
-        article.save()
 
-    html = article.contents
-    try:
-        metadata = parse_article(html, domain)
+        metadata = parse_article(article.contents, domain)
+        pub_name = metadata['sv_publication'] if 'sv_publication' in metadata else ''
+        if pub_name and not publication.name:
+            publication.name = pub_name
+            publication.save()
+
         article.metadata = metadata if metadata else article.metadata
         article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
         author = article_parsers.get_author_for(metadata, article.publication)
@@ -231,7 +230,7 @@ def parse_article_metadata(article_id):
             article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
         article.save()
     except Exception as ex2:
-        log_job(job, "Metadata parse error %s" % ex2, Job.Status.ERROR)
+        log_job(job, "Article parse error %s" % ex2, Job.Status.ERROR)
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()
         raise ex2
