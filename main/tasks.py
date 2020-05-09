@@ -34,15 +34,19 @@ def get_potential_sharers():
     if verified_cursor == 0:
         log_job(job, "Cursor at end", Job.Status.ERROR)
         return
-    (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
-    log_job(job, "Potential new sharers: %s" % len(users))
-    new = [u for u in users if not Sharer.objects.filter(twitter_id=u.id)]
-    for n in new:
-        s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name,name=n.name,
-                   profile=n.description, category=0, verified=True)
-        s.save()
-    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
-    log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
+    try:
+        (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
+        log_job(job, "Potential new sharers: %s" % len(users))
+        new = [u for u in users if not Sharer.objects.filter(twitter_id=u.id)]
+        log_job(job, "New sharers: %s" % len(new))
+        for n in new:
+            s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name, name=n.name,
+                       profile=n.description, category=0, verified=True)
+            s.save()
+        log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
+        log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, "Potential sharer fetch error %s" % ex, Job.Status.ERROR)
 
 
 LIST_IDS = [1258204180864368642]
