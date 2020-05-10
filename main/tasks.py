@@ -404,14 +404,15 @@ def clean_up_url(url):
 
 # List management
 
-TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardwaare"
-TECH+= "cofounder,engineer,engineer+author,engineering+author,software+author,hardware+author"
+TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardware,"
+TECH+= "cofounder,engineer,engineer+author,engineering+author,software+author,hardware+author,engineering+PhD|Ph.D.,"
 BUSINESS ="entrepreneur,economist,investor,fund manager,market analyst,financial analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health,chief medical,surgeon,cardiologist,ob/gyn,pediatrician,"
-HEALTH+= "dermatologist,endocrinologist,gastroenterologist,infectious disease physician,nephrologist,ophthalmologist,otolaryngologist,"
+HEALTH+= "dermatologist,endocrinologist,gastroenterologist,infectious disease physician,nephrologist,ophthalmologist,"
 HEALTH+= "pulmonologist,neurologist,nurse practitioner,RN,radiologist,anesthesiologist,oncologist"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,chemistry+professor,biology+professor,physics+professor,mathematics+professor,"
 SCIENCE+= "astrophysicist,astronomer,microbiologist,geneticist,geologist,seismologist,botanist,climatologist,hydrologist,ichthyologist,entomologist,"
+SCIENCE+= "science+PhD|Ph.D.,chemistry+PhD|Ph.D.,physics+PhD|Ph.D.,biology+PhD|Ph.D.,"
 # POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
 ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
 ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
