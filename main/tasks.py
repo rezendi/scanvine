@@ -409,12 +409,13 @@ BUSINESS ="CEO,entrepreneur,economist,investor,fund manager,analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
 SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
-POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer,litigator"
-ENTERTAINMENT ="author,screenwriter,scriptwriter,songwriter,musician,actor,actress,level designer"
-MEDIA = "producer,director,game dev,game developer,literary agent,talent agent,publisher,"
-SPORTS ="player,"
+POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
+ENTERTAINMENT ="novelist,literary author,crime writer,crime author, thriller author,thriller writer,romance author,romance writer,"
+ENTERTAINMENT+= "fantasy author, fantasy writer, science fiction author, science fiction writer, writer of SF, SF writer, SF author,"
+ENTERTAINMENT+= "screenwriter,scriptwriter,comics writer,songwriter, TV writer, showrunner, movie director"
+MEDIA = "movie producer,TV producer,showrunner,game dev,game developer,literary agent,talent agent,publisher,"
 
-sections = [TECH, BUSINESS, HEALTH, SCIENCE, POLITICS, ENTERTAINMENT, MEDIA, SPORTS]
+sections = [TECH, BUSINESS, HEALTH, SCIENCE, POLITICS, ENTERTAINMENT, MEDIA]
 
 def promote_matching_sharers():
     regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else ""
@@ -430,8 +431,8 @@ def promote_matching_sharers():
             for key in keys:
                 matching = matching.filter(profile__iregex=r"%s%s%s" % (regex_prefix, key, regex_prefix))
             print("keyword %s matches %s" % (keyword, len(matching)))
-            if len(matching) >0 and len(matching) < 30:
-                print([s.twitter_screen_name for s in matching])
+            # if len(matching) >0 and len(matching) < 30:
+            #     print([s.twitter_screen_name for s in matching])
             for match in matching:
                 sharers.add(match.id)
                 continue
