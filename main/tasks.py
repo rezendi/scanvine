@@ -69,13 +69,14 @@ def ingest_sharers():
 # Take users from our Twitter list, add them to the DB if not there already
 @shared_task(rate_limit="6/m")
 def refresh_sharers():
+    category = 0
     job = launch_job("refresh_sharers")
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[0], count=5000, include_entities=False, skip_status=True)
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
     new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
-      s = Sharer(twitter_id=n['id'], status=Sharer.Status.LISTED, name=n['name'],
-                 twitter_screen_name = n['screen_name'], profile=n['desc'], category=0, verified=True)
-      s.save()
+        s = Sharer(status=Sharer.Status.LISTED, twitter_id=n['id'], twitter_list_id=LIST_IDS[category], category=category,
+                   twitter_screen_name=n['screen_name'], name=n['name'], profile=n['desc'], verified=True)
+        s.save()
     log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
 
 
@@ -285,6 +286,8 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
             article = share.article
             author = article.author if article else None
             if not article or not author:
+                continue
+            if author.name == sharer.name or author.twitter_id == sharer.twitter_id:
                 continue
             share_cred = cred_per_point * s.share_points()
             existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
