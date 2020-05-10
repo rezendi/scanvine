@@ -200,8 +200,31 @@ class JobAdmin(ScanvineAdmin):
             set_reputations.delay()
             return redirect('/admin/main/job/')
 
-
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad
 # possibly eventually https://stackoverflow.com/questions/5544629/retrieve-list-of-tasks-in-a-queue-in-celery/9369466#9369466
 
-    
+def add_tweet(tweet_id):
+    tweet = api.GetStatus(tweet_id, include_entities=True)
+    sharer = Sharer.objects.filter(twitter_id=tweet.user.id)
+    if sharer:
+        sharer = sharer[0]
+    else:
+        sharer = Sharer(twitter_id=tweet.user.id, status=Sharer.Status.CREATED, name=tweet.user.name,
+                 twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
+        sharer.save()
+    share = Share.objects.filter(twitter_id=tweet.id)
+    if share:
+        share = share[0]
+    else:
+        share = Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    share.sharer_id = sharer.id
+    share.text = tweet.text
+    share.url = tweet.urls[0].expanded_url
+    share.save()
+    associate_article(share.id)
+
+def reparse_share(share_id):
+    share = Share.objects.get(id=share_id)
+    add_tweet(share.twitter_id)
+
+

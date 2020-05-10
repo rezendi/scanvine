@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from .models import *
-from . import tasks
+from . import tasks, admin
 
 TEST_TWEET_ID = 1258151068892094468
 
@@ -52,7 +52,7 @@ class AuthorTests(TestCase):
 
 class EndToEndTest(TestCase):
     def test_share_fetch_parse(self):
-        tasks.add_tweet(TEST_TWEET_ID)
+        admin.add_tweet(TEST_TWEET_ID)
         shares = Share.objects.filter(twitter_id=TEST_TWEET_ID)
         self.assertTrue(len(shares)>0)
         share = shares[0]

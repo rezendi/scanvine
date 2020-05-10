@@ -26,13 +26,15 @@ http = urllib3.PoolManager()
 def get_potential_sharers():
     job = launch_job("get_potential_sharers")
     verified_cursor = -1
+    log_job(job, "-1", Job.Status.COMPLETED) # remove when we want to do this again
+    return # remove when we want to do this again
     previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="get_potential_sharers").order_by("-created_at")
     if previous_jobs:
         previous_actions = previous_jobs[0].actions
         verified_cursor_string = previous_actions.partition("\n")[0]
         verified_cursor = int (verified_cursor_string)
     if verified_cursor == 0:
-        log_job(job, "Cursor at end", Job.Status.ERROR)
+        log_job(job, "Cursor at end", Job.Status.COMPLETED)
         return
     try:
         (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
@@ -305,6 +307,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
 
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
+# TODO make this idempotent and get rid of recalculate_credibility
 @shared_task
 def set_reputations():
     shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
@@ -313,6 +316,7 @@ def set_reputations():
         article = share.article
         author = article.author
         if author is not None:
+            # TODO handle collaborations
             author.total_credibility += tranche.quantity
             author.current_credibility += tranche.quantity
             author.save()
@@ -343,6 +347,7 @@ def recalculate_credibility(share_id, new_quantity):
         publication.save()
     
     
+# Main article parser
 
 from bs4 import BeautifulSoup
 def parse_article(html, domain=''):
@@ -376,6 +381,8 @@ def parse_article(html, domain=''):
     return metadata
 
 
+# Utility functions
+
 def launch_job(name):
     job = Job(status = Job.Status.LAUNCHED, name=name, actions='')
     job.save()
@@ -394,54 +401,44 @@ def clean_up_url(url):
         return url
     return url.partition("?")[0]
 
-def add_tweet(tweet_id):
-    tweet = api.GetStatus(tweet_id, include_entities=True)
-    sharer = Sharer.objects.filter(twitter_id=tweet.user.id)
-    if sharer:
-        sharer = sharer[0]
-    else:
-        sharer = Sharer(twitter_id=tweet.user.id, status=Sharer.Status.CREATED, name=tweet.user.name,
-                 twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
-        sharer.save()
-    share = Share.objects.filter(twitter_id=tweet.id)
-    if share:
-        share = share[0]
-    else:
-        share = Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
-    share.sharer_id = sharer.id
-    share.text = tweet.text
-    share.url = tweet.urls[0].expanded_url
-    share.save()
-    associate_article(share.id)
 
-def reparse_share(share_id):
-    share = Share.objects.get(id=share_id)
-    add_tweet(share.twitter_id)
+# List management
 
-PROFILE_KEYWORDS = "journalist,journo,reporter,editor,author,writer,"
-PROFILE_KEYWORDS+= "investor,vc,venture capitalist,entrepreneur,founder,CEO,CTO,"
-PROFILE_KEYWORDS+= "scientist,epidemiologist,virologist,adjunct,associate prof,assoc prof,professor,physicist,statistician,mathematician,"
-PROFILE_KEYWORDS+= "attorney,lawyer,litigator,economist,senator,representative,"
+TECH = "startup(s)+investor,venture capitalist,vc,CTO,founder,cofounder"
+BUSINESS ="CEO,entrepreneur,economist,investor,fund manager,analyst,"
+HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
+SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
+SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
+POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer,litigator"
+ENTERTAINMENT ="author,screenwriter,scriptwriter,songwriter,musician,actor,actress,level designer"
+MEDIA = "producer,director,game dev, game developer,literary agent,talent agent,publisher,"
+SPORTS ="player,"
 
-def fix_sharers():
+sections = [TECH, BUSINESS, HEALTH, SCIENCE, POLITICS, ENTERTAINMENT, MEDIA, SPORTS]
+
+def promote_matching_sharers():
+    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
+    sharers = set()
+    for section in sections:
+        keywords = section.split(",")
+        keywords = [k for k in keywords if len(k)>1]
+        for keyword in keywords:
+            matching = Sharer.objects.filter(status=Sharer.Status.CREATED)
+            keys = [keyword] if keyword.find("+") < 0 else keyword.split("+")
+            for key in keys:
+                matching = matching.filter(profile__iregex=r"%s%s%s" % (regex_prefix, key, regex_prefix))
+            print("keyword %s matches %s" % (keyword, len(matching)))
+            for match in matching:
+                sharers.add(match.id)
+                continue
+                match.status = Sharer.Status.SELECTED
+                match.save()
+    print("total %s" % len(sharers))
+
+def reset_sharers():
         matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)
         for match in matching:
             match.status = Sharer.Status.CREATED
             match.save()
-
-def promote_matching_sharers():
-    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
-    keywords = PROFILE_KEYWORDS.split(",")
-    keywords = [k for k in keywords if len(k)>1]
-    sharers = set()
-    for keyword in keywords:
-        matching = Sharer.objects.filter(profile__iregex=r"%s%s%s" % (regex_prefix, keyword, regex_prefix)).filter(status=Sharer.Status.CREATED)
-        print("keyword %s matches %s" % (keyword, len(matching)))
-        for match in matching:
-            sharers.add(match.id)
-            continue
-            match.status = Sharer.Status.SELECTED
-            match.save()
-    print("total %s" % len(sharers))
 
 
