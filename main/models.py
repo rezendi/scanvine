@@ -11,10 +11,10 @@ class Sharer(models.Model):
         DISABLED = -2
     
     class Category(models.IntegerChoices):
-        TECH = 0
-        BUSINESSS = 1
-        HEALTH = 2
-        SCIENCE = 3
+        HEALTH = 0
+        SCIENCE = 1
+        TECH = 2
+        BUSINESS = 3
         ENTERTAINMENT = 4
 
     status = models.IntegerField(choices=Status.choices, db_index=True)

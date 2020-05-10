@@ -419,7 +419,7 @@ ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of 
 ENTERTAINMENT+= "songwriter+Grammy,TV writer,television writer,TV director,television director,director of TV,Hollywood+director,"
 ENTERTAINMENT+= "movie producer,TV producer,television producer,showrunner,game producer,literary agent,talent agent,publisher,"
 
-sections = [TECH, BUSINESS, HEALTH, SCIENCE, ENTERTAINMENT]
+sections = [HEALTH, SCIENCE, TECH, BUSINESS, ENTERTAINMENT]
 
 def promote_matching_sharers():
     regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else ""
