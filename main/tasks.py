@@ -405,22 +405,22 @@ def clean_up_url(url):
 # List management
 
 TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,cofounder,engineer,"
-BUSINESS ="entrepreneur,economist,investor,fund manager,analyst,"
+BUSINESS ="entrepreneur,economist,investor,fund manager,market analyst,financial analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
 SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
 # POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
-ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,video game writer,"
+ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
 ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
 ENTERTAINMENT+= "songwriter+Grammy,TV writer,television writer,TV director,television director,director of TV,Hollywood+director,"
-MEDIA = "movie producer,TV producer,television producer,showrunner,video game producer,game producer,literary agent,talent agent,publisher,"
+ENTERTAINMENT+= "movie producer,TV producer,television producer,showrunner,game producer,literary agent,talent agent,publisher,"
 
-sections = [TECH, BUSINESS, HEALTH, SCIENCE, ENTERTAINMENT, MEDIA]
+sections = [TECH, BUSINESS, HEALTH, SCIENCE, ENTERTAINMENT]
 
 def promote_matching_sharers():
     regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else ""
-    sharers = set()
     for section in sections:
+        sharers = set()
         keywords = section.split(",")
         keywords = [k for k in keywords if len(k)>1]
         for keyword in keywords:
@@ -436,7 +436,7 @@ def promote_matching_sharers():
                 continue
                 match.status = Sharer.Status.SELECTED
                 match.save()
-    print("total %s" % len(sharers))
+        print("total %s" % len(sharers))
 
 def reset_sharers():
         matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)
