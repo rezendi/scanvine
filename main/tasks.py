@@ -404,16 +404,16 @@ def clean_up_url(url):
 
 # List management
 
-TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,cofounder,engineer,technical architect,"
-BUSINESS ="entrepreneur,economist,investor,fund manager,analyst," #/
-HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health" #/
+TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,cofounder,engineer,"
+BUSINESS ="entrepreneur,economist,investor,fund manager,analyst,"
+HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
-SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor" #/
-POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
-ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,"
+SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
+# POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
+ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,video game writer,"
 ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
 ENTERTAINMENT+= "songwriter+Grammy,TV writer,television writer,TV director,television director,director of TV,Hollywood+director,"
-MEDIA = "movie producer,TV producer,television producer,showrunner,game dev,game developer,literary agent,talent agent,publisher,"
+MEDIA = "movie producer,TV producer,television producer,showrunner,video game producer,game producer,literary agent,talent agent,publisher,"
 
 sections = [TECH, BUSINESS, HEALTH, SCIENCE, ENTERTAINMENT, MEDIA]
 
