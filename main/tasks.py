@@ -427,7 +427,7 @@ def promote_matching_sharers():
         keywords = section.split(",")
         keywords = [k for k in keywords if len(k)>1]
         for keyword in keywords:
-            matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)
+            matching = Sharer.objects.filter(status=Sharer.Status.CREATED)
             keys = [keyword] if keyword.find("+") < 0 else keyword.split("+")
             for key in keys:
                 matching = matching.filter(profile__iregex=r"%s%s%s" % (regex_prefix, key, regex_prefix))
