@@ -404,11 +404,13 @@ def clean_up_url(url):
 
 # List management
 
-TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,cofounder,engineer,"
+TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardwaare"
+TECH+= "cofounder,engineer,engineer+author,engineering+author,software+author,hardware+author"
 BUSINESS ="entrepreneur,economist,investor,fund manager,market analyst,financial analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
 SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
+SCIENCE+= "astrophysicist,astronomer,microbiologist,geneticist,geologist,"
 # POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
 ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
 ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
