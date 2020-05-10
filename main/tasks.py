@@ -74,7 +74,7 @@ def refresh_sharers():
     category = 0
     job = launch_job("refresh_sharers")
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
-    new = [f for f in filtered if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+    new = [f for f in listed if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
         s = Sharer(status=Sharer.Status.LISTED, twitter_id=n['id'], twitter_list_id=LIST_IDS[category], category=category,
                    twitter_screen_name=n['screen_name'], name=n['name'], profile=n['desc'], verified=True)
@@ -404,20 +404,20 @@ def clean_up_url(url):
 
 # List management
 
-TECH = "startup(s)+investor,venture capitalist,vc,CTO,founder,cofounder"
+TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder,cofounder"
 BUSINESS ="CEO,entrepreneur,economist,investor,fund manager,analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,"
 SCIENCE+= "chemistry+professor,biology+professor,physics+professor,mathematics+professor"
 POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer,litigator"
 ENTERTAINMENT ="author,screenwriter,scriptwriter,songwriter,musician,actor,actress,level designer"
-MEDIA = "producer,director,game dev, game developer,literary agent,talent agent,publisher,"
+MEDIA = "producer,director,game dev,game developer,literary agent,talent agent,publisher,"
 SPORTS ="player,"
 
 sections = [TECH, BUSINESS, HEALTH, SCIENCE, POLITICS, ENTERTAINMENT, MEDIA, SPORTS]
 
 def promote_matching_sharers():
-    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
+    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else ""
     sharers = set()
     for section in sections:
         keywords = section.split(",")
@@ -425,9 +425,13 @@ def promote_matching_sharers():
         for keyword in keywords:
             matching = Sharer.objects.filter(status=Sharer.Status.CREATED)
             keys = [keyword] if keyword.find("+") < 0 else keyword.split("+")
+            if len(keys) > 1:
+                print("keys %s" % keys)
             for key in keys:
                 matching = matching.filter(profile__iregex=r"%s%s%s" % (regex_prefix, key, regex_prefix))
             print("keyword %s matches %s" % (keyword, len(matching)))
+            if len(matching) >0 and len(matching) < 30:
+                print([s.twitter_screen_name for s in matching])
             for match in matching:
                 sharers.add(match.id)
                 continue
