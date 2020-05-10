@@ -436,6 +436,7 @@ def promote_matching_sharers():
                 sharers.add(match.id)
                 match.status = Sharer.Status.SELECTED
                 match.category = idx
+                continue
                 match.save()
         print("total %s" % len(sharers))
 
