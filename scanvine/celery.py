@@ -25,6 +25,10 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'task': 'main.tasks.fetch_shares',
                 'schedule': 30.0,
             },
+            'add-every-90-seconds': {
+                'task': 'main.tasks.ingest_sharers',
+                'schedule': 90.0,
+            },
         }
 else:
     app.conf.beat_schedule = {
