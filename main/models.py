@@ -140,16 +140,20 @@ class Share(models.Model):
     def calculate_sentiment(self, score):
         # very very basic sentiment math
         self.sentiment = score
-        self.net_sentiment = score['Positive'] - score['Negative'] 
+        self.net_sentiment = 100 * (score['Positive'] - score['Negative'])
         self.net_sentiment = 0.0 if score['Neutral'] > 0.75 else self.net_sentiment
         self.net_sentiment = -0.01 if score['Mixed'] > 0.75 else self.net_sentiment #flag for later
 
     def share_points(self):
         if self.net_sentiment is None:
             return 0
-        if abs(self.net_sentiment) > 65:
+        if abs(self.net_sentiment) > 80:
+            return 8
+        if abs(self.net_sentiment) > 60:
+            return 5
+        if abs(self.net_sentiment) > 40:
             return 3
-        if abs(self.net_sentiment) > 30:
+        if abs(self.net_sentiment) > 20:
             return 2
         return 1
 
