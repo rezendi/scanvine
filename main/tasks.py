@@ -174,6 +174,9 @@ def associate_article(share_id, force_refetch=False):
     existing = Article.objects.filter(initial_url=share.url)
     if existing and not force_refetch:
         log_job(job, "existing %s" % share.url, Job.Status.COMPLETED)
+        share.article_id = article.id
+        share.status = Share.Status.ARTICLE_ASSOCIATED
+        share.save()
         return
     try:
         log_job(job, "Fetching %s" % share.url)
