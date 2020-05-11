@@ -172,19 +172,25 @@ def associate_article(share_id, force_refetch=False):
     job = launch_job("associate_article")
     share = Share.objects.get(id=share_id)
     existing = Article.objects.filter(initial_url=share.url)
-    if existing and not force_refetch:
-        log_job(job, "existing %s" % share.url, Job.Status.COMPLETED)
+    if existing:
         share.article_id = article.id
         share.status = Share.Status.ARTICLE_ASSOCIATED
         share.save()
-        return
+        if not force_refetch:
+            log_job(job, "article exists for %s" % share.url, Job.Status.COMPLETED)
+            return
     try:
         log_job(job, "Fetching %s" % share.url)
         user_agent = USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]
         r = http.request('GET', share.url, headers={'user-agent': user_agent})
         html = r.data.decode('utf-8')
         final_url =  clean_up_url(r.geturl())
-        article = Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, contents=html, title='', metadata='')
+        article = None
+        if share.article_id:
+            article = Article.objects.get(id=share.article_id)
+        else:
+            article = Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
+        article.contents=html
         article.save()
         share.article_id = article.id
         share.status = Share.Status.ARTICLE_ASSOCIATED

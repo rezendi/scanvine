@@ -218,8 +218,9 @@ def add_sharer(sharer_id):
     if sharers:
         sharer = sharers[0]
     else:
-        sharer = Sharer(twitter_id=sharer_id, status=Sharer.Status.CREATED, name=tweet.user.name,
-                 twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
+        user = api.GetUser(sharer_id, include_entities=False)
+        sharer = Sharer(twitter_id=sharer_id, status=Sharer.Status.CREATED, name=user.name,
+                 twitter_screen_name = user.screen_name, profile=user.description, category=0, verified=user.verified)
         sharer.save()
     return sharer
 
