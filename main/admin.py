@@ -215,7 +215,7 @@ def add_tweet(tweet_id):
                  twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
         sharer.save()
     shares = Share.objects.filter(twitter_id=tweet.id)
-    share = share[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     share.sharer_id = sharer.id
     share.text = tweet.text
     share.url = tweet.urls[0].expanded_url
