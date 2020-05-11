@@ -106,6 +106,13 @@ def fetch_shares():
                     latest_list_id = int(action.partition("=")[2])
                     idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
                     list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
+            # need a difference since_id for each list
+            for job in previous_jobs:
+                if job.actions.find(str(list_id)) > 0:
+                    for action in job.actions.split("\n"):
+                        if action.startswith("max_id="):
+                            since_id = int(action.partition("=")[2])
+                            break
         log_job(job, "list_id=%s" % list_id)
     
         # fetch the timeline, log its values
