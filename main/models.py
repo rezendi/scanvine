@@ -114,7 +114,7 @@ class Article(models.Model):
 
 class Share(models.Model):
     class Status(models.IntegerChoices):
-        AGGREGATES_UPDATED = 4
+        CREDIBILITY_FINALIZED = 4
         CREDIBILITY_ALLOCATED = 3
         SENTIMENT_CALCULATED = 2
         ARTICLE_ASSOCIATED = 1

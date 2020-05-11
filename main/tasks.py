@@ -299,7 +299,7 @@ def analyze_sentiment():
 
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
-@shared_task
+@shared_task(rate_limit="1/s")
 def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     job = launch_job("allocate_credibility")
     end_date = date + datetime.timedelta(days=1)
@@ -341,46 +341,50 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
 
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
-# TODO make this idempotent and get rid of recalculate_credibility
-@shared_task
+@shared_task(rate_limit="1/s")
 def set_reputations():
+    job = launch_job("set_reputations")
+    articles = {}
+    authors = {}
+    publications = {}
     shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
     for share in shares:
-        tranche = Tranche.objects.get(receiver=share.id)
-        article = share.article
-        author = article.author
-        if author is not None:
-            # TODO handle collaborations
-            author.total_credibility += tranche.quantity
-            author.current_credibility += tranche.quantity
-            author.save()
-        publication = article.publication
-        if publication is not None:
-            publication.total_credibility += tranche.quantity
-            publication.average_credibility += publication.total_credibility / Article.objects.count(publication_id=publication.id)
-            publication.save()
-        share.status = Share.Status.AGGREGATES_UPDATED
+        tranches = Tranche.objects.filter(receiver=share.id)
+        if not tranches:
+            log_job(job, "Tranche not found %s" % share.id)
+            continue
+        if not share.article_id in articles:
+            articles[share.article_id] = 0
+        articles[share.article_id] = articles[share.article_id] + tranches[0].quantity
 
-
-@shared_task
-def recalculate_credibility(share_id, new_quantity):
-    tranche = Tranche.objects.get(receiver=share_id)
-    old_quantity = tranche_quantity
-    tranche.quantity = new_quantity
-    tranche.save()
-    article = share.article
-    author = article.author
-    if author is not None:
-        author.total_credibility += new_quantity - old_quantity
-        author.current_credibility += new_quantity - old_quantity
+    for author_id in authors.keys():
+        author = Author.objects.get(author_id) # TODO batch
+        author.total_credibility = authors[author_id]
+        author.current_credibility =authors[author_id] # TODO spendability
         author.save()
-        publication = article.publication
-    if publication is not None:
-        publication.total_credibility += new_quantity - old_quantity
-        publication.average_credibility += publication.total_credibility / Publication.objects.count()
+
+    for article_id in articles.keys():
+        article = Article.objects.get(id=article_id) # TODO batch
+
+        # TODO handle collaborations
+        if not article.author_id in authors:
+            authors[article.author_id] = 0
+        authors[article.author_id] = authors[article.author_id] + articles[article_id]
+
+        if not article.publication_id in publications:
+            publications[article.publication_id] = {'t':0, 'a':0}
+        publications[article.publication_id]['a'] = publications[article.publication_id]['a'] + 1
+        publications[article.publication_id]['t'] = publications[article.publication_id]['t'] + articles[article_id]
+
+    for publication_id in publications.keys():
+        publication = Publication.objects.get(id=publication_id)
+        publication.total_credibility = publications[publication_id]['t']
+        publication.average_credibility = publication.total_credibility / publications[publication_id]['a']
         publication.save()
-    
-    
+
+    log_job(job, "Allocated %s shares %s articles %s authors %s publications" % (len(shares), len(articles), len(authors), len (publications)), Job.Status.COMPLETED)
+
+
 # Main article parser
 
 from bs4 import BeautifulSoup
