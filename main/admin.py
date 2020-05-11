@@ -88,7 +88,7 @@ class PublicationAdmin(ScanvineAdmin):
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
     change_form_template = "admin/share_change_form.html"
-    list_display = ('id', 'sharer', 'status', 'url', 'article')
+    list_display = ('id', 'sharer', 'status', 'net_sentiment', 'url')
     search_fields = ('text',)
     raw_id_fields = ("sharer", 'article')
     actions = ['make_published']

@@ -48,12 +48,9 @@ def meta_parser(soup):
     for meta in soup.find_all("meta"):
         attrs = meta.attrs
         keys = list(attrs)
-        if 'name' in keys and 'content' in keys:
-            metadata[attrs['name']] = attrs['content']
-        if 'property' in keys and 'content' in keys:
-            metadata[attrs['property']] = attrs['content']
-        if 'itemprop' in keys and 'content' in keys:
-            metadata[attrs['itemprop']] = attrs['content']
+        for nameval in ['name', 'property', 'itemprop']:
+            if nameval in keys and 'content' in keys:
+                metadata[attrs[nameval]] = attrs['content']
         if len(keys)==2 and 'content' in keys:
             idx = 1 if keys[0]=='content' else 0
             metadata[attrs[keys[idx]]] = attrs['content']
@@ -61,18 +58,17 @@ def meta_parser(soup):
     if 'author' in metadata:
         metadata['sv_author'] = metadata['author']
     else:
-        author = soup.find("meta", {"property":"article:author"})
-        if not author:
-            author = soup.find("meta", {"property":"og:author"})
-        if not author:
-            author = soup.find("meta", {"property":"twitter:author"})
-        if not author:
-            author = soup.find("meta", {"property":"sailthru:author"})
+        author = None
+        for nameval in ["article:author", "og:author", "twitter:author", "sailthru:author", "DCSext.author"]:
+            if not author:
+                author = soup.find("meta", {"property":nameval})
+            if not author:
+                author = soup.find("meta", {"name":nameval})
         if author:
             author_name = None
-            if 'value' in author:
+            if 'value' in author.attrs:
                 author_name = author['value']
-            if 'content' in author:
+            if 'content' in author.attrs:
                 author_name = author['content']
             if author_name:
                 metadata['sv_author'] = author_name
@@ -87,9 +83,9 @@ def meta_parser(soup):
             title = soup.find("meta", {"property":"sailthru:title"})
         if title:
             title_text = None
-            if 'value' in title:
+            if 'value' in title.attrs:
                 title_text = title['value']
-            if 'content' in title:
+            if 'content' in title.attrs:
                 title_text = title['content']
             if title_text:
                 metadata['sv_title'] = title_text
@@ -97,14 +93,17 @@ def meta_parser(soup):
     # if nothing, search for tag with 'byline' in its class?
     if not 'sv_author' in metadata:
         byline = ''
-        for word in ['byline', 'contributor']:
+        for word in ['author', 'byline', 'contributor']:
             if not byline:
-                candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
+                candidates = soup.find_all(True, {"rel" : word})
+                if not candidates:
+                    candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
                 for candidate in candidates:
                     possible_byline = clean_author_name(candidate.text,'')
                     if possible_byline:
                         byline = "%s, %s" % (byline, possible_byline) if byline else possible_byline
         if byline:
+            print("byline %s" % byline)
             metadata['sv_author'] = byline
 
     if 'publisher' in metadata:
@@ -148,8 +147,8 @@ def get_author_for(metadata, publication):
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
     author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
-    names = clean_author_string(author_string, publication).split(",")
-    names = [clean_author_name(n, publication) for n in names]
+    names = clean_author_string(author_string, publication.name).split(",")
+    names = [clean_author_name(n, publication.name) for n in names]
     names = [n for n in names if len(n)>3]
 
     if len(names) == 0:
@@ -194,22 +193,25 @@ def get_author_for(metadata, publication):
         collaboration.save()
     return new_byline
 
-def clean_author_string(string, publication):
+def clean_author_string(string, publication_name):
     newstring = string if string else ''
-    exclusions = [publication.name] if publication else []
+    print("cleaning %s from %s" % (string, publication_name))
+    exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
     exclusions+= ["reuters", "AP", "AFP"]
     for exclusion in exclusions:
+        print("excluding %s" % exclusion)
         newstring = newstring.replace(', %s' % exclusion,', ')
         newstring = newstring.replace(',%s' % exclusion,',')
         newstring = newstring.replace(', %s' % exclusion.title(),', ')
         newstring = newstring.replace(',%s' % exclusion.title(),',')
     newstring = newstring.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
+    print("cleaned %s" % newstring)
     return newstring.strip()
 
-def clean_author_name(name, publication):
-    exclusions = [publication.name] if publication else []
+def clean_author_name(name, publication_name):
+    exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
     exclusions+= ["reuters", "AP", "AFP"]
