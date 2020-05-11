@@ -100,18 +100,22 @@ def fetch_shares():
         # get data from previous job, if any
         previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")[0:10]
         if previous_jobs:
-            log_job(job, "previous jobs found %s" % list_id)
+            log_job(job, "%s previous jobs found, list_id %s" % (len(previous_jobs), list_id))
             for action in previous_jobs[0].actions.split("\n"):
                 if action.startswith("list_id="):
                     latest_list_id = int(action.partition("=")[2])
                     idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
                     list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
             # need a difference since_id for each list
+            log_job(job, "considering previous_jobs")
             for job in previous_jobs:
                 if job.actions.find(str(list_id)) > 0:
+                    log_job(job, "found")
                     for action in job.actions.split("\n"):
                         if action.startswith("max_id="):
                             since_id = int(action.partition("=")[2])
+                            break
+            log_job(job, "considered")
         log_job(job, "list_id=%s" % list_id)
     
         # fetch the timeline, log its values
