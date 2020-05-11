@@ -57,16 +57,17 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
-    sharers = Sharer.objects.filter(status=Sharer.Status.LISTED)[0:99]
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[0], count=5000, include_entities=False, skip_status=True)
-    listed_ids = [u.id for u in listed]
-    new_to_list = [s.twitter_id for s in sharers if not s.twitter_id in listed_ids]
-    if new_to_list:
-        list = api.CreateListsMember(list_id=LIST_ID, user_id=new_to_list)
-        for s in sharers:
+    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    twitter_list_id = LIST_IDS[category]
+    selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
+    if selected:
+        selected_ids = [s.twitter_id for s in selected]
+        list = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
+        for s in selected:
           s.status = Sharer.Status.LISTED
+          s.twitter_list_id = twitter_list_id
           s.save()    
-    log_job(job, "New to list: %s" % len(new_to_list), Job.Status.COMPLETED)
+    log_job(job, "Added to list %s - %s: %s" % (category, twitter_list_id, len(selected)), Job.Status.COMPLETED)
 
 # Take users from our Twitter list, add them to the DB if not there already
 @shared_task(rate_limit="6/m")

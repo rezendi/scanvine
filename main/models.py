@@ -19,7 +19,7 @@ class Sharer(models.Model):
 
     status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField(choices=Category.choices, db_index=True)
-    twitter_list_id = models.BigIntegerField(null=True)
+    twitter_list_id = models.BigIntegerField(null=True, blank=True)
     twitter_id = models.BigIntegerField(null=True, db_index=True)
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
     verified = models.BooleanField()
