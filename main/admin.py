@@ -19,6 +19,7 @@ class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     list_filter = ('status', 'category', 'created_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
+    exclude = ('metadata_change_date','previous_metadata')
     actions = ['deselect','list']
 
     def deselect(modeladmin, request, queryset):

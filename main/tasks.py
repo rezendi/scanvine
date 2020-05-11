@@ -405,9 +405,9 @@ def clean_up_url(url):
 
 # List management
 
-HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health,chief medical,surgeon,cardiologist,ob/gyn,pediatrician,"
+HEALTH = "epidemiologist,virologist,immunologist,doctor,public health,chief medical,surgeon,cardiologist,ob/gyn,pediatrician,"
 HEALTH+= "dermatologist,endocrinologist,gastroenterologist,infectious disease physician,nephrologist,ophthalmologist,"
-HEALTH+= "pulmonologist,neurologist,nurse practitioner,RN,radiologist,anesthesiologist,oncologist"
+HEALTH+= "pulmonologist,neurologist,nurse practitioner,radiologist,anesthesiologist,oncologist"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,chemistry+professor,biology+professor,physics+professor,mathematics+professor,"
 SCIENCE+= "astrophysicist,astronomer,microbiologist,geneticist,geologist,seismologist,botanist,climatologist,hydrologist,ichthyologist,entomologist,"
 SCIENCE+= "science+PhD|Ph.D.,chemistry+PhD|Ph.D.,physics+PhD|Ph.D.,biology+PhD|Ph.D.,"
