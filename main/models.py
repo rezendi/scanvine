@@ -122,6 +122,7 @@ class Share(models.Model):
         #errors
         FETCH_ERROR = -1
         ARTICLE_ERROR = -2
+        SENTIMENT_ERROR = -3
 
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
     article = models.ForeignKey(Article, null=True, blank=True, on_delete = models.SET_NULL)

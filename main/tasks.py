@@ -58,7 +58,6 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 def ingest_sharers():
     job = launch_job("ingest_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
-    category = 4 # TODO delete
     twitter_list_id = LIST_IDS[category]
     selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
     if selected:
@@ -252,20 +251,30 @@ def parse_article_metadata(article_id):
 
 # Get sentiment from AWS
 # TODO: batch process 25 at a time
-@shared_task(rate_limit="30/m")
+@shared_task(rate_limit="1/s")
 def analyze_sentiment():
     job = launch_job("analyze_sentiment")
     import boto3
     sentiments = []
     comprehend = boto3.client(service_name='comprehend')
-    shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED)
-    for share in shares:
-        print("Calling AWS")
-        sentiment = comprehend.detect_sentiment(Text=share.text, LanguageCode=share.language)
-        share.calculate_sentiment(sentiment['SentimentScore'])
+    shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
+    texts = [s.text for s in shares]
+    print("Calling AWS")
+    sentiments = comprehend.batch_detect_sentiment(TextList=texts, LanguageCode='en')
+    for result in sentiments['ResultList']:
+        idx = result['Index']
+        share = shares[idx]
+        share.calculate_sentiment(result['SentimentScore'])
         share.status = Share.Status.SENTIMENT_CALCULATED
         share.save()
-    log_job(job, "analyzed %s sentiments" % len(shares), Job.Status.COMPLETED)
+    for error in sentiments['ErrorList']:
+        log_job("Sentiment error %s" % result['ErrorMessage'])
+        idx = result['Index']
+        share = shares[idx]
+        share.status = Share.Status.SENTIMENT_ERROR
+        share.sentiment = str(result)
+        share.save()
+    log_job(job, "analyzed %s sentiments" % len(sentiments['ResultList']), Job.Status.COMPLETED)
 
 
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
