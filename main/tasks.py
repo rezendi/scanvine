@@ -75,12 +75,12 @@ def refresh_sharers():
     job = launch_job("refresh_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
-    new = [f for f in listed if len(Sharer.objects.filter(twitter_id=f['id']))==0]
+    new = [f for f in listed if len(Sharer.objects.filter(twitter_id=f.id))==0]
     for n in new:
-        s = Sharer(status=Sharer.Status.LISTED, twitter_id=n['id'], twitter_list_id=LIST_IDS[category], category=category,
-                   twitter_screen_name=n['screen_name'], name=n['name'], profile=n['desc'], verified=True)
+        s = Sharer(status=Sharer.Status.LISTED, twitter_id=n.id, twitter_list_id=LIST_IDS[category], category=category,
+                   twitter_screen_name=n.screen_name, name=n.name, profile=n.description, verified=True)
         s.save()
-    log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
+    log_job(job, "New sharers for category %s: %s" % (category, len(new)), Job.Status.COMPLETED)
 
 
 # Get list statuses, filter those with external links

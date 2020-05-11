@@ -32,6 +32,14 @@ class SharerAdmin(ScanvineAdmin):
             obj.status = Sharer.Status.LISTED
             obj.save()
 
+    def get_search_results(self, request, queryset, search_term):
+        if (search_term.startswith("add:")):
+            twitter_id = search_term.rpartition(":")[2].rpartition("/")[2]
+            add_sharer(int(twitter_id))
+            return super().get_search_results(request, queryset, '')
+        return super().get_search_results(request, queryset, search_term)
+
+
 
 @admin.register(Article)
 class ArticleAdmin(ScanvineAdmin):
@@ -205,17 +213,21 @@ class JobAdmin(ScanvineAdmin):
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad
 # possibly eventually https://stackoverflow.com/questions/5544629/retrieve-list-of-tasks-in-a-queue-in-celery/9369466#9369466
 
-def add_tweet(tweet_id):
-    tweet = api.GetStatus(tweet_id, include_entities=True)
-    sharers = Sharer.objects.filter(twitter_id=tweet.user.id)
+def add_sharer(sharer_id):
+    sharers = Sharer.objects.filter(twitter_id=sharer_id)
     if sharers:
         sharer = sharers[0]
     else:
-        sharer = Sharer(twitter_id=tweet.user.id, status=Sharer.Status.CREATED, name=tweet.user.name,
+        sharer = Sharer(twitter_id=sharer_id, status=Sharer.Status.CREATED, name=tweet.user.name,
                  twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
         sharer.save()
+    return sharer
+
+def add_tweet(tweet_id):
+    tweet = api.GetStatus(tweet_id, include_entities=True)
     shares = Share.objects.filter(twitter_id=tweet.id)
     share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    sharer = add_sharer(tweet.user.id)
     share.sharer_id = sharer.id
     share.text = tweet.text
     share.url = tweet.urls[0].expanded_url
