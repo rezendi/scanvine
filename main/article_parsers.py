@@ -224,6 +224,11 @@ def clean_author_name(name, publication_name):
         newname = newname.replace(exclusion.title(),'')
         newname = newname.replace('  ',' ')
     newname = newname.replace('  ',' ').strip()
+    if newname.startswith("http"):
+        newname = newname.rpartition("/")[2]
+        tentative = newname.split("-")
+        if len(tentative)>1 and len (tentative) <5:
+            newname = " ".join(tentative)
     newname = newname.title() if newname.find(" ") > 0 else newname
 
     if newname != name:        
