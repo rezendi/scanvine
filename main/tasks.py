@@ -98,13 +98,13 @@ def fetch_shares():
                 latest_list_id = int(action.partition("=")[2])
                 idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
                 list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
-            elif action.startswith("max_id="):
-                since_id = int(action.partition("=")[2])
+             # elif action.startswith("max_id="):
+             #    since_id = int(action.partition("=")[2])
     log_job(job, "list_id=%s" % list_id)
 
     # fetch the timeline, log its values
     timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
-    log_job(job, "Got %s unfiltered statuses" % len(timeline))
+    log_job(job, "Got %s unfiltered statuses from list %s" % (len(timeline), LIST_IDS.index(list_id)))
     tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                       'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
     tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
