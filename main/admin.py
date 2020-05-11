@@ -17,6 +17,7 @@ class ScanvineAdmin(admin.ModelAdmin):
 @admin.register(Sharer)
 class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
+    list_filter = ('status', 'category', 'created_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
     actions = ['deselect','list']
 

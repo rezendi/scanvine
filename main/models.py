@@ -15,7 +15,7 @@ class Sharer(models.Model):
         SCIENCE = 1
         TECH = 2
         BUSINESS = 3
-        ENTERTAINMENT = 4
+        MEDIA = 4
 
     status = models.IntegerField(choices=Status.choices, db_index=True)
     category = models.IntegerField(choices=Category.choices, db_index=True)

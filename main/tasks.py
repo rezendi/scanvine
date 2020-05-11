@@ -51,7 +51,7 @@ def get_potential_sharers():
         log_job(job, "Potential sharer fetch error %s" % ex, Job.Status.ERROR)
 
 
-LIST_IDS = [1258204180864368642]
+LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 1259645804853080064, 1259645832619372544]
 
 # Take users from the DB, add them to our Twitter list if not there already
 @shared_task(rate_limit="30/h")
@@ -404,25 +404,24 @@ def clean_up_url(url):
 
 # List management
 
-TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardware,"
-TECH+= "cofounder,engineer,engineer+author,engineering+author,software+author,hardware+author,engineering+PhD|Ph.D.,"
-BUSINESS ="entrepreneur,economist,investor,fund manager,market analyst,financial analyst,"
 HEALTH = "epidemiologist,virologist,immunologist,doctor,MD,public health,chief medical,surgeon,cardiologist,ob/gyn,pediatrician,"
 HEALTH+= "dermatologist,endocrinologist,gastroenterologist,infectious disease physician,nephrologist,ophthalmologist,"
 HEALTH+= "pulmonologist,neurologist,nurse practitioner,RN,radiologist,anesthesiologist,oncologist"
 SCIENCE = "scientist,biologist,physicist,statistician,mathematician,chemistry+professor,biology+professor,physics+professor,mathematics+professor,"
 SCIENCE+= "astrophysicist,astronomer,microbiologist,geneticist,geologist,seismologist,botanist,climatologist,hydrologist,ichthyologist,entomologist,"
 SCIENCE+= "science+PhD|Ph.D.,chemistry+PhD|Ph.D.,physics+PhD|Ph.D.,biology+PhD|Ph.D.,"
-# POLITICS = "senator,representative,MP,Member of Parliament,attorney,lawyer"
-ENTERTAINMENT ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
-ENTERTAINMENT+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
-ENTERTAINMENT+= "songwriter+Grammy,TV writer,television writer,TV director,television director,director of TV,Hollywood+director,"
-ENTERTAINMENT+= "movie producer,TV producer,television producer,showrunner,game producer,literary agent,talent agent,publisher,"
+TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardware,"
+TECH+= "cofounder,engineer,engineer+author,engineering+author,software+author,hardware+author,engineering+PhD|Ph.D.,"
+BUSINESS ="entrepreneur,economist,investor,fund manager,market analyst,financial analyst,"
+MEDIA ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
+MEDIA+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
+MEDIA+= "songwriter+Grammy,TV writer,television writer,TV director,television director,director of TV,Hollywood+director,"
+MEDIA+= "movie producer,TV producer,television producer,showrunner,game producer,literary agent,talent agent,publisher,"
 
-sections = [HEALTH, SCIENCE, TECH, BUSINESS, ENTERTAINMENT]
+sections = [HEALTH, SCIENCE, TECH, BUSINESS, MEDIA]
 
 def promote_matching_sharers():
-    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else ""
+    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
     for idx, section in enumerate(sections):
         sharers = set()
         keywords = section.split(",")
@@ -437,7 +436,6 @@ def promote_matching_sharers():
                 sharers.add(match.id)
                 match.status = Sharer.Status.SELECTED
                 match.category = idx
-                continue
                 match.save()
         print("total %s" % len(sharers))
 
