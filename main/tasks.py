@@ -72,8 +72,8 @@ def ingest_sharers():
 # Take users from our Twitter list, add them to the DB if not there already
 @shared_task(rate_limit="6/m")
 def refresh_sharers():
-    category = 0
     job = launch_job("refresh_sharers")
+    category = datetime.datetime.now().microsecond % len(LIST_IDS)
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
     new = [f for f in listed if len(Sharer.objects.filter(twitter_id=f['id']))==0]
     for n in new:
@@ -87,7 +87,6 @@ def refresh_sharers():
 @shared_task(rate_limit="30/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
-
     # get data from previous job, if any
     since_id = None
     list_id = LIST_IDS[0]
