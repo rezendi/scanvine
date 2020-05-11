@@ -207,23 +207,20 @@ class JobAdmin(ScanvineAdmin):
 
 def add_tweet(tweet_id):
     tweet = api.GetStatus(tweet_id, include_entities=True)
-    sharer = Sharer.objects.filter(twitter_id=tweet.user.id)
-    if sharer:
-        sharer = sharer[0]
+    sharers = Sharer.objects.filter(twitter_id=tweet.user.id)
+    if sharers:
+        sharer = sharers[0]
     else:
         sharer = Sharer(twitter_id=tweet.user.id, status=Sharer.Status.CREATED, name=tweet.user.name,
                  twitter_screen_name = tweet.user.screen_name, profile=tweet.user.description, category=0, verified=True)
         sharer.save()
-    share = Share.objects.filter(twitter_id=tweet.id)
-    if share:
-        share = share[0]
-    else:
-        share = Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    shares = Share.objects.filter(twitter_id=tweet.id)
+    share = share[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     share.sharer_id = sharer.id
     share.text = tweet.text
     share.url = tweet.urls[0].expanded_url
     share.save()
-    associate_article(share.id)
+    associate_article(share.id, force_refetch=True)
 
 def reparse_share(share_id):
     share = Share.objects.get(id=share_id)

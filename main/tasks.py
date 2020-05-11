@@ -91,15 +91,19 @@ def fetch_shares():
     # get data from previous job, if any
     since_id = None
     list_id = LIST_IDS[0]
-    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")
+    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")[0:10]
     if previous_jobs:
         for action in previous_jobs[0].actions.split("\n"):
             if action.startswith("list_id="):
                 latest_list_id = int(action.partition("=")[2])
                 idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
                 list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
-             # elif action.startswith("max_id="):
-             #    since_id = int(action.partition("=")[2])
+        # need a difference since_id for each list
+        for job in previous_jobs:
+            if job.actions.find(str(list_id)) > 0:
+                for action in job.actions.split("\n"):
+                    if action.startswith("max_id="):
+                        since_id = int(action.partition("=")[2])
     log_job(job, "list_id=%s" % list_id)
 
     # fetch the timeline, log its values
@@ -154,11 +158,11 @@ def associate_articles():
 
 
 @shared_task(rate_limit="1/s")
-def associate_article(share_id):
+def associate_article(share_id, force_refetch=False):
     job = launch_job("associate_article")
     share = Share.objects.get(id=share_id)
     existing = Article.objects.filter(initial_url=share.url)
-    if existing:
+    if existing and not force_refetch:
         log_job(job, "existing %s" % share.url, Job.Status.COMPLETED)
         return
     try:
