@@ -100,7 +100,7 @@ def fetch_shares():
         # get data from previous job, if any
         previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")[0:10]
         if previous_jobs:
-            log_job(job, "previous jobs found" % list_id)
+            log_job(job, "previous jobs found %s" % list_id)
             for action in previous_jobs[0].actions.split("\n"):
                 if action.startswith("list_id="):
                     latest_list_id = int(action.partition("=")[2])
@@ -120,7 +120,7 @@ def fetch_shares():
         tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                           'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
         tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
-        log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
+        log_job(job, "new statuses %s" % len(tweets))
         if timeline:
             log_job(job, "max_id=%s" % timeline[0]['id'])
             log_job(job, "min_id=%s" % timeline[-1]['id'])
