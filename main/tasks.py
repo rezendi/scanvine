@@ -109,6 +109,7 @@ def fetch_shares():
             # need a difference since_id for each list
             log_job(job, "considering previous_jobs")
             for job in previous_jobs:
+                log_job(job, "job")
                 if job.actions.find(str(list_id)) > 0:
                     log_job(job, "found")
                     for action in job.actions.split("\n"):
