@@ -18,6 +18,13 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 #                 sleep_on_rate_limit=True)
 
 http = urllib3.PoolManager()
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36 OPR/56.0.3051.52',
+]
 
 
 # Get a tranche of verified users, add them to the DB if not there
@@ -166,7 +173,8 @@ def associate_article(share_id, force_refetch=False):
         return
     try:
         log_job(job, "Fetching %s" % share.url)
-        r = http.request('GET', share.url)
+        user_agent = USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]
+        r = http.request('GET', share.url, headers={'user-agent': user_agent})
         html = r.data.decode('utf-8')
         final_url =  clean_up_url(r.geturl())
         article = Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, contents=html, title='', metadata='')
@@ -250,8 +258,7 @@ def parse_article_metadata(article_id):
 
 
 # Get sentiment from AWS
-# TODO: batch process 25 at a time
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="12/m")
 def analyze_sentiment():
     job = launch_job("analyze_sentiment")
     import boto3
