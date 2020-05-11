@@ -94,66 +94,69 @@ def refresh_sharers():
 @shared_task(rate_limit="30/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
-    # get data from previous job, if any
     since_id = None
     list_id = LIST_IDS[0]
-    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")[0:10]
-    if previous_jobs:
-        log_job(job, "previous jobs found" % list_id)
-        for action in previous_jobs[0].actions.split("\n"):
-            if action.startswith("list_id="):
-                latest_list_id = int(action.partition("=")[2])
-                idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
-                list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
-        # need a difference since_id for each list
-        log_job(job, "list_id is %s" % list_id)
-        for job in previous_jobs:
-            if job.actions.find(str(list_id)) > 0:
-                for action in job.actions.split("\n"):
-                    if action.startswith("max_id="):
-                        since_id = int(action.partition("=")[2])
-    log_job(job, "list_id=%s" % list_id)
-
-    # fetch the timeline, log its values
-    timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
-    log_job(job, "Got %s unfiltered statuses from list %s" % (len(timeline), LIST_IDS.index(list_id)))
-    tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
-                      'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-    tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
-    log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
-    if timeline:
-        log_job(job, "max_id=%s" % timeline[0]['id'])
-        log_job(job, "min_id=%s" % timeline[-1]['id'])
-    elif since_id:
-        log_job(job, "max_id=%s" % since_id)
-
-    # Store new shares to DB
-    count = 0
-    for tweet in tweets:
-        # TODO: handle multiple URLs by picking best one
-        url = tweet['urls'][0]['expanded_url']
-        url = clean_up_url(url)
+    try:
+        # get data from previous job, if any
+        previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="fetch_shares").order_by("-created_at")[0:10]
+        if previous_jobs:
+            log_job(job, "previous jobs found" % list_id)
+            for action in previous_jobs[0].actions.split("\n"):
+                if action.startswith("list_id="):
+                    latest_list_id = int(action.partition("=")[2])
+                    idx = LIST_IDS.index(latest_list_id) if latest_list_id in LIST_IDS else -1
+                    list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
+            # need a difference since_id for each list
+            for job in previous_jobs:
+                if job.actions.find(str(list_id)) > 0:
+                    for action in job.actions.split("\n"):
+                        if action.startswith("max_id="):
+                            since_id = int(action.partition("=")[2])
+        log_job(job, "list_id=%s" % list_id)
     
-        # get existing share, if any, for idempotency
-        existing = Share.objects.filter(twitter_id=tweet['id'])
-        if existing:
-            log_job(job, "Share already found %s" % tweet['id'])
-            continue
-        sharer = Sharer.objects.filter(twitter_id=tweet['user_id'])
-        if not sharer:
-            log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
-            continue
-        sharer = sharer[0]
-        s = Share(source=0, language='en', status=Share.Status.CREATED,
-                  sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
-        s.save()
-        count += 1
-
-    log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
+        # fetch the timeline, log its values
+        timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
+        log_job(job, "Got %s unfiltered statuses from list %s" % (len(timeline), LIST_IDS.index(list_id)))
+        tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
+                          'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
+        tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
+        log_job(job, "new statuses %s" % len(tweets), Job.Status.LAUNCHED)
+        if timeline:
+            log_job(job, "max_id=%s" % timeline[0]['id'])
+            log_job(job, "min_id=%s" % timeline[-1]['id'])
+        elif since_id:
+            log_job(job, "max_id=%s" % since_id)
     
-    # Launch follow-up job to fetch associated articles
-    if count > 0:
-        associate_articles.signature().apply_async()
+        # Store new shares to DB
+        count = 0
+        for tweet in tweets:
+            # TODO: handle multiple URLs by picking best one
+            url = tweet['urls'][0]['expanded_url']
+            url = clean_up_url(url)
+        
+            # get existing share, if any, for idempotency
+            existing = Share.objects.filter(twitter_id=tweet['id'])
+            if existing:
+                log_job(job, "Share already found %s" % tweet['id'])
+                continue
+            sharer = Sharer.objects.filter(twitter_id=tweet['user_id'])
+            if not sharer:
+                log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
+                continue
+            sharer = sharer[0]
+            s = Share(source=0, language='en', status=Share.Status.CREATED,
+                      sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
+            s.save()
+            count += 1
+    
+        log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
+        
+        # Launch follow-up job to fetch associated articles
+        if count > 0:
+            associate_articles.signature().apply_async()
+
+    except Exception as ex:
+        log_job(job, "Fetch shares error %s" % ex, Job.Status.ERROR)
 
 @shared_task
 def associate_articles():
