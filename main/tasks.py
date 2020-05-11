@@ -100,7 +100,7 @@ def fetch_shares():
                 list_id = LIST_IDS[(idx+1) % len(LIST_IDS)]
         # need a difference since_id for each list
         for job in previous_jobs:
-            if job.actions.find(str(list_id)) > 0:
+            if job.actions.find(str(list_id)) > 0 and False:
                 for action in job.actions.split("\n"):
                     if action.startswith("max_id="):
                         since_id = int(action.partition("=")[2])
