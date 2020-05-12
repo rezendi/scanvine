@@ -2,6 +2,7 @@ import datetime, os
 import json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
+from bs4 import BeautifulSoup
 from . import article_parsers
 from .models import *
 
@@ -183,9 +184,10 @@ def associate_article(share_id, force_refetch=False):
         log_job(job, "Fetching %s" % share.url)
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
         html = r.data.decode('utf-8')
-        final_url = clean_up_url(r.geturl())
+        final_url = clean_up_url(r.geturl(), html)
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
         article.contents=html
+        article.url=final_url
         article.save()
         share.article_id = article.id
         share.status = Share.Status.ARTICLE_ASSOCIATED
@@ -382,7 +384,6 @@ def set_reputations():
 
 # Main article parser
 
-from bs4 import BeautifulSoup
 def parse_article(html, domain=''):
     soup = BeautifulSoup(html, "html.parser")
     metadata = {'sv_title' : soup.title.string}
@@ -428,10 +429,14 @@ def log_job(job, action, status = None):
     job.save();
     print(action)
 
-def clean_up_url(url):
+def clean_up_url(url, html=None):
     # TODO: filter out url cruft more elegantly, depending on site
     if url.find("youtube.com") >= 0:
         return url
+    if url.startswith("https://apple.news/") and html:
+        soup = BeautifulSoup(html, "html.parser")
+        links = soup.find_all("a")
+        return links[0].attrs['href']
     return url.partition("?")[0]
 
 

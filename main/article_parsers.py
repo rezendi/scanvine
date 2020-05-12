@@ -76,11 +76,13 @@ def meta_parser(soup):
         metadata['sv_author'] = metadata['author']
     else:
         author = None
-        for nameval in ["article:author", "og:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "citation_author"]:
-            if not author:
-                author = soup.find("meta", {"property":nameval})
-            if not author:
-                author = soup.find("meta", {"name":nameval})
+        for nameval in ["article:author", "OG:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "DC.Creator", "citation_author"]:
+            variants = [nameval, nameval.lower()] if nameval != nameval.lower() else [nameval]
+            for variant in variants:
+                if not author:
+                    author = soup.find("meta", {"property":variant})
+                if not author:
+                    author = soup.find("meta", {"name":variant})
         if author:
             author_name = None
             if 'value' in author.attrs:
@@ -241,7 +243,7 @@ def get_author_for(metadata, publication):
 def clean_author_string(string, publication_name):
     newstring = string if string else ''
     exclusions = [publication_name] if publication_name else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
     exclusions+= ["business", "news", "with", "by", "about", "the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&"]
@@ -257,7 +259,7 @@ def clean_author_string(string, publication_name):
 
 def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
     exclusions+= ["business", "news", "with", "by", "about", " the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|"]

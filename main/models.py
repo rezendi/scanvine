@@ -98,7 +98,7 @@ class Article(models.Model):
     author = models.ForeignKey(Author, null=True, blank=True, on_delete = models.SET_NULL)
     language = models.CharField(max_length = 5, db_index=True)
     status = models.IntegerField(choices=Status.choices, db_index=True)
-    url = models.URLField(db_index=True)
+    url = models.URLField(db_index=True, blank=True)
     initial_url = models.URLField(null=True, blank=True)
     title = models.CharField(blank=True, max_length=255)
     contents = models.TextField()
