@@ -15,7 +15,8 @@ if not 'DJANGO_SECRET_KEY' in os.environ:
 api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
                   access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
-                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''))
+                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''),
+                  tweet_mode='extended')
 #                 sleep_on_rate_limit=True)
 
 http = urllib3.PoolManager()
@@ -128,7 +129,7 @@ def fetch_shares():
             urls = [u for u in urls if not u.startswith("https://twitter.com/")]
             if urls:
                 user = t['user']
-                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['text'], 'urls':urls}
+                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['full_text'], 'urls':urls}
                 tweets.append(tweet)
         log_job(job, "external link tweets %s" % len(tweets))
         if timeline:
