@@ -251,7 +251,7 @@ def clean_author_string(string, publication = None):
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
     exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "byline", "author", "posted", "abstract", "on", "get"]
-    exclusions+= ["reuters", "AP", "AFP", "|", "&"]
+    exclusions+= ["reuters", "AP", "AFP", "|", "&", "and"]
     newstring = string.replace("&amp;","&") if string else ''
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
@@ -301,7 +301,7 @@ def clean_author_name(name, publication = None):
     return newname
     
 def better_name(oldval, newval):
-    print("comparing %s to %s" % (oldval, newval))
+    # print("comparing %s to %s" % (oldval, newval))
     if not newval:
         return oldval
     if type(newval) is list:
