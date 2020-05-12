@@ -24,8 +24,13 @@ def json_ld_parser(soup):
         auth = metadata['author']
         if type(auth) is dict and 'name' in auth:
             metadata['sv_author'] = auth['name']
-        else:
-            metadata['sv_author'] = auth
+        elif type(auth) is list:
+            if len(auth)==1:
+                auth = auth[0]
+            if type(auth) is dict and 'name' in auth:
+                metadata['sv_author'] = auth['name']
+            else:
+                metadata['sv_author'] = auth
     elif '@graph' in metadata:
         graph = metadata['@graph']
         graph = graph[0] if type(graph) is list and len(graph)>0 else graph
@@ -96,15 +101,17 @@ def meta_parser(soup):
     if not 'sv_author' in metadata:
         byline = ''
         for word in ['author', 'byline', 'contributor']:
-            if not byline:
-                candidates = soup.find_all(True, {"rel" : word})
-                if not candidates:
-                    candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
-                for candidate in candidates:
-                    possible_byline = clean_author_name(candidate.text,'')
-                    possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
-                    if possible_byline:
-                        byline = "%s, %s" % (byline, possible_byline) if byline else possible_byline
+            wordline = ''
+            candidates = soup.find_all(True, {"rel" : word})
+            if not candidates:
+                candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
+            for candidate in candidates:
+                possible_byline = clean_author_name(candidate.text,'')
+                possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
+                if possible_byline:
+                    wordline = "%s, %s" % (wordline, possible_byline) if wordline else possible_byline
+                print("wordline %s" % wordline)
+            byline = better_name(byline, wordline)
         if byline:
             metadata['sv_author'] = byline
 
@@ -128,6 +135,9 @@ def npr_parser(soup):
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
     newval = metadata['sv_author'] if 'sv_author' in metadata else None
+    return better_name(oldval, newval)
+
+def better_name(oldval, newval):
     if not newval:
         return oldval
     if type(newval) is list:
@@ -139,7 +149,13 @@ def get_author_from(existing, metadata):
         return newval
     if newval and (newval.startswith("[") or newval.startswith("{")):
         return oldval
-    if len(newval.split(" "))==1 and type(oldval) == str and len(oldval.split(" "))>1:
+    new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
+    old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
+    if new_words == 1 and old_words > 1:
+        return oldval
+    if new_words < 4 and old_words > 8:
+        return newval
+    if old_words < 4 and new_words > 8:
         return oldval
     return newval
 
