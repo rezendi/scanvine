@@ -125,7 +125,8 @@ def meta_parser(soup):
                     candidate.sup.decompose()
                 possible_byline = candidate.text.strip().partition("\n")[0]
                 possible_byline = clean_author_name(possible_byline,'')
-                possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
+                possible_byline = '' if any(char.isdigit() for char in possible_byline) else possible_byline
+                possible_byline = '' if len(possible_byline.split(" ")) > 32 else possible_byline
                 if possible_byline:
                     wordline = "%s, %s" % (wordline, possible_byline) if wordline else possible_byline
             byline = better_name(byline, wordline)
@@ -280,9 +281,12 @@ def clean_author_name(name, publication_name):
         tentative = newname.split("-")
         if len(tentative)>1 and len (tentative) <5:
             newname = " ".join(tentative)
-    newname = newname.title() if newname.find(" ") > 0 else newname
 
-    if newname != name:        
+    words = newname.split(" ")
+    if len(words) > 1:
+        newname = newname.title()
+
+    if newname and newname != name:        
         existing = Author.objects.filter(name=name)
         if existing:
             existing[0].name = newname
