@@ -397,7 +397,8 @@ def parse_article(html, domain=''):
     if publications:
         parser_rule_string = publications[0].parser_rules
         if parser_rule_string:
-            parser_rules = default_parser_rules + json.loads(parser_rule_string)
+            custom_rules = json.loads(parser_rule_string)
+            parser_rules = default_parser_rules + custom_rules if type(custom_rules) is list else [custom_rules]
 
     author = None
     for rule in parser_rules:

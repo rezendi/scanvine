@@ -141,6 +141,12 @@ def npr_parser(soup):
     metadata['sv_publication'] = "NPR"
     return metadata
 
+def reddit_parser(soup):
+    author_tags = [item for item in soup.find_all() if "data-author" in item.attrs]
+    if author_tags:
+        return {'sv_author': author_tags[0]["data-author"]}
+    return {}
+
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
     newval = metadata['sv_author'] if 'sv_author' in metadata else None
