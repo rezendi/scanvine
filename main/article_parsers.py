@@ -21,9 +21,11 @@ def json_ld_parser(soup):
     if 'title' in metadata:
         metadata['sv_title'] = metadata['title']
 
+    print("meta %s" % metadata)
     for word in ['creator','author','authors']:
         if word in metadata and not 'sv_author' in metadata:
             auth = metadata[word]
+            print("auth %s" % auth)
             if type(auth) is dict and 'name' in auth:
                 metadata['sv_author'] = auth['name']
             elif type(auth) is list:

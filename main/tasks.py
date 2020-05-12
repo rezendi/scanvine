@@ -185,6 +185,9 @@ def associate_article(share_id, force_refetch=False):
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
         html = r.data.decode('utf-8')
         final_url = clean_up_url(r.geturl(), html)
+        if urllib3.util.parse_url(r.geturl()).host != urllib3.util.parse_url(final_url).host:
+            r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
+            html = r.data.decode('utf-8')
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
         article.contents=html
         article.url=final_url
