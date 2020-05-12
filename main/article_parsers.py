@@ -30,7 +30,8 @@ def json_ld_parser(soup):
                 if len(auth)==1:
                     auth = auth[0]
                 if type(auth) is list and len(auth) > 1:
-                    auth = ",".join([dict['name'] for dict in auth])
+                    auth = [a['name'] if type(a) is dict and 'name' in a else a for a in auth]
+                    auth = ",".join(auth)
                 if type(auth) is dict and 'name' in auth:
                     metadata['sv_author'] = auth['name']
                 else:
