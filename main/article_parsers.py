@@ -36,10 +36,14 @@ def json_ld_parser(soup):
                 else:
                     metadata['sv_author'] = auth
     if 'sv_author' not in metadata and '@graph' in metadata:
+        graphname = ''
         graph = metadata['@graph']
-        graph = graph[0] if type(graph) is list and len(graph)>0 else graph
-        if 'author' in graph:
-            metadata['sv_author'] = graph['author']
+        for vals in [d for d in graph if type(d) is dict and ('name' in d or 'author' in d)]:
+            valname = vals['name'] if 'name' in vals else vals['author']
+            graphname = better_name(graphname, valname)
+        if graphname:
+            metadata['sv_author'] = graphname
+
 
     pub = None
     if 'publisher' in metadata:
