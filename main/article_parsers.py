@@ -118,6 +118,8 @@ def meta_parser(soup):
             if not candidates:
                 candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word)) and not L.startswith("comment")})
             for candidate in candidates:
+                if candidate.sup:
+                    candidate.sup.decompose()
                 possible_byline = candidate.text.strip().partition("\n")[0]
                 possible_byline = clean_author_name(possible_byline,'')
                 possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
