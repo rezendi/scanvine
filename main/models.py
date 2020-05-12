@@ -158,7 +158,7 @@ class Share(models.Model):
         return 1
 
     def __str__(self):
-        return "Share %s" % (self.id)
+        return "%s (%s)" % (self.text, self.id)
 
 
 class Tranche(models.Model):
