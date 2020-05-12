@@ -124,7 +124,7 @@ def meta_parser(soup):
                 if candidate.sup:
                     candidate.sup.decompose()
                 possible_byline = candidate.text.strip().partition("\n")[0]
-                possible_byline = clean_author_name(possible_byline,'')
+                possible_byline = clean_author_name(possible_byline)
                 possible_byline = '' if any(char.isdigit() for char in possible_byline) else possible_byline
                 possible_byline = '' if len(possible_byline.split(" ")) > 32 else possible_byline
                 if possible_byline:
@@ -190,14 +190,14 @@ def get_author_for(metadata, publication):
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
     author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
 
-    names = clean_author_string(author_string, publication.name).split(",")
+    names = clean_author_string(author_string, publication).split(",")
     pubname = publication.name
     if pubname and len(pubname.strip()) > 2 and (author_string.startswith(pubname) or author_string.startswith(pubname.title())):
         names = [pubname]
     else:
         names = [n.strip() for n in names]
         names = [ii for n,ii in enumerate(names) if ii not in names[:n]] # remove duplicates
-        names = [clean_author_name(n, pubname) for n in names]
+        names = [clean_author_name(n, publication) for n in names]
         names = [n for n in names if len(n)>3]
 
     if len(names) == 0:
@@ -244,13 +244,17 @@ def get_author_for(metadata, publication):
         collaboration.save()
     return new_byline
 
-def clean_author_string(string, publication_name):
-    newstring = string.replace("&amp;","&") if string else ''
-    exclusions = [publication_name] if publication_name else []
+def clean_author_string(string, publication = None):
+    exclusions = []
+    if publication:
+        exclusions+= [publication.domain]
+        exclusions+= [publication.name] if publication.name else []
+        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
     exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&"]
+    newstring = string.replace("&amp;","&") if string else ''
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
             newstring = newstring.replace(' %s ' % variant,', ')
@@ -261,11 +265,15 @@ def clean_author_string(string, publication_name):
             newstring = newstring.replace('  ',' ')
     return newstring.replace('  ',' ').strip()
 
-def clean_author_name(name, publication_name):
-    exclusions = [publication_name] if publication_name else []
+def clean_author_name(name, publication = None):
+    exclusions = []
+    if publication:
+        exclusions+= [publication.domain]
+        exclusions+= [publication.name] if publication.name else []
+        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
-    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "posted", "on"]
+    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "posted", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name.replace("&amp;","&") if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
