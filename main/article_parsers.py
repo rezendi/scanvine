@@ -245,7 +245,7 @@ def clean_author_string(string, publication_name):
     newstring = string if string else ''
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
     exclusions+= ["business", "news", "with", "by", "about", "the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&"]
     for exclusion in exclusions:
