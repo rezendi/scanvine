@@ -19,7 +19,7 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   tweet_mode='extended')
 #                 sleep_on_rate_limit=True)
 
-http = urllib3.PoolManager(10)
+http = urllib3.PoolManager(10, timeout=30.0)
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15',
