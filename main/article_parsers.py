@@ -115,23 +115,33 @@ def meta_parser(soup):
         byline = ''
         for word in ['author', 'byline', 'contributor', 'vcard', 'authors']:
             wordline = ''
+            for sup in soup.findAll('sup'):
+                sup.replaceWith(",")
             candidate_tags = soup.find_all(True, {"rel" : word})
+            candidate_tags = [t for t in candidate_tags if len(t['class'])==1]
+            if not candidate_tags:
+                candidate_tags = soup.find_all(True, {"rel" : word})
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
                 candidate_tags = [t for t in candidate_tags if len(t['class'])==1]
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
             if not candidate_tags:
-                candidate_tags = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word)) and not L.startswith("comment")})
+                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.startswith(word)})
+            if not candidate_tags:
+                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.endswith(word) and not L.startswith("comment")})
             for candidate_tag in candidate_tags:
                 for candidate in candidate_tag.stripped_strings:
                     candidate = candidate.partition("\n")[0].strip()
                     candidate = '' if any(char.isdigit() for char in candidate) else candidate
-                    candidate = ' '.join([w for w in candidate.split(" ") if w.title() == w])
                     candidate = '' if len(candidate.split(" ")) > 32 else candidate
+                    candidate = ' '.join([w for w in candidate.split(" ") if w.title() == w])
                     candidate = clean_author_name(candidate)
                     if candidate:
-                        wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
+                        if len(candidate.split(" "))==1:
+                            wordline = "%s %s" % (wordline, candidate) if wordline else candidate
+                        else:
+                            wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
             byline = better_name(byline, wordline)
         if byline:
             metadata['sv_author'] = byline
@@ -159,35 +169,15 @@ def reddit_parser(soup):
         return {'sv_author': author_tags[0]["data-author"]}
     return {}
 
+def linkedin_parser(soup):
+    title = soup.title
+    author_name = soup.title.partition(" on LinkedIn")[0]
+    return {'sv_author': author_name}
+
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
     newval = metadata['sv_author'] if 'sv_author' in metadata else None
     return better_name(oldval, newval)
-
-def better_name(oldval, newval):
-    # print("comparing %s to %s" % (oldval, newval))
-    if not newval:
-        return oldval
-    if type(newval) is list:
-        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
-        return names[0] if len(names)==1 else ','.join(names)
-    if type(newval) is dict:
-        newval = newval['name'] if 'name' in newval else None
-    if not oldval:
-        return newval
-    if newval and (newval.startswith("[") or newval.startswith("{")):
-        return oldval
-    new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
-    old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
-    if new_words == 1 and old_words > 1:
-        return oldval
-    if new_words < 4 and old_words > 8:
-        return newval
-    if old_words < 4 and new_words > 8:
-        return oldval
-    if new_words - old_words > 8:
-        return oldval
-    return newval
 
 def get_author_for(metadata, publication):
     if not 'sv_author' in metadata:
@@ -258,7 +248,7 @@ def clean_author_string(string, publication = None):
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
-    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "byline", "author", "posted", "on"]
+    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "byline", "author", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&"]
     newstring = string.replace("&amp;","&") if string else ''
     for exclusion in exclusions:
@@ -279,7 +269,7 @@ def clean_author_name(name, publication = None):
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
-    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "byline", "posted", "on", "get"]
+    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "byline", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name.replace("&amp;","&") if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
@@ -308,3 +298,30 @@ def clean_author_name(name, publication = None):
 
     return newname
     
+def better_name(oldval, newval):
+    print("comparing %s to %s" % (oldval, newval))
+    if not newval:
+        return oldval
+    if type(newval) is list:
+        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
+        return names[0] if len(names)==1 else ','.join(names)
+    if type(newval) is dict:
+        newval = newval['name'] if 'name' in newval else None
+    if not oldval:
+        return newval
+    if newval and (newval.startswith("[") or newval.startswith("{")):
+        return oldval
+    new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
+    old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
+    if new_words == 1 and old_words > 1:
+        return oldval
+    if new_words < 4 and old_words > 8:
+        return newval
+    if old_words < 4 and new_words > 8:
+        return oldval
+    if new_words - old_words > 8:
+        return oldval
+    if new_words - old_words > 2 and newval.find(",")==-1:
+        return oldval
+    return newval
+
