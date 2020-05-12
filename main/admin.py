@@ -55,6 +55,10 @@ class ArticleAdmin(ScanvineAdmin):
         if "_reparse" in request.POST:
             parse_article_metadata(obj.id)
             return redirect('/admin/main/article/%s/' % obj.id)
+        if "_refetch" in request.POST:
+            shares = Share.objects.filter(article_id=obj.id)
+            if shares:
+                associate_article(shares[0].id, force_refetch=True)
         return super().response_change(request, obj)
 
     def reparse(modeladmin, request, queryset):
