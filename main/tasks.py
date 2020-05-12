@@ -1,4 +1,4 @@
-import datetime, os
+import datetime, os, traceback
 import json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
@@ -168,6 +168,7 @@ def fetch_shares():
             associate_articles.signature().apply_async()
 
     except Exception as ex:
+        log_job(job, traceback.format_exc())
         log_job(job, "Fetch shares error %s" % ex, Job.Status.ERROR)
         raise ex
 
