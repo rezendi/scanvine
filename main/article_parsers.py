@@ -114,7 +114,9 @@ def meta_parser(soup):
             wordline = ''
             candidates = soup.find_all(True, {"rel" : word})
             if not candidates:
-                candidates = soup.find_all(True, {"class" : lambda L: L and (L==word or L.startswith(word) or L.endswith(word)) and not L.startswith("comment")})
+                candidates = soup.find_all(True, {"class" : word})
+            if not candidates:
+                candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word)) and not L.startswith("comment")})
             for candidate in candidates:
                 possible_byline = candidate.text.strip().partition("\n")[0]
                 possible_byline = clean_author_name(possible_byline,'')

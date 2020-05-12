@@ -112,8 +112,8 @@ class ShareAdmin(ScanvineAdmin):
     def get_search_results(self, request, queryset, search_term):
         if (search_term.startswith("add:")):
             tweet_id = search_term.rpartition(":")[2].rpartition("/")[2]
-            add_tweet(int(tweet_id))
-            return super().get_search_results(request, queryset, '')
+            share_id = add_tweet(int(tweet_id))
+            return (Share.objects.filter(id=share_id), False)
         return super().get_search_results(request, queryset, search_term)
 
     def response_change(self, request, obj):
@@ -250,6 +250,7 @@ def add_tweet(tweet_id):
     share.url = tweet.urls[0].expanded_url
     share.save()
     associate_article(share.id, force_refetch=True)
+    return share.id
 
 def reparse_share(share_id):
     share = Share.objects.get(id=share_id)
