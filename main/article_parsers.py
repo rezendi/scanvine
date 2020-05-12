@@ -229,7 +229,7 @@ def clean_author_string(string, publication_name):
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
             newstring = newstring.replace(', %s' % variant,', ')
             newstring = newstring.replace(',%s' % variant,',')
-    newstring = newstring.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
+    newstring = newstring.replace(" and ",",").replace(" And ",",").replace(" AND ",",").replace("&",",")
     return newstring.strip()
 
 def clean_author_name(name, publication_name):
