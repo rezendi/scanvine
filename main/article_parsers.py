@@ -171,8 +171,10 @@ def reddit_parser(soup):
 
 def linkedin_parser(soup):
     title = soup.title
-    author_name = soup.title.partition(" on LinkedIn")[0]
-    return {'sv_author': author_name}
+    if title:
+        author_name = soup.title.string.partition(" on LinkedIn")[0]
+        return {'sv_author': author_name}
+    return {}
 
 def get_author_from(existing, metadata):
     oldval = existing['sv_author'] if 'sv_author' in existing else None
