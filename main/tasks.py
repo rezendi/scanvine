@@ -192,9 +192,12 @@ def associate_article(share_id, force_refetch=False):
             log_job(job, "article exists for %s" % share.url, Job.Status.COMPLETED)
             return
     try:
-        log_job(job, "Fetching %s" % share.url)
+        url = existing[0].initial_url if existing else share.url
+        log_job(job, "Fetching %s" % url)
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
+        log_job(job, "Fetched")
         html = r.data.decode('utf-8')
+        log_job(job, "Decoded")
         final_url = clean_up_url(r.geturl(), html)
         final_host = urllib3.util.parse_url(final_url).host
         if final_host is None:
@@ -448,11 +451,11 @@ def launch_job(name):
     return job
 
 def log_job(job, action, status = None):
+    print(action)
     if status is not None:
         job.status = status
     job.actions = action + " \n" + job.actions
     job.save();
-    print(action)
 
 def clean_up_url(url, html=None):
     # TODO: filter out url cruft more elegantly, depending on site
