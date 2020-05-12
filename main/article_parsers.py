@@ -240,26 +240,32 @@ def clean_author_string(string, publication_name):
     newstring = string if string else ''
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor", "editor-at-large", "business", "news", "with", "by", "about", "the"]
-    exclusions+= ["reuters", "AP", "AFP"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
+    exclusions+= ["business", "news", "with", "by", "about", "the", "author", "posted", "on"]
+    exclusions+= ["reuters", "AP", "AFP", "|", "&"]
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
-            newstring = newstring.replace(', %s' % variant,', ')
-            newstring = newstring.replace(',%s' % variant,',')
-    newstring = newstring.replace(" and ",",").replace(" And ",",").replace(" AND ",",").replace("&",",")
-    return newstring.strip()
+            newstring = newstring.replace(' %s ' % variant,', ')
+            newstring = newstring.replace(' %s,' % variant,' ,')
+            newstring = newstring.replace(',%s ' % variant,', ')
+            newstring = newstring.replace('%s ' % variant, ' ') if newstring.startswith(variant) else newstring
+            newstring = newstring.replace(' %s' % variant, ' ') if newstring.endswith(variant) else newstring
+            newstring = newstring.replace('  ',' ')
+    return newstring.replace('  ',' ').strip()
 
 def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "business", "news", "with", "by", "about", "the"]
-    exclusions+= ["reuters", "AP", "AFP"]
-    exclusions+= ["|"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
+    exclusions+= ["business", "news", "with", "by", "about", " the", "author", "posted", "on"]
+    exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
-            newname = newname.replace(variant,'')
+            newname = newname.replace(' %s ' % variant, ' ')
+            newname = newname.replace('%s ' % variant, ' ') if newname.startswith(variant) else newname
+            newname = newname.replace(' %s' % variant, ' ') if newname.endswith(variant) else newname
             newname = newname.replace('  ',' ')
     newname = newname.replace('  ',' ').strip()
     if newname.startswith("http"):
