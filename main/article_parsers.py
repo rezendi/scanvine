@@ -76,7 +76,7 @@ def meta_parser(soup):
         metadata['sv_author'] = metadata['author']
     else:
         authors = []
-        for nameval in ["article:author", "OG:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "DC.Creator", "citation_author"]:
+        for nameval in ["article:author", "OG:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "DC.Creator", "DCterms.creator", "citation_author"]:
             variants = [nameval, nameval.lower()] if nameval != nameval.lower() else [nameval]
             for variant in variants:
                 if not authors:
