@@ -21,11 +21,9 @@ def json_ld_parser(soup):
     if 'title' in metadata:
         metadata['sv_title'] = metadata['title']
 
-    print("meta %s" % metadata)
     for word in ['creator','author','authors']:
         if word in metadata and not 'sv_author' in metadata:
             auth = metadata[word]
-            print("auth %s" % auth)
             if type(auth) is dict and 'name' in auth:
                 metadata['sv_author'] = auth['name']
             elif type(auth) is list:
@@ -77,20 +75,21 @@ def meta_parser(soup):
     if 'author' in metadata:
         metadata['sv_author'] = metadata['author']
     else:
-        author = None
+        authors = []
         for nameval in ["article:author", "OG:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "DC.Creator", "citation_author"]:
             variants = [nameval, nameval.lower()] if nameval != nameval.lower() else [nameval]
             for variant in variants:
-                if not author:
-                    author = soup.find("meta", {"property":variant})
-                if not author:
-                    author = soup.find("meta", {"name":variant})
-        if author:
+                if not authors:
+                    authors = soup.find_all("meta", {"property":variant})
+                if not authors:
+                    authors = soup.find_all("meta", {"name":variant})
+        if authors:
             author_name = None
-            if 'value' in author.attrs:
-                author_name = author['value']
-            if 'content' in author.attrs:
-                author_name = author['content']
+            for author in authors:
+                if 'value' in author.attrs:
+                    author_name = author['value'] if not author_name else "%s, %s" % (author_name, author['value'])
+                if 'content' in author.attrs:
+                    author_name = author['content'] if not author_name else "%s, %s" % (author_name, author['content'])
             if author_name:
                 metadata['sv_author'] = author_name
 
@@ -114,7 +113,7 @@ def meta_parser(soup):
     # if nothing, search for tags by class?
     if not 'sv_author' in metadata:
         byline = ''
-        for word in ['author', 'byline', 'contributor']:
+        for word in ['author', 'byline', 'contributor', 'vcard', 'authors']:
             wordline = ''
             candidates = soup.find_all(True, {"rel" : word})
             if not candidates:
@@ -263,7 +262,7 @@ def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large"]
-    exclusions+= ["business", "news", "with", "by", "about", " the", "author", "posted", "on"]
+    exclusions+= ["business", "news", "with", "by", "about", " the", "author", "posted", "on", "👤by"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
