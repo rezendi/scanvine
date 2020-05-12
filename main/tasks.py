@@ -115,11 +115,11 @@ def fetch_shares():
     
         # fetch the timeline, log its values
         timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
-        log_job(job, "Got %s unfiltered statuses from list %s" % (len(timeline), LIST_IDS.index(list_id)))
+        log_job(job, "Got %s unfiltered tweets from list %s" % (len(timeline), LIST_IDS.index(list_id)))
         tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
                           'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-        tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter')<0]
-        log_job(job, "new statuses %s" % len(tweets))
+        tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter.com')<0]
+        log_job(job, "new link tweets %s" % len(tweets))
         if timeline:
             log_job(job, "max_id=%s" % timeline[0]['id'])
             log_job(job, "min_id=%s" % timeline[-1]['id'])
@@ -173,7 +173,7 @@ def associate_article(share_id, force_refetch=False):
     share = Share.objects.get(id=share_id)
     existing = Article.objects.filter(initial_url=share.url)
     if existing:
-        share.article_id = article.id
+        share.article_id = existing[0].id
         share.status = Share.Status.ARTICLE_ASSOCIATED
         share.save()
         if not force_refetch:

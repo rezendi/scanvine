@@ -134,7 +134,7 @@ class JobAdmin(ScanvineAdmin):
             'publications' : Publication.objects.count(),
             'articles' : Article.objects.count(),
             'authors' : Author.objects.count(),
-            'share' : Share.objects.count(),
+            'shares' : Share.objects.count(),
             'sharers' : Sharer.objects.filter(status=Sharer.Status.LISTED).count()
         }
         
