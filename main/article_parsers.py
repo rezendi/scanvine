@@ -240,7 +240,7 @@ def clean_author_string(string, publication_name):
     newstring = string if string else ''
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor", "editor-at-large", "business", "news", "with", "by"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor", "editor-at-large", "business", "news", "with", "by", "about", "the"]
     exclusions+= ["reuters", "AP", "AFP"]
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
@@ -252,7 +252,7 @@ def clean_author_string(string, publication_name):
 def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "business", "news", "with", "by"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "business", "news", "with", "by", "about", "the"]
     exclusions+= ["reuters", "AP", "AFP"]
     exclusions+= ["|"]
     newname = name if name else ''
