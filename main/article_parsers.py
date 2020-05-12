@@ -213,8 +213,6 @@ def get_author_for(metadata, publication):
         else:
             author=Author(status=Author.Status.CREATED, name=name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
                           is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-            if len(author.name) > 255:
-                author.name = "%s%s" % (author.name[0:252], "...")
             author.save()
             return author
 
@@ -237,6 +235,8 @@ def get_author_for(metadata, publication):
     if existing:
         return existing[0]
     new_byline = Author(status=Author.Status.CREATED, name=byline, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
+    if len(new_byline.name) > 255:
+        new_byline.name = "%s%s" % (new_byline.name[0:252], "...")
     new_byline.save()
     for author in authors:
         collaboration = Collaboration(partnership = new_byline, individual = author)
