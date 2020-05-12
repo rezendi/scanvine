@@ -256,12 +256,14 @@ def add_sharer(sharer_id):
 
 def add_tweet(tweet_id):
     tweet = api.GetStatus(tweet_id, include_entities=True)
+    print("tweet %s" % tweet)
     shares = Share.objects.filter(twitter_id=tweet.id)
     share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     sharer = add_sharer(tweet.user.id)
     share.sharer_id = sharer.id
     share.text = tweet.text
-    share.url = tweet.urls[0].expanded_url
+    if tweet.urls:
+        share.url = tweet.urls[0].expanded_url
     share.save()
     associate_article(share.id, force_refetch=True)
     return share.id

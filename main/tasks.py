@@ -115,12 +115,22 @@ def fetch_shares():
                     since_id = int(action.partition("=")[2])
     
         # fetch the timeline, log its values
-        timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, return_json=True)
+        timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, include_entities = True, return_json=True)
         log_job(job, "Got %s unfiltered tweets from list %s" % (len(timeline), LIST_IDS.index(list_id)))
-        tweets = [{'id':t['id'], 'user_id':t['user']['id'], 'screen_name':t['user']['screen_name'],
-                          'text':t['text'], 'urls':t['entities']['urls']} for t in timeline if len(t['entities']['urls'])>0]
-        tweets = [t for t in tweets if json.dumps(t['urls'][0]['expanded_url']).find('twitter.com')<0]
-        log_job(job, "new link tweets %s" % len(tweets))
+        tweets = []
+        for t in timeline:
+            urls = t['entities']['urls']
+            if 'quoted_status' in t:
+                urls += t['quoted_status']['entities']['urls']
+            if 'retweeted_status' in t:
+                urls += t['retweeted_status']['entities']['urls']
+            urls = [u['expanded_url'] for u in urls]
+            urls = [u for u in urls if not u.startswith("https://twitter.com/")]
+            if urls:
+                user = t['user']
+                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['text'], 'urls':urls}
+                tweets.append(tweet)
+        log_job(job, "external link tweets %s" % len(tweets))
         if timeline:
             log_job(job, "max_id=%s" % timeline[0]['id'])
             log_job(job, "min_id=%s" % timeline[-1]['id'])
@@ -130,9 +140,8 @@ def fetch_shares():
         # Store new shares to DB
         count = 0
         for tweet in tweets:
-            # TODO: handle multiple URLs by picking best one
-            url = tweet['urls'][0]['expanded_url']
-            url = clean_up_url(url)
+            # TODO: handle multiple viable URLs by picking best one
+            url = clean_up_url(tweet['urls'][0])
         
             # get existing share, if any, for idempotency
             existing = Share.objects.filter(twitter_id=tweet['id'])
@@ -157,6 +166,7 @@ def fetch_shares():
 
     except Exception as ex:
         log_job(job, "Fetch shares error %s" % ex, Job.Status.ERROR)
+        raise ex
 
 @shared_task
 def associate_articles():
@@ -250,6 +260,11 @@ def parse_article_metadata(article_id):
         article.publication = publication
         article.status = Article.Status.PUBLISHER_ASSOCIATED
         article.save()
+
+        if not article.contents:
+            log_job(job, "No contents in article %s" % article.id, Job.Status.ERROR)
+            article.status = Article.Status.METADATA_PARSE_ERROR
+            return
 
         metadata = parse_article(article.contents, domain)
         pub_name = metadata['sv_publication'] if 'sv_publication' in metadata else ''
@@ -395,7 +410,7 @@ def set_reputations():
 
 def parse_article(html, domain=''):
     soup = BeautifulSoup(html, "html.parser")
-    metadata = {'sv_title' : soup.title.string}
+    metadata = {'sv_title' : soup.title.string if soup.title else ''}
     
     # default to generic parsing by meta tags and application-LD
     default_parser_rule_string = '[{"method":"meta_parser"}, {"method":"json_ld_parser"}]'
