@@ -114,16 +114,12 @@ def meta_parser(soup):
     if not 'sv_author' in metadata:
         byline = ''
         for word in ['author', 'byline', 'contributor', 'vcard', 'authors']:
+            if byline:
+                break
             wordline = ''
             for sup in soup.findAll('sup'):
                 sup.replaceWith(",")
             candidate_tags = soup.find_all(True, {"rel" : word})
-            candidate_tags = [t for t in candidate_tags if len(t['class'])==1]
-            if not candidate_tags:
-                candidate_tags = soup.find_all(True, {"rel" : word})
-            if not candidate_tags:
-                candidate_tags = soup.find_all(True, {"class" : word})
-                candidate_tags = [t for t in candidate_tags if len(t['class'])==1]
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
             if not candidate_tags:
@@ -137,11 +133,9 @@ def meta_parser(soup):
                     candidate = '' if len(candidate.split(" ")) > 32 else candidate
                     candidate = ' '.join([w for w in candidate.split(" ") if w.title() == w])
                     candidate = clean_author_name(candidate)
+                    candidate = '' if len(candidate.split(" "))==1 else candidate
                     if candidate:
-                        if len(candidate.split(" "))==1:
-                            wordline = "%s %s" % (wordline, candidate) if wordline else candidate
-                        else:
-                            wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
+                        wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
             byline = better_name(byline, wordline)
         if byline:
             metadata['sv_author'] = byline
