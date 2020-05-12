@@ -22,8 +22,10 @@ def json_ld_parser(soup):
 
     if 'author' in metadata:
         auth = metadata['author']
-        if type(auth) is str or type(auth) is list or (type(auth) is dict and 'name' in auth):
-            metadata['sv_author'] = metadata['author']
+        if type(auth) is dict and 'name' in auth:
+            metadata['sv_author'] = auth['name']
+        else:
+            metadata['sv_author'] = auth
     elif '@graph' in metadata:
         graph = metadata['@graph']
         graph = graph[0] if type(graph) is list and len(graph)>0 else graph
