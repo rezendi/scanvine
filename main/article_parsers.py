@@ -242,7 +242,7 @@ def get_author_for(metadata, publication):
     return new_byline
 
 def clean_author_string(string, publication_name):
-    newstring = string if string else ''
+    newstring = string.replace("&amp;","&") if string else ''
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
@@ -264,7 +264,7 @@ def clean_author_name(name, publication_name):
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
     exclusions+= ["business", "news", "with", "by", "about", " the", "author", "posted", "on", "👤by", "and"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
-    newname = name if name else ''
+    newname = name.replace("&amp;","&") if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
