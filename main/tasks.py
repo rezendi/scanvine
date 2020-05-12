@@ -404,7 +404,7 @@ def parse_article(html, domain=''):
     for rule in parser_rules:
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
-        print("rule author %s %s" % (rule, retval['sv_author'] if 'sv_author' in retval else ''))
+        # print("rule author %s %s" % (rule, retval['sv_author'] if 'sv_author' in retval else ''))
         author = article_parsers.get_author_from(metadata, retval)
         metadata.update(retval) # we keep overwriting sv_author, but store the final version in author
 

@@ -75,7 +75,7 @@ def meta_parser(soup):
         metadata['sv_author'] = metadata['author']
     else:
         author = None
-        for nameval in ["article:author", "og:author", "twitter:author", "sailthru:author", "DCSext.author"]:
+        for nameval in ["article:author", "og:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "citation_author"]:
             if not author:
                 author = soup.find("meta", {"property":nameval})
             if not author:
