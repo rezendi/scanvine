@@ -246,7 +246,7 @@ def clean_author_string(string, publication_name):
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
-    exclusions+= ["business", "news", "with", "|", "by", "about", "the", "author", "posted", "on"]
+    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&"]
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
@@ -262,7 +262,7 @@ def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
-    exclusions+= ["business", "news", "with", "|", "by", "about", "the", "author", "posted", "on"]
+    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "posted", "on"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name.replace("&amp;","&") if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
