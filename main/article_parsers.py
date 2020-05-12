@@ -22,7 +22,7 @@ def json_ld_parser(soup):
         metadata['sv_title'] = metadata['title']
 
     for word in ['creator','author']:
-        if word in metadata:
+        if word in metadata and not 'sv_author' in metadata:
             auth = metadata[word]
             if type(auth) is dict and 'name' in auth:
                 metadata['sv_author'] = auth['name']
@@ -36,6 +36,7 @@ def json_ld_parser(soup):
                     metadata['sv_author'] = auth['name']
                 else:
                     metadata['sv_author'] = auth
+
     if 'sv_author' not in metadata and '@graph' in metadata:
         graphname = ''
         graph = metadata['@graph']
