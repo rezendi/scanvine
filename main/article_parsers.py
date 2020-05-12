@@ -27,6 +27,8 @@ def json_ld_parser(soup):
         elif type(auth) is list:
             if len(auth)==1:
                 auth = auth[0]
+            if len(auth) > 1:
+                auth = ",".join([dict['name'] for dict in auth])
             if type(auth) is dict and 'name' in auth:
                 metadata['sv_author'] = auth['name']
             else:
@@ -110,7 +112,6 @@ def meta_parser(soup):
                 possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
                 if possible_byline:
                     wordline = "%s, %s" % (wordline, possible_byline) if wordline else possible_byline
-                print("wordline %s" % wordline)
             byline = better_name(byline, wordline)
         if byline:
             metadata['sv_author'] = byline
@@ -221,8 +222,8 @@ def get_author_for(metadata, publication):
 def clean_author_string(string, publication_name):
     newstring = string if string else ''
     exclusions = [publication_name] if publication_name else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor", "editor-at-large", "with", "by"]
     exclusions+= ["reuters", "AP", "AFP"]
     for exclusion in exclusions:
         for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
@@ -233,8 +234,8 @@ def clean_author_string(string, publication_name):
 
 def clean_author_name(name, publication_name):
     exclusions = [publication_name] if publication_name else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
-    exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "with", "by"]
     exclusions+= ["reuters", "AP", "AFP"]
     exclusions+= ["|"]
     newname = name if name else ''
