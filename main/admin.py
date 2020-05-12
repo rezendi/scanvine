@@ -69,6 +69,18 @@ class AuthorAdmin(ScanvineAdmin):
     search_fields = ('name',)
     view_on_site = True
 
+    def get_search_results(self, request, queryset, search_term):
+        if search_term == "empty":
+            empty_ids= []
+            for author in Author.objects.all():
+                articles = Article.objects.filter(author_id=author.id)
+                collaborations = Collaboration.objects.filter(individual=author.id)
+                if not articles and not collaborations:
+                    empty_ids.append(author.id)
+            return (Author.objects.filter(id__in=empty_ids), True)
+        return super().get_search_results(request, queryset, search_term)
+
+
 admin.site.register(Collaboration)
 
 
