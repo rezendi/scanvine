@@ -409,12 +409,11 @@ def parse_article(html, domain=''):
         parser = getattr(article_parsers, rule['method'])
         retval = parser(soup=soup)
         author = article_parsers.get_author_from(metadata, retval)
+        if 'sv_author' in retval:
+            # print("rule author %s %s" % (rule, retval['sv_author']))
+            if not author:
+                del retval['sv_author']
         metadata.update(retval)
-        # if 'sv_author' in metadata:
-        #     print("rule author %s %s" % (rule, metadata['sv_author']))
-
-    if author:
-        metadata['sv_author'] = author
 
     return metadata
 

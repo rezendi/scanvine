@@ -90,7 +90,7 @@ def meta_parser(soup):
             if title_text:
                 metadata['sv_title'] = title_text
 
-    # if nothing, search for tag with 'byline' in its class?
+    # if nothing, search for tags by class?
     if not 'sv_author' in metadata:
         byline = ''
         for word in ['author', 'byline', 'contributor']:
@@ -100,10 +100,10 @@ def meta_parser(soup):
                     candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
                 for candidate in candidates:
                     possible_byline = clean_author_name(candidate.text,'')
+                    possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
                     if possible_byline:
                         byline = "%s, %s" % (byline, possible_byline) if byline else possible_byline
         if byline:
-            print("byline %s" % byline)
             metadata['sv_author'] = byline
 
     if 'publisher' in metadata:
@@ -137,7 +137,7 @@ def get_author_from(existing, metadata):
         return newval
     if newval and (newval.startswith("[") or newval.startswith("{")):
         return oldval
-    if len(newval.split(" "))==1 and len(oldval.split(" "))>1:
+    if len(newval.split(" "))==1 and type(oldval) == str and len(oldval.split(" "))>1:
         return oldval
     return newval
 
@@ -147,9 +147,16 @@ def get_author_for(metadata, publication):
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
     author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
+
     names = clean_author_string(author_string, publication.name).split(",")
-    names = [clean_author_name(n, publication.name) for n in names]
-    names = [n for n in names if len(n)>3]
+    pubname = publication.name
+    if pubname and len(pubname.strip()) > 2 and (author_string.startswith(pubname) or author_string.startswith(pubname.title())):
+        names = [pubname]
+    else:
+        names = [n.strip() for n in names]
+        names = [ii for n,ii in enumerate(names) if ii not in names[:n]] # remove duplicates
+        names = [clean_author_name(n, pubname) for n in names]
+        names = [n for n in names if len(n)>3]
 
     if len(names) == 0:
         return None
@@ -195,19 +202,15 @@ def get_author_for(metadata, publication):
 
 def clean_author_string(string, publication_name):
     newstring = string if string else ''
-    print("cleaning %s from %s" % (string, publication_name))
     exclusions = [publication_name] if publication_name else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor"]
     exclusions+= ["correspondent", "contributor", "columnist", "with", "by"]
     exclusions+= ["reuters", "AP", "AFP"]
     for exclusion in exclusions:
-        print("excluding %s" % exclusion)
-        newstring = newstring.replace(', %s' % exclusion,', ')
-        newstring = newstring.replace(',%s' % exclusion,',')
-        newstring = newstring.replace(', %s' % exclusion.title(),', ')
-        newstring = newstring.replace(',%s' % exclusion.title(),',')
+        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
+            newstring = newstring.replace(', %s' % variant,', ')
+            newstring = newstring.replace(',%s' % variant,',')
     newstring = newstring.replace(" and",",").replace(" And",",").replace(" AND",",").replace("&",",")
-    print("cleaned %s" % newstring)
     return newstring.strip()
 
 def clean_author_name(name, publication_name):
@@ -219,10 +222,9 @@ def clean_author_name(name, publication_name):
     newname = name if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
     for exclusion in exclusions:
-        newname = newname.replace(exclusion,'')
-        newname = newname.replace('  ',' ')
-        newname = newname.replace(exclusion.title(),'')
-        newname = newname.replace('  ',' ')
+        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
+            newname = newname.replace(variant,'')
+            newname = newname.replace('  ',' ')
     newname = newname.replace('  ',' ').strip()
     if newname.startswith("http"):
         newname = newname.rpartition("/")[2]
