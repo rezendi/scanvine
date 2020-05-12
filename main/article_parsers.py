@@ -113,9 +113,10 @@ def meta_parser(soup):
             wordline = ''
             candidates = soup.find_all(True, {"rel" : word})
             if not candidates:
-                candidates = soup.find_all(True, {"class" : lambda L: L and (L.startswith(word) or L.endswith(word))})
+                candidates = soup.find_all(True, {"class" : lambda L: L and (L==word or L.startswith(word) or L.endswith(word))})
             for candidate in candidates:
-                possible_byline = clean_author_name(candidate.text,'')
+                possible_byline = candidate.text.strip().partition("\n")[0]
+                possible_byline = clean_author_name(possible_byline,'')
                 possible_byline = None if any(char.isdigit() for char in possible_byline) else possible_byline
                 if possible_byline:
                     wordline = "%s, %s" % (wordline, possible_byline) if wordline else possible_byline
