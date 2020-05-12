@@ -6,6 +6,7 @@ def json_ld_parser(soup):
     metadata ={}
     for ld_json in ld_jsons:
         metastring = "".join(ld_json.contents)
+        metastring = metastring.replace("//<![CDATA[","").replace("//]]>","").strip()
         try:
             vals = json.loads(metastring)
             if type(vals) is list:
@@ -20,20 +21,21 @@ def json_ld_parser(soup):
     if 'title' in metadata:
         metadata['sv_title'] = metadata['title']
 
-    if 'author' in metadata:
-        auth = metadata['author']
-        if type(auth) is dict and 'name' in auth:
-            metadata['sv_author'] = auth['name']
-        elif type(auth) is list:
-            if len(auth)==1:
-                auth = auth[0]
-            if len(auth) > 1:
-                auth = ",".join([dict['name'] for dict in auth])
+    for word in ['creator','author']:
+        if word in metadata:
+            auth = metadata[word]
             if type(auth) is dict and 'name' in auth:
                 metadata['sv_author'] = auth['name']
-            else:
-                metadata['sv_author'] = auth
-    elif '@graph' in metadata:
+            elif type(auth) is list:
+                if len(auth)==1:
+                    auth = auth[0]
+                if type(auth) is list and len(auth) > 1:
+                    auth = ",".join([dict['name'] for dict in auth])
+                if type(auth) is dict and 'name' in auth:
+                    metadata['sv_author'] = auth['name']
+                else:
+                    metadata['sv_author'] = auth
+    if 'sv_author' not in metadata and '@graph' in metadata:
         graph = metadata['@graph']
         graph = graph[0] if type(graph) is list and len(graph)>0 else graph
         if 'author' in graph:
