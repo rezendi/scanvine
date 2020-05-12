@@ -65,6 +65,20 @@ class ArticleAdmin(ScanvineAdmin):
         for obj in queryset:
             parse_article_metadata(obj.id)
 
+    def get_search_results(self, request, queryset, search_term):
+        if search_term == "multiple":
+            singles = {}
+            multis = {}
+            for share in Share.objects.all():
+                if not share.article_id:
+                    continue
+                if share.article_id in singles and not share.article_id in multis:
+                    multis[share.article_id] = True
+                if not share.article_id in singles:
+                    singles[share.article_id] = True
+            return (Article.objects.filter(id__in=multis.keys()), True)
+        return super().get_search_results(request, queryset, search_term)
+
 
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
