@@ -107,6 +107,7 @@ class Article(models.Model):
     first_published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
+    total_credibility = models.BigIntegerField(default=0)
 
     def __str__(self):
         return "%s (%s)" % (self.title[0:60], self.id)

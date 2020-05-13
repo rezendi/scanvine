@@ -386,14 +386,15 @@ def set_reputations():
     authors_dict = {}
     publications_dict = {}
     total_quantity = 0
+    total_tranches = 0
     shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
     for share in shares:
         tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
         if not tranches:
-            log_job(job, "Tranche not found %s" % share.id)
             continue
         if len(tranches) > 1:
-            print("Extraneous tranche found")
+            log_job("Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
+        total_tranches += 1
         tranche = tranches[0]
         if not share.article_id in articles_dict:
             articles_dict[share.article_id] = 0
@@ -405,6 +406,8 @@ def set_reputations():
         if not article.author_id:
             continue
         amount = articles_dict[article_id]
+        article.total_credibility = amount
+        article.save()
         author_ids = [article.author.id]
         collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
         if collaborators:
@@ -432,8 +435,8 @@ def set_reputations():
         publication.average_credibility = publication.total_credibility / publications_dict[publication_id]['a']
         publication.save()
 
-    log_job(job, "Allocated %s total %s shares %s articles %s authors %s publications"
-            % (total_quantity, len(shares), len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
+    log_job(job, "Allocated %s total %s shares %s tranches %s articles %s authors %s publications"
+            % (total_quantity, len(shares), total_tranches, len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
 
 @shared_task()
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=30):
