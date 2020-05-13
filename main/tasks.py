@@ -19,6 +19,11 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   tweet_mode='extended')
 #                 sleep_on_rate_limit=True)
 
+import boto3
+comprehend = boto3.client(service_name='comprehend',
+                          aws_access_key_id=os.getenv('AWS_API_KEY', ''),
+                          aws_secret_access_key_id=os.getenv('AWS_API_SECRET', ''))
+
 http = urllib3.PoolManager(10, timeout=30.0)
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
@@ -302,9 +307,7 @@ def parse_article_metadata(article_id):
 @shared_task(rate_limit="12/m")
 def analyze_sentiment():
     job = launch_job("analyze_sentiment")
-    import boto3
     sentiments = []
-    comprehend = boto3.client(service_name='comprehend')
     shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
     texts = [s.text for s in shares]
     print("Calling AWS")
