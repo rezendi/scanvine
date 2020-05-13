@@ -204,9 +204,7 @@ def associate_article(share_id, force_refetch=False):
         url = existing[0].initial_url if existing else share.url
         log_job(job, "Fetching %s" % url)
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
-        log_job(job, "Fetched")
         html = r.data.decode('utf-8')
-        log_job(job, "Decoded")
         final_url = clean_up_url(r.geturl(), html)
         final_host = urllib3.util.parse_url(final_url).host
         if final_host is None:
@@ -216,7 +214,7 @@ def associate_article(share_id, force_refetch=False):
         if final_host != urllib3.util.parse_url(r.geturl()).host:
             r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
             html = r.data.decode('utf-8')
-        print("Accessing article")
+        print("Accessing article, finaal_url %s" % final_url)
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
         article.contents=html
         article.url=final_url
@@ -307,26 +305,31 @@ def parse_article_metadata(article_id):
 # Get sentiment from AWS
 @shared_task(rate_limit="12/m")
 def analyze_sentiment():
-    job = launch_job("analyze_sentiment")
-    sentiments = []
-    shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
-    texts = [s.text for s in shares]
-    print("Calling AWS")
-    sentiments = comprehend.batch_detect_sentiment(TextList=texts, LanguageCode='en')
-    for result in sentiments['ResultList']:
-        idx = result['Index']
-        share = shares[idx]
-        share.calculate_sentiment(result['SentimentScore'])
-        share.status = Share.Status.SENTIMENT_CALCULATED
-        share.save()
-    for error in sentiments['ErrorList']:
-        log_job("Sentiment error %s" % result['ErrorMessage'])
-        idx = result['Index']
-        share = shares[idx]
-        share.status = Share.Status.SENTIMENT_ERROR
-        share.sentiment = str(result)
-        share.save()
-    log_job(job, "analyzed %s sentiments" % len(sentiments['ResultList']), Job.Status.COMPLETED)
+    try:
+        job = launch_job("analyze_sentiment")
+        sentiments = []
+        shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
+        texts = [s.text for s in shares]
+        print("Calling AWS")
+        sentiments = comprehend.batch_detect_sentiment(TextList=texts, LanguageCode='en')
+        for result in sentiments['ResultList']:
+            idx = result['Index']
+            share = shares[idx]
+            share.calculate_sentiment(result['SentimentScore'])
+            share.status = Share.Status.SENTIMENT_CALCULATED
+            share.save()
+        for error in sentiments['ErrorList']:
+            log_job("Sentiment error %s" % result['ErrorMessage'])
+            idx = result['Index']
+            share = shares[idx]
+            share.status = Share.Status.SENTIMENT_ERROR
+            share.sentiment = str(result)
+            share.save()
+        job_status = Job.Status.ERROR if len(sentiments['ErrorList']) > 0 and len(sentiments['ResultList']) == 0 else Job.Status.COMPLETED
+        log_job(job, "analyzed %s sentiments %s errors" % (len(sentiments['ResultList']), len(sentiments['ErrorList'])), job_status)
+    except Exception as ex:
+        log_job(job, "Analyze sentiment error %s" % ex, Job.Status.ERROR)
+        raise ex
 
 
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points

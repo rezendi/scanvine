@@ -21,21 +21,33 @@ app.autodiscover_tasks()
 
 if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
         app.conf.beat_schedule = {
+            'add-every-10-seconds': {
+                'task': 'main.tasks.analyze_sentiment',
+                'schedule': 10.0,
+            },
             'add-every-30-seconds': {
                 'task': 'main.tasks.fetch_shares',
                 'schedule': 30.0,
             },
             'add-every-300-seconds': {
                 'task': 'main.tasks.associate_articles',
-                'schedule': 300.0,
-            },
-            'add-every-300-seconds-2': {
-                'task': 'main.tasks.parse_unparsed',
-                'schedule': 300.0,
+                'schedule': 301.0,
             },
             'add-every-900-seconds': {
                 'task': 'main.tasks.ingest_sharers',
-                'schedule': 900.0,
+                'schedule': 901.0,
+            },
+            'add-every-900-seconds-2': {
+                'task': 'main.tasks.parse_unparsed',
+                'schedule': 909.0,
+            },
+            'add-every-1200-seconds': {
+                'task': 'main.tasks.allocate_credibility',
+                'schedule': 1204.0,
+            },
+            'add-every-1500-seconds': {
+                'task': 'main.tasks.set_reputations',
+                'schedule': 1510.0,
             },
         }
 else:
