@@ -291,6 +291,7 @@ def parse_article_metadata(article_id):
             log_job(job, "Author %s associated to article %s" % (author.name, article.url))
             article.status = Article.Status.AUTHOR_ASSOCIATED
         else:
+            article.author_id = None
             article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
         article.save()
     except Exception as ex2:

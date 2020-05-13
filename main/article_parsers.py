@@ -244,7 +244,7 @@ def get_author_for(metadata, publication):
             print("Not enough words in author names %s" % names)
             return None
         if len([c for c in word_counts if c==1]) > len(word_counts)/2:
-            print("Too many single-word names in author names % names")
+            print("Too many single-word names in author names %s" % names)
             return None
     max_word_count = word_counts
 
