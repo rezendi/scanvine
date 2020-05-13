@@ -165,7 +165,7 @@ class JobAdmin(ScanvineAdmin):
             'articles' : Article.objects.count(),
             'authored' : Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).count(),
             'authors' : Author.objects.count(),
-            'shares' : Share.objects.filter(status=Share.Status.ARTICLE_ASSOCIATED).count(),
+            'shares' : Share.objects.filter(status__gte=Share.Status.CREATED).count(),
             'sharers' : Sharer.objects.filter(status=Sharer.Status.LISTED).count()
         }
         
@@ -198,6 +198,7 @@ class JobAdmin(ScanvineAdmin):
             path('analyze_sentiment/',      self.analyze_sentiment),
             path('allocate_credibility/',   self.allocate_credibility),
             path('set_reputations/',        self.set_reputations),
+            path('clean_up_jobs/',          self.clean_up_jobs),
         ]
         return my_urls + urls
     
@@ -239,6 +240,11 @@ class JobAdmin(ScanvineAdmin):
     def set_reputations(self, request):
         if request.user.is_superuser:
             set_reputations.delay()
+            return redirect('/admin/main/job/')
+
+    def clean_up_jobs(self, request):
+        if request.user.is_superuser:
+            clean_up_jobs.delay()
             return redirect('/admin/main/job/')
 
 # cf https://medium.com/@hakibenita/how-to-turn-django-admin-into-a-lightweight-dashboard-a0e0bbf609ad

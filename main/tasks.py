@@ -382,45 +382,67 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
 @shared_task(rate_limit="1/s")
 def set_reputations():
     job = launch_job("set_reputations")
-    articles = {}
-    authors = {}
-    publications = {}
+    articles_dict = {}
+    authors_dict = {}
+    publications_dict = {}
+    total_quantity = 0
     shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
     for share in shares:
-        tranches = Tranche.objects.filter(receiver=share.id)
+        tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
         if not tranches:
             log_job(job, "Tranche not found %s" % share.id)
             continue
-        if not share.article_id in articles:
-            articles[share.article_id] = 0
-        articles[share.article_id] = articles[share.article_id] + tranches[0].quantity
+        if len(tranches) > 1:
+            print("Extraneous tranche found")
+        tranche = tranches[0]
+        if not share.article_id in articles_dict:
+            articles_dict[share.article_id] = 0
+        articles_dict[share.article_id] = articles_dict[share.article_id] + tranche.quantity
+        total_quantity += tranche.quantity
 
-    for author_id in authors.keys():
-        author = Author.objects.get(author_id) # TODO batch
-        author.total_credibility = authors[author_id]
-        author.current_credibility =authors[author_id] # TODO spendability
+    for article_id in articles_dict.keys():
+        article = Article.objects.get(id=article_id)
+        if not article.author_id:
+            continue
+        amount = articles_dict[article_id]
+        author_ids = [article.author.id]
+        collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
+        if collaborators:
+            author_ids = [c.individual_id for c in collaborators]
+        author_amount = amount / len(author_ids)
+        for author_id in author_ids:
+            if not author_id in authors_dict:
+                authors_dict[author_id] = 0
+            authors_dict[author_id] = authors_dict[author_id] + author_amount
+
+        if not article.publication_id in publications_dict:
+            publications_dict[article.publication_id] = {'t':0, 'a':0}
+        publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
+        publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
+
+    for author_id in authors_dict.keys():
+        author = Author.objects.get(id=author_id) # TODO batch
+        author.total_credibility = authors_dict[author_id]
+        author.current_credibility =authors_dict[author_id] # TODO spendability
         author.save()
 
-    for article_id in articles.keys():
-        article = Article.objects.get(id=article_id) # TODO batch
-
-        # TODO handle collaborations
-        if not article.author_id in authors:
-            authors[article.author_id] = 0
-        authors[article.author_id] = authors[article.author_id] + articles[article_id]
-
-        if not article.publication_id in publications:
-            publications[article.publication_id] = {'t':0, 'a':0}
-        publications[article.publication_id]['a'] = publications[article.publication_id]['a'] + 1
-        publications[article.publication_id]['t'] = publications[article.publication_id]['t'] + articles[article_id]
-
-    for publication_id in publications.keys():
+    for publication_id in publications_dict.keys():
         publication = Publication.objects.get(id=publication_id)
-        publication.total_credibility = publications[publication_id]['t']
-        publication.average_credibility = publication.total_credibility / publications[publication_id]['a']
+        publication.total_credibility = publications_dict[publication_id]['t']
+        publication.average_credibility = publication.total_credibility / publications_dict[publication_id]['a']
         publication.save()
 
-    log_job(job, "Allocated %s shares %s articles %s authors %s publications" % (len(shares), len(articles), len(authors), len (publications)), Job.Status.COMPLETED)
+    log_job(job, "Allocated %s total %s shares %s articles %s authors %s publications"
+            % (total_quantity, len(shares), len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
+
+@shared_task()
+def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=30):
+    job = launch_job("clean_up_jobs")
+    cutoff = date - datetime.timedelta(days=days)
+    to_delete = Job.objects.filter(created_at__lte=cutoff)
+    log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_delete.count()))
+    to_delete.delete()
+    log_job(job, "cleanup complete", Job.Status.COMPLETED)
 
 
 # Main article parser
