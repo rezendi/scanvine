@@ -266,7 +266,7 @@ def clean_author_string(string, publication = None):
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D.", "MD", "DPhil", "MA", "Inc."]
-    exclusions+= ["business", "news", "with", "|by", "by", "about", "byline", "author", "posted", "abstract", "on", "get"]
+    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "contact", "byline", "author", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&", "and"]
     newstring = string.replace("&amp;","&") if string else ''
     for exclusion in exclusions:
@@ -287,7 +287,7 @@ def clean_author_name(name, publication = None):
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D.", "MD", "DPhil", "MA", "Inc."]
-    exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "byline", "posted", "abstract", "on", "get"]
+    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "the", "author", "byline", "contact", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name.replace("&amp;","&") if name else ''
     newname = re.sub(r'<[^>]*>', "", newname)
