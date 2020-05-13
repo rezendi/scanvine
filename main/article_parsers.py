@@ -111,8 +111,7 @@ def meta_parser(soup):
                 metadata['sv_title'] = title_text
 
     # if nothing, search for tags by class?
-    if not 'sv_author' in metadata:
-        print("Looking for byline tags")
+    if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
         for word in ['author', 'byline', 'contributor', 'authors']:
             if byline:
@@ -127,8 +126,6 @@ def meta_parser(soup):
                 candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.startswith(word)})
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.endswith(word) and not L.startswith("comment")})
-            if candidate_tags:
-                print("Found %s" % word)
             for candidate_tag in candidate_tags:
                 if candidate_tag.name=='body':
                     continue
@@ -147,16 +144,20 @@ def meta_parser(soup):
                         wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
             byline = better_name(byline, wordline)
         if byline:
+            print("Found byline tags")
             metadata['sv_author'] = byline
 
     if not 'sv_author' in metadata:
         byline = ''
         vcards = soup.find_all(True, {"class" : "vcard"})
         for vcard in vcards:
+            if str(vcard).find("comment") > 0:
+                continue
             text = vcard.find().text
             if text:
                 byline = "%s, %s" % (byline, text) if byline else text
         if byline:
+            print("Found vcards")
             metadata['sv_author'] = byline
 
     if 'publisher' in metadata:
