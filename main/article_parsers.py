@@ -279,7 +279,8 @@ def clean_author_string(string, publication = None):
     exclusions = []
     if publication:
         exclusions+= [publication.domain]
-        exclusions+= [publication.name] if publication.name else []
+        if publication.name:
+            exclusions+= [publication.name, "%s%s" % (publication.domain, ".com"), "%s%s" % (publication.domain, ".org"), "%s%s" % (publication.domain, ".co")]
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
     exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "opinion", "M.D.", "MD", "DPhil", "MA", "Inc."]
