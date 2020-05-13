@@ -109,7 +109,7 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
 
     def __str__(self):
-        return "%s (%s)" % (self.title, self.id)
+        return "%s (%s)" % (self.title[0:60], self.id)
 
 
 class Share(models.Model):
@@ -158,7 +158,7 @@ class Share(models.Model):
         return 1
 
     def __str__(self):
-        return "%s (%s)" % (self.text, self.id)
+        return "%s (%s)" % (self.text[0:60], self.id)
 
 
 class Tranche(models.Model):

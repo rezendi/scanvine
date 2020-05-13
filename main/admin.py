@@ -161,10 +161,11 @@ class JobAdmin(ScanvineAdmin):
         latest_jobs.sort(key=lambda j:j.created_at, reverse=True)
 
         counts = {
-            'publications' : Publication.objects.count(),
+            'pubs' : Publication.objects.count(),
             'articles' : Article.objects.count(),
+            'authored' : Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).count(),
             'authors' : Author.objects.count(),
-            'shares' : Share.objects.count(),
+            'shares' : Share.objects.filter(status=Share.Status.ARTICLE_ASSOCIATED).count(),
             'sharers' : Sharer.objects.filter(status=Sharer.Status.LISTED).count()
         }
         
