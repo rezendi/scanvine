@@ -1,0 +1,19 @@
+<H1><a href="/">Scanvine</a></H1>
+<H2>{{publication}}</H2>
+<table>
+    <tr>
+        <th>Score</th>
+        <th>Article</th>
+        <th>Author</th>
+        <th>Publication</th>
+        <th>Date</th>
+    </tr>
+    {% for article in articles %}
+        <tr>
+            <td>{{article.credibility}}</td>
+            <td><a href="{{article.url}}">{{article.title}}</a></td>
+            <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
+            <td>{{article.created_at}}</td>
+        <tr>
+    {% endfor %}
+</table>

@@ -1,0 +1,18 @@
+<H1><a href="/">Scanvine</a></H1>
+<H2>Authors</H2>
+<table>
+    <tr>
+        <th>Score</th>
+        <th>Name</th>
+        <th>Articles</th>
+        <th>Latest</th>
+    </tr>
+    {% for author in authors %}
+        <tr>
+            <td>{{author.credibility}}</td>
+            <td><a href="/main/author/{{author.id}}">{{author.name}}</a></td>
+            <td>{{author.total_articles}}</td>
+            <td><a href="{{author.latest.url}}">{{author.latest}}</a> || {{author.latest.publication}}</td>
+        <tr>
+    {% endfor %}
+</table>
