@@ -309,6 +309,9 @@ def analyze_sentiment():
         job = launch_job("analyze_sentiment")
         sentiments = []
         shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
+        if not shares:
+            log_job(job, "No new shares to analyze", Job.Status.COMPLETED)
+            return
         texts = [s.text for s in shares]
         print("Calling AWS")
         sentiments = comprehend.batch_detect_sentiment(TextList=texts, LanguageCode='en')
