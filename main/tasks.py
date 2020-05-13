@@ -207,7 +207,6 @@ def associate_article(share_id, force_refetch=False):
             initial_host = urllib3.util.parse_url(share.url).host
             initial_host = "medium.com" if initial_host == "link.medium.com" else initial_host
             final_url = "https://%s%s" % (initial_host, final_url)
-            print("final_url %s" % final_url)
         if final_host != urllib3.util.parse_url(r.geturl()).host:
             r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
             html = r.data.decode('utf-8')

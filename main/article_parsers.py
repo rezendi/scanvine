@@ -112,8 +112,9 @@ def meta_parser(soup):
 
     # if nothing, search for tags by class?
     if not 'sv_author' in metadata:
+        print("Looking for byline tags")
         byline = ''
-        for word in ['author', 'byline', 'contributor', 'vcard', 'authors']:
+        for word in ['author', 'byline', 'contributor', 'authors']:
             if byline:
                 break
             wordline = ''
@@ -126,17 +127,35 @@ def meta_parser(soup):
                 candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.startswith(word)})
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.endswith(word) and not L.startswith("comment")})
+            if candidate_tags:
+                print("Found %s" % word)
             for candidate_tag in candidate_tags:
+                if candidate_tag.name=='body':
+                    continue
+                if candidate_tag.find('a') and 'data-name' in candidate_tag.find('a').attrs:
+                    candidate=candidate_tag.find('a')['data-name']
+                    wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
+                    continue
                 for candidate in candidate_tag.stripped_strings:
                     candidate = candidate.partition("\n")[0].strip()
                     candidate = '' if any(char.isdigit() for char in candidate) else candidate
-                    candidate = '' if len(candidate.split(" ")) > 32 else candidate
-                    candidate = ' '.join([w for w in candidate.split(" ") if w.title() == w])
+                    words = candidate.split(" ")
+                    candidate = '' if len(words) > 32 else candidate
+                    candidate = '' if len(words) > 3 and candidate.title() != candidate else candidate
                     candidate = clean_author_name(candidate)
-                    candidate = '' if len(candidate.split(" "))==1 else candidate
                     if candidate:
                         wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
             byline = better_name(byline, wordline)
+        if byline:
+            metadata['sv_author'] = byline
+
+    if not 'sv_author' in metadata:
+        byline = ''
+        vcards = soup.find_all(True, {"class" : "vcard"})
+        for vcard in vcards:
+            text = vcard.find().text
+            if text:
+                byline = "%s, %s" % (byline, text) if byline else text
         if byline:
             metadata['sv_author'] = byline
 
@@ -223,7 +242,7 @@ def get_author_for(metadata, publication):
             author.save()
             authors.append(author)
 
-    byline = ",".join(names)    
+    byline = ",".join(names)
     existing = Author.objects.filter(name__iexact=byline)
     if existing:
         return existing[0]
@@ -243,7 +262,7 @@ def clean_author_string(string, publication = None):
         exclusions+= [publication.name] if publication.name else []
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D.", "MD", "DPhil", "MA", "Inc."]
     exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "byline", "author", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|", "&", "and"]
     newstring = string.replace("&amp;","&") if string else ''
@@ -264,7 +283,7 @@ def clean_author_name(name, publication = None):
         exclusions+= [publication.name] if publication.name else []
         exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
     exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D."]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "M.D.", "MD", "DPhil", "MA", "Inc."]
     exclusions+= ["business", "news", "with", "|by", "by", "about", "the", "author", "byline", "posted", "abstract", "on", "get"]
     exclusions+= ["reuters", "AP", "AFP", "|"]
     newname = name.replace("&amp;","&") if name else ''
