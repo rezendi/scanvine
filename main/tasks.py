@@ -22,7 +22,7 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 import boto3
 comprehend = boto3.client(service_name='comprehend',
                           aws_access_key_id=os.getenv('AWS_API_KEY', ''),
-                          aws_secret_access_key_id=os.getenv('AWS_API_SECRET', ''))
+                          aws_secret_access_key=os.getenv('AWS_API_SECRET', ''))
 
 http = urllib3.PoolManager(10, timeout=30.0)
 USER_AGENTS = [
