@@ -50,7 +50,7 @@ class Author(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "%s (%s)" % (self.name, self.id)
+        return self.name if self.name else "(%s)" %self.id
 
     def get_absolute_url(self):
         return "/authors/%s" % self.id
@@ -80,11 +80,16 @@ class Publication(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.domain
+        return self.name if self.name else self.domain
 
     def get_absolute_url(self):
         return "/publications/%s" % self.id
 
+    def total_cred(self):
+        return round(self.total_credibility / 1000)
+
+    def average_cred(self):
+        return round(self.average_credibility / 1000)
 
 class Article(models.Model):
     class Status(models.IntegerChoices):
@@ -113,7 +118,7 @@ class Article(models.Model):
     total_credibility = models.BigIntegerField(default=0)
 
     def __str__(self):
-        return "%s (%s)" % (self.title[0:60], self.id)
+        return self.title[0:60] if self.title else "(%s)" %self.id
 
     def credibility(self):
         return round(self.total_credibility / 1000)
