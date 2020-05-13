@@ -1,7 +1,7 @@
 {% if articles %}
     <ul>
     {% for article in articles %}
-        <li>{{ article }}</li>
+        <li>{{ article }} {{article.credibility}}</li>
     {% endfor %}
     </ul>
 {% else %}
@@ -11,7 +11,7 @@
 {% if authors %}
     <ul>
     {% for author in authors %}
-        <li>{{ author }}</li>
+        <li>{{ author }} {{author.credibility}}</li>
     {% endfor %}
     </ul>
 {% else %}

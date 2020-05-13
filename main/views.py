@@ -3,7 +3,7 @@ from django.template import loader
 from .models import *
 
 def index(request):
-    articles = Article.objects.order_by('-created_at')[:5]
+    articles = Article.objects.order_by('-total_credibility')[:5]
     authors = Author.objects.order_by('-total_credibility')[:5]
     template = loader.get_template('main/index.html')
     context = {

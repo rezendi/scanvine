@@ -55,6 +55,9 @@ class Author(models.Model):
     def get_absolute_url(self):
         return "/authors/%s" % self.id
 
+    def credibility(self):
+        return round(self.total_credibility / 1000)
+
 
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
@@ -111,6 +114,9 @@ class Article(models.Model):
 
     def __str__(self):
         return "%s (%s)" % (self.title[0:60], self.id)
+
+    def credibility(self):
+        return round(self.total_credibility / 1000)
 
 
 class Share(models.Model):
