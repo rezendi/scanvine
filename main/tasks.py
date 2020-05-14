@@ -499,12 +499,12 @@ def log_job(job, action, status = None):
 def clean_up_url(url, html=None):
     # TODO: filter out url cruft more elegantly, depending on site
     if url.find("youtube.com") >= 0:
-        return url
+        return url.partition("#")[0]
     if url.startswith("https://apple.news/") and html:
         soup = BeautifulSoup(html, "html.parser")
         links = soup.find_all("a")
-        return links[0].attrs['href']
-    return url.partition("?")[0]
+        return links[0].attrs['href'].partition("#")[0].partition("?")[0]
+    return url.partition("#")[0].partition("?")[0]
 
 
 # List management
