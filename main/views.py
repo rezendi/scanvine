@@ -1,3 +1,4 @@
+import datetime
 from django.http import HttpResponse
 from django.template import loader
 from .models import *
@@ -11,14 +12,21 @@ SORT_BY = {
     'a':'average_credibility',
 }
 
+CATEGORIES = {
+    'health':0,
+    'science':1,
+    'tech':2,
+    'business':3,
+    'media':4,
+}
+
 def index(request):
     template = loader.get_template('main/index.html')
     page_size = int(request.GET.get('s', '10'))
     articles = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).order_by('-total_credibility')[:page_size]
-    authors = Author.objects.order_by('-total_credibility')[:10]
     context = {
+        'category': 'Top',
         'articles': articles,
-        'authors': authors,
     }
     return HttpResponse(template.render(context, request))
 
@@ -69,3 +77,35 @@ def publications(request):
         'publications': publications,
     }
     return HttpResponse(template.render(context, request))
+
+def category(request, category):
+    template = loader.get_template('main/index.html')
+    category_id = CATEGORIES[category.lower()]
+    page_size = int(request.GET.get('s', '10'))
+    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+    start_date = end_date - datetime.timedelta(days=7)
+    raw = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by('-total_credibility')
+    articles = []
+    for a in raw:
+        shares = Share.objects.filter(article_id=a.id)
+        for s in shares:
+            if s.sharer.category == category_id:
+                articles.append(a)
+        if len(articles) >= page_size:
+            break
+    context = {
+        'category': category.title(),
+        'articles': articles,
+    }
+    return HttpResponse(template.render(context, request))
+    
+def article(request, article_id):
+    template = loader.get_template('main/article.html')
+    article = Article.objects.get(id=article_id)
+    context = {
+        'article': article,
+    }
+    return HttpResponse(template.render(context, request))
+
+    
+
