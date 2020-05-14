@@ -37,10 +37,6 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'task': 'main.tasks.ingest_sharers',
                 'schedule': 909.0,
             },
-            'add-every-900-seconds-2': {
-                'task': 'main.tasks.parse_unparsed_articles',
-                'schedule': 927.0,
-            },
             'add-every-1200-seconds': {
                 'task': 'main.tasks.allocate_credibility',
                 'schedule': 1212.0,
@@ -52,6 +48,10 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'add-every-9000-seconds': {
                 'task': 'main.tasks.clean_up_jobs',
                 'schedule': 9090.0,
+            },
+            'add-every-9000-seconds-2': {
+                'task': 'main.tasks.parse_unparsed_articles',
+                'schedule': 90099.0,
             },
         }
 else:

@@ -41,6 +41,17 @@ services:
     depends_on:
       - rabbitmq
 
+  scheduler:
+    build: .
+    image: *scanvine
+    restart: unless-stopped
+    env_file: .env
+    command: ["celery", "beat", "--app=scanvine", "--loglevel=INFO"]
+    volumes:
+      - .:/app
+    depends_on:
+      - rabbitmq
+
   flower:
     image: mher/flower
     restart: unless-stopped
