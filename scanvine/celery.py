@@ -38,7 +38,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'schedule': 909.0,
             },
             'add-every-900-seconds-2': {
-                'task': 'main.tasks.parse_unparsed',
+                'task': 'main.tasks.parse_unparsed_articles',
                 'schedule': 927.0,
             },
             'add-every-1200-seconds': {
