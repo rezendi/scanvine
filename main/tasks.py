@@ -193,6 +193,7 @@ def associate_article(share_id, force_refetch=False):
     job = launch_job("associate_article")
     share = Share.objects.get(id=share_id)
     existing = Article.objects.filter(initial_url=share.url)
+    existing = Article.objects.filter(url=share.url) if not existing else existing
     if existing:
         share.article_id = existing[0].id
         share.status = Share.Status.ARTICLE_ASSOCIATED
@@ -214,7 +215,8 @@ def associate_article(share_id, force_refetch=False):
         if final_host != urllib3.util.parse_url(r.geturl()).host:
             r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
             html = r.data.decode('utf-8')
-        print("Accessing article, finaal_url %s" % final_url)
+        print("Accessing article, final_url %s" % final_url)
+        existing = Article.objects.filter(url=final_url) if not existing else existing
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
         article.contents=html
         article.url=final_url
