@@ -340,7 +340,7 @@ def analyze_sentiment():
 
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="1/m", soft_time_limit=1800)
 def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     job = launch_job("allocate_credibility")
     end_date = date + datetime.timedelta(days=1)
@@ -387,7 +387,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
 
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="1/m", soft_time_limit=1800)
 def set_reputations():
     job = launch_job("set_reputations")
     articles_dict = {}
@@ -446,7 +446,7 @@ def set_reputations():
     log_job(job, "Allocated %s total %s shares %s tranches %s articles %s authors %s publications"
             % (total_quantity, len(shares), total_tranches, len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
 
-@shared_task()
+@shared_task(rate_limit="1/m")
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=30):
     job = launch_job("clean_up_jobs")
     cutoff = date - datetime.timedelta(days=days)
