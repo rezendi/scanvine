@@ -50,7 +50,7 @@ class Author(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name if self.name else "(%s)" %self.id
+        return self.name[:60] if self.name else "(%s)" %self.id
 
     def get_absolute_url(self):
         return "/authors/%s" % self.id

@@ -1,5 +1,5 @@
 import datetime, os, traceback
-import json, urllib3
+import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
@@ -205,8 +205,8 @@ def associate_article(share_id, force_refetch=False):
         url = existing[0].initial_url if existing else share.url
         log_job(job, "Fetching %s" % url)
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
-        html = r.data.decode('utf-8')
-        final_url = clean_up_url(r.geturl(), html)
+        contents = r.data.decode('utf-8') # TODO other encodings
+        final_url = clean_up_url(r.geturl(), contents)
         final_host = urllib3.util.parse_url(final_url).host
         if final_host is None:
             initial_host = urllib3.util.parse_url(share.url).host
@@ -214,11 +214,11 @@ def associate_article(share_id, force_refetch=False):
             final_url = "https://%s%s" % (initial_host, final_url)
         if final_host != urllib3.util.parse_url(r.geturl()).host:
             r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
-            html = r.data.decode('utf-8')
+            contents = r.data.decode('utf-8')
         print("Accessing article, final_url %s" % final_url)
         existing = Article.objects.filter(url=final_url) if not existing else existing
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
-        article.contents=html
+        article.contents=contents
         article.url=final_url
         article.save()
         share.article_id = article.id
@@ -286,7 +286,7 @@ def parse_article_metadata(article_id):
             publication.save()
 
         article.metadata = metadata if metadata else article.metadata
-        article.title = metadata['sv_title'].strip() if 'sv_title' in metadata else article.title
+        article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata else article.title
         author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
@@ -453,8 +453,8 @@ def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=30):
 
 # Main article parser
 
-def parse_article(html, domain=''):
-    soup = BeautifulSoup(html, "html.parser")
+def parse_article(contents, domain=''):
+    soup = BeautifulSoup(contents, "html.parser")
     metadata = {'sv_title' : soup.title.string if soup.title else ''}
     
     # default to generic parsing by meta tags and application-LD
@@ -498,12 +498,12 @@ def log_job(job, action, status = None):
     job.actions = action + " \n" + job.actions
     job.save();
 
-def clean_up_url(url, html=None):
+def clean_up_url(url, contents=None):
     # TODO: filter out url cruft more elegantly, depending on site
     if url.find("youtube.com") >= 0:
         return url.partition("#")[0]
-    if url.startswith("https://apple.news/") and html:
-        soup = BeautifulSoup(html, "html.parser")
+    if url.startswith("https://apple.news/") and contents:
+        soup = BeautifulSoup(contents, "html.parser")
         links = soup.find_all("a")
         return links[0].attrs['href'].partition("#")[0].partition("?")[0]
     return url.partition("#")[0].partition("?")[0]
