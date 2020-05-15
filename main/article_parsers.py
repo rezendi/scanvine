@@ -209,6 +209,16 @@ def sciencedirect_parser(soup):
     author = names[0] if len(names)==1 else ','.join(names)
     return {'sv_author': author}
 
+def youtube_parser(soup):
+    text = ''
+    for script in soup.find_all("script"):
+        if ("%s" % script).startswith("<script>var ytplayer"):
+            text = ("%s" % script).partition(";(function")[0]
+            text = text.partition("author")[2]
+            text = text.partition("isPrivate")[0]
+            text = text.replace('\\"','').replace(":",'')
+            text = text.rpartition(",")[0]
+    return {'sv_author': text}
 
 # Constructor methods
 

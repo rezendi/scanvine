@@ -46,7 +46,7 @@ class ArticleAdmin(ScanvineAdmin):
     change_form_template = "admin/article_change_form.html"
     list_display = ('id', 'title', 'status', 'publication', 'created_at',)
     list_filter = ('status', 'created_at')
-    search_fields = ('title', 'contents')
+    search_fields = ('title', 'metadata')
     raw_id_fields = ("publication", 'author')
     exclude = ('contents',)
     actions = ['reparse']
