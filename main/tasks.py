@@ -347,37 +347,42 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     start_date = end_date - datetime.timedelta(days=days)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     total_points = 0
-    for sharer in Sharer.objects.all():
-        shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False,
-                                      created_at__range=(start_date, end_date))
-        if not shares:
-            continue
-        points = 0
-        for s in shares:
-            points += s.share_points()
-        if points==0:
-            continue
-        total_points += points
-        cred_per_point = 5040 * days // points
-        for share in shares:
-            article = share.article
-            author = article.author if article else None
-            if not article or not author:
+    try:
+        for sharer in Sharer.objects.all():
+            shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False,
+                                          created_at__range=(start_date, end_date))
+            if not shares:
                 continue
-            if author.name == sharer.name or author.twitter_id == sharer.twitter_id:
+            points = 0
+            for s in shares:
+                points += s.share_points()
+            if points==0:
                 continue
-            share_cred = cred_per_point * s.share_points()
-            existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
-            if existing:
-                tranche = existing[0]
-                tranche.category = sharer.category
-                tranche.quantity = share_cred
-                tranche.save()
-            else:
-                t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
-                t.save()
-            s.status = Share.Status.CREDIBILITY_ALLOCATED
-            s.save()
+            total_points += points
+            cred_per_point = 5040 * days // points
+            for share in shares:
+                article = share.article
+                author = article.author if article else None
+                if not article or not author:
+                    continue
+                if author.name == sharer.name or author.twitter_id == sharer.twitter_id:
+                    continue
+                share_cred = cred_per_point * s.share_points()
+                existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
+                if existing:
+                    tranche = existing[0]
+                    tranche.category = sharer.category
+                    tranche.quantity = share_cred
+                    tranche.save()
+                else:
+                    t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+                    t.save()
+                s.status = Share.Status.CREDIBILITY_ALLOCATED
+                s.save()
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
+        raise ex
     log_job(job, "allocated %s" % total_points, Job.Status.COMPLETED)
 
 
