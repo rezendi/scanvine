@@ -1,6 +1,7 @@
 import datetime
 from django.http import HttpResponse
 from django.template import loader
+from django.db.models import F
 from .models import *
 
 SORT_BY = {
@@ -84,15 +85,22 @@ def category(request, category):
     page_size = int(request.GET.get('s', '10'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=7)
-    raw = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by('-total_credibility')
-    articles = []
-    for a in raw:
-        shares = Share.objects.filter(article_id=a.id)
-        for s in shares:
-            if s.sharer.category == category_id:
-                articles.append(a)
-        if len(articles) >= page_size:
-            break
+
+    # Get shares for the given time, and tranches for the given category.
+    # TODO: move this into a single query. Should be only two DB calls though so hopefully not too bad performance
+    shares = Share.objects.filter(status__gte=Share.Status.CREATED).filter(created_at__range=(start_date, end_date))
+    tranches = Tranche.objects.filter(receiver__in=shares.values('id')).filter(category=category_id)
+    tqs = aqs = {}
+    for t in tranches:
+        tqs[t.receiver] = t.quantity
+    for share in shares:
+        aqs[share.article_id] = tqs[share.id] if share.id in tqs else 0
+
+    articles = Article.objects.filter(id__in=shares.values('article_id'))
+    for article in articles:
+        article.total_credibility = aqs[article.id]
+    articles = sorted(articles, key = lambda a: a.total_credibility, reverse=True)[:page_size]
+
     context = {
         'category': category.title(),
         'articles': articles,
