@@ -16,6 +16,7 @@ class ScanvineAdmin(admin.ModelAdmin):
 
 @admin.register(Sharer)
 class SharerAdmin(ScanvineAdmin):
+    change_form_template = "admin/sharer_change_form.html"
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     list_filter = ('status', 'category', 'created_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
@@ -263,13 +264,25 @@ def add_sharer(sharer_id):
 
 def add_tweet(tweet_id):
     tweet = api.GetStatus(tweet_id, include_entities=True)
+    # print("tweet %s" % tweet)
+    urls = []
+    if tweet.urls:
+        urls += [u.expanded_url for u in tweet.urls]
+    if tweet.quoted_status and tweet.quoted_status.urls:
+        urls += [u.expanded_url for u in tweet.quoted_status.urls]
+    if tweet.retweeted_status and tweet.retweeted_status.urls:
+        urls += [u.expanded_url for u in tweet.retweeted_status.urls]
+    urls = [u for u in urls if not u.startswith("https://twitter.com/")]
+    if not urls:
+        print("No URL in share, bailing out")
+        return
+
     shares = Share.objects.filter(twitter_id=tweet.id)
     share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
+    share.url = urls[0]
+    share.text = tweet.full_text
     sharer = add_sharer(tweet.user.id)
     share.sharer_id = sharer.id
-    share.text = tweet.full_text
-    if tweet.urls:
-        share.url = tweet.urls[0].expanded_url
     share.save()
     associate_article(share.id, force_refetch=True)
     return share.id
