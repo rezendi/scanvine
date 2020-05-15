@@ -21,30 +21,33 @@ def json_ld_parser(soup):
     if 'title' in metadata:
         metadata['sv_title'] = metadata['title']
 
+    auth = ''
     for word in ['creator','author','authors']:
         if word in metadata and not 'sv_author' in metadata:
             auth = metadata[word]
-            if type(auth) is dict and 'name' in auth:
-                metadata['sv_author'] = auth['name']
-            elif type(auth) is list:
-                if len(auth)==1:
-                    auth = auth[0]
-                if type(auth) is list and len(auth) > 1:
-                    auth = [a['name'] if type(a) is dict and 'name' in a else a for a in auth]
-                    auth = ",".join(auth)
-                if type(auth) is dict and 'name' in auth:
-                    metadata['sv_author'] = auth['name']
-                else:
-                    metadata['sv_author'] = auth
+            auth = auth[0] if type(auth)==list and len(auth)==1 else auth
+            auth = auth['name'] if type(auth) is dict and 'name' in auth else auth
+            auth = [d['name'] for d in auth if type(d) is dict and 'name' in d] if type(auth) is list else auth
+            auth = auth[0] if type(auth) is list and len(auth)==1 else auth
+            auth = ",".join(auth) if type(auth) is list else auth
+        if auth:
+            metadata['sv_author'] = auth
 
     if 'sv_author' not in metadata and '@graph' in metadata:
-        graphname = ''
         graph = metadata['@graph']
-        for vals in [d for d in graph if type(d) is dict and ('name' in d or 'author' in d)]:
-            valname = vals['name'] if 'name' in vals else vals['author']
-            graphname = better_name(graphname, valname)
-        if graphname:
-            metadata['sv_author'] = graphname
+        graph = graph[0] if type(graph)==list and len(graph)==1 else graph
+        if 'author' in graph:
+            auth = graph['author']
+            auth = auth['name'] if type(auth) is dict and 'name' in auth else auth
+            auth = [d['name'] for d in auth if type(d) is dict and 'name' in d] if type(auth) is list else auth
+            auth = auth[0] if type(auth) is list and len(auth)==1 else auth
+            auth = ",".join(auth) if type(auth) is list else auth
+        elif 'name' in graph:
+            auth = graph['name']
+            auth = auth[0] if type(auth) is list and len(auth)==1 else auth
+            auth = ",".join(auth) if type(auth) is list else auth
+        if auth:
+            metadata['sv_author'] = auth
 
 
     pub = None
