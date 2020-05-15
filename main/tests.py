@@ -113,6 +113,17 @@ class AuthorTests(TestCase):
         tasks.parse_article_metadata(article.id)
         article.refresh_from_db()
         self.assertEqual(article.author.name, 'Jessica Smith')
+        
+    def test_sd_parser(self):
+        url = "http://test.com"
+        html = '<html><a class="author size-m workspace-trigger" name="bau2" href="#!"><span class="content"><span class="text given-name">L.A.</span><span class="text surname">McDermott</span><span class="author-ref" id="baff1"><sup>a</sup></span></span></a></html>'
+        publication = Publication(status=0, name='', domain='test.com', average_credibility=0, total_credibility=0, parser_rules='[{"method":"sciencedirect_parser"}]')
+        publication.save()
+        article = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=html, title='', metadata='', publication_id=publication.id)
+        article.save()
+        tasks.parse_article_metadata(article.id)
+        article.refresh_from_db()
+        self.assertEqual(article.author.name, 'L.A. Mcdermott')
 
 
 class EndToEndTest(TestCase):

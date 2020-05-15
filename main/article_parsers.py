@@ -1,6 +1,8 @@
 import json, re
 from .models import *
 
+# Parser methods
+
 def json_ld_parser(soup):
     ld_jsons = soup.find_all("script", {"type":"application/ld+json"})
     metadata ={}
@@ -115,7 +117,7 @@ def meta_parser(soup):
             if title_text:
                 metadata['sv_title'] = title_text
 
-    # if nothing, search for tags by class?
+    # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
         for word in ['author', 'byline', 'contributor', 'authors']:
@@ -128,9 +130,9 @@ def meta_parser(soup):
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
             if not candidate_tags:
-                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.startswith(word)})
+                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.startswith(word) and L.find("comment")<0})
             if not candidate_tags:
-                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.endswith(word) and not L.startswith("comment")})
+                candidate_tags = soup.find_all(True, {"class" : lambda L: L and L.endswith(word) and L.find("comment")<0})
             for candidate_tag in candidate_tags:
                 if candidate_tag.name=='body':
                     continue
@@ -195,10 +197,20 @@ def linkedin_parser(soup):
         return {'sv_author': author_name}
     return {}
 
-def get_author_from(existing, metadata):
-    oldval = existing['sv_author'] if 'sv_author' in existing else None
-    newval = metadata['sv_author'] if 'sv_author' in metadata else None
-    return better_name(oldval, newval)
+def sciencedirect_parser(soup):
+    names = []
+    author_tags = soup.find_all(True, {"class" : "author"})
+    for tag in author_tags:
+        first = tag.find("span", {"class" : "given-name"})
+        last = tag.find("span", {"class" : "surname"})
+        name = '%s %s' % ((first.text if first else ''), (last.text if last else ''))
+        names.append(name.strip())
+    names = [n for n in names if len(n)>0]
+    author = names[0] if len(names)==1 else ','.join(names)
+    return {'sv_author': author}
+
+
+# Constructor methods
 
 def get_author_for(metadata, publication):
     if not 'sv_author' in metadata:
@@ -236,7 +248,6 @@ def get_author_for(metadata, publication):
 
     # if we're here, we have a collaboration on our hands
     # if something is structurally wrong, bail
-    print("here %s" % names)
     word_counts = [len(n.split(" ")) for n in names]
     max_words = max(word_counts)
     if max_words > 4: 
@@ -339,6 +350,11 @@ def clean_author_name(name, publication = None):
 
     return newname
     
+def get_author_from(existing, metadata):
+    oldval = existing['sv_author'] if 'sv_author' in existing else None
+    newval = metadata['sv_author'] if 'sv_author' in metadata else None
+    return better_name(oldval, newval)
+
 def better_name(oldval, newval):
     # print("comparing %s to %s" % (oldval, newval))
     if not newval:
