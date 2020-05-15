@@ -106,7 +106,7 @@ admin.site.register(Collaboration)
 class PublicationAdmin(ScanvineAdmin):
     change_form_template = "admin/publication_change_form.html"
     list_display = ('id', 'domain', 'name', 'average_credibility', 'total_credibility')
-    search_fields = ('name',)
+    search_fields = ('name','domain')
 
     def response_change(self, request, obj):
         if "_reparse" in request.POST:
