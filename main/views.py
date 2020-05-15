@@ -1,8 +1,8 @@
 import datetime
 from django.http import HttpResponse
 from django.template import loader
-from django.db.models import F
 from .models import *
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
 SORT_BY = {
     'dc':'-created_at',

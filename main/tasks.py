@@ -1,6 +1,7 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from django.db.models import F
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
 from . import article_parsers
@@ -132,7 +133,7 @@ def fetch_shares():
             if 'retweeted_status' in t:
                 urls += t['retweeted_status']['entities']['urls']
             urls = [u['expanded_url'] for u in urls]
-            urls = [u for u in urls if not u.startswith("https://twitter.com/")]
+            urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
             if urls:
                 user = t['user']
                 tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['full_text'], 'urls':urls}
@@ -409,12 +410,31 @@ def set_reputations():
         articles_dict[share.article_id] = articles_dict[share.article_id] + tranche.quantity
         total_quantity += tranche.quantity
 
-    for article_id in articles_dict.keys():
-        article = Article.objects.get(id=article_id)
+    for article in Article.objects.filter(id__in=articles_dict.keys()):
+        if not article.author_id or not article.publication_id:
+            continue
+        if not article.publication_id in publications_dict:
+            publications_dict[article.publication_id] = {'t':0, 'a':0}
+        amount = articles_dict[article.id]
+        publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
+        publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
+
+    for publication in Publication.objects.filter(id__in=publications_dict.keys()):
+        publication.total_credibility = publications_dict[publication.id]['t']
+        publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
+        publication.save()
+
+    annotated = Article.objects.annotate(publisher_average=F('publication__average_credibility'))
+    for article in annotated.filter(id__in=articles_dict.keys()):
+        article = Article.objects.get(id=article.id)
         if not article.author_id:
             continue
-        amount = articles_dict[article_id]
+        amount = articles_dict[article.id]
         article.total_credibility = amount
+        article.scores = {
+            'total' : amount,
+            'publisher_average' : publications_dict[article.publication_id]['a'] if article.publication_id else 0
+        }
         article.save()
         author_ids = [article.author.id]
         collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
@@ -426,22 +446,11 @@ def set_reputations():
                 authors_dict[author_id] = 0
             authors_dict[author_id] = authors_dict[author_id] + author_amount
 
-        if not article.publication_id in publications_dict:
-            publications_dict[article.publication_id] = {'t':0, 'a':0}
-        publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
-        publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
-
     for author_id in authors_dict.keys():
         author = Author.objects.get(id=author_id) # TODO batch
         author.total_credibility = authors_dict[author_id]
         author.current_credibility =authors_dict[author_id] # TODO spendability
         author.save()
-
-    for publication_id in publications_dict.keys():
-        publication = Publication.objects.get(id=publication_id)
-        publication.total_credibility = publications_dict[publication_id]['t']
-        publication.average_credibility = publication.total_credibility / publications_dict[publication_id]['a']
-        publication.save()
 
     log_job(job, "Allocated %s total %s shares %s tranches %s articles %s authors %s publications"
             % (total_quantity, len(shares), total_tranches, len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)

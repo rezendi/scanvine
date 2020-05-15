@@ -272,7 +272,7 @@ def add_tweet(tweet_id):
         urls += [u.expanded_url for u in tweet.quoted_status.urls]
     if tweet.retweeted_status and tweet.retweeted_status.urls:
         urls += [u.expanded_url for u in tweet.retweeted_status.urls]
-    urls = [u for u in urls if not u.startswith("https://twitter.com/")]
+    urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
     if not urls:
         print("No URL in share, bailing out")
         return

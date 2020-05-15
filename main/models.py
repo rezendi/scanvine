@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
 
@@ -91,6 +92,13 @@ class Publication(models.Model):
     def average_cred(self):
         return round(self.average_credibility / 1000)
 
+
+def default_scores():
+    return {
+        'total':0,
+        'publisher_average':0,
+    }
+
 class Article(models.Model):
     class Status(models.IntegerChoices):
         AUTHOR_ASSOCIATED = 3
@@ -115,14 +123,14 @@ class Article(models.Model):
     first_published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
-    total_credibility = models.BigIntegerField(default=0)
+    total_credibility = models.BigIntegerField(default=0, db_index=True)
+    scores = JSONField(db_index=True, default=default_scores)
 
     def __str__(self):
         return self.title[0:60] if self.title else "(%s)" %self.id
 
     def credibility(self):
         return round(self.total_credibility / 1000)
-
 
 class Share(models.Model):
     class Status(models.IntegerChoices):
