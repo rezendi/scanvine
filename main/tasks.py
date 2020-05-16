@@ -468,12 +468,13 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
             article.save()
 
             # allocate author scores
-            author_ids = [article.author_id]
+            author_id = article.author_id
+            author_ids = [author_id]
             author_amount = amount
-            collaborators = Collaboration.objects.filter(partnership_id=article.author_id)
+            collaborators = Collaboration.objects.filter(partnership_id=author_id)
             if collaborators:
                 author_ids = [c.individual_id for c in collaborators]
-                author_ids = [article.author_id] if not author_ids else author_ids
+                author_ids = [author_id] if not author_ids else author_ids
                 author_amount = amount / len(author_ids)
             for author_id in author_ids:
                 if not author_id in authors_dict:
