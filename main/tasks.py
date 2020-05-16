@@ -418,33 +418,35 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
     total_quantity = 0
     total_tranches = 0
     try:
-        shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date))
+        shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date)).values('id','sharer_id','article_id')
         log_job(job, "shares %s" % len(shares))
         for share in shares:
-            tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
+            tranches = Tranche.objects.filter(sender=share['sharer_id'], receiver=share['id'])
             if not tranches:
                 continue
             if len(tranches) > 1:
-                log_job(job, "Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
+                log_job(job, "Extraneous tranche found for %s %s" % (share['sharer_id'], share['id']))
             total_tranches += 1
             tranche = tranches[0]
-            if not share.article_id in articles_dict:
-                articles_dict[share.article_id] = {}
+            article_id = share['article_id']
+            if not article_id in articles_dict:
+                articles_dict[article_id] = {}
                 for key in ['total'] + CATEGORIES:
-                    articles_dict[share.article_id][key] = 0
-            articles_dict[share.article_id]['total'] = articles_dict[share.article_id]['total'] + tranche.quantity
-            articles_dict[share.article_id][CATEGORIES[tranche.category]] = articles_dict[share.article_id][CATEGORIES[tranche.category]] + tranche.quantity
+                    articles_dict[article_id][key] = 0
+            articles_dict[article_id]['total'] = articles_dict[article_id]['total'] + tranche.quantity
+            articles_dict[article_id][CATEGORIES[tranche.category]] = articles_dict[article_id][CATEGORIES[tranche.category]] + tranche.quantity
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
-        for article in Article.objects.filter(id__in=articles_dict.keys()):
-            if not article.author_id or not article.publication_id:
+        for article in Article.objects.filter(id__in=articles_dict.keys()).values('id','author_id','publication_id'):
+            publication_id = article['publication_id']
+            if not publication_id or not 'author_id' in article:
                 continue
-            if not article.publication_id in publications_dict:
-                publications_dict[article.publication_id] = {'t':0, 'a':0}
-            amount = articles_dict[article.id]['total']
-            publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
-            publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
+            if not publication_id in publications_dict:
+                publications_dict[publication_id] = {'t':0, 'a':0}
+            amount = articles_dict[article['id']]['total']
+            publications_dict[publication_id]['t'] = publications_dict[publication_id]['t'] + amount
+            publications_dict[publication_id]['a'] = publications_dict[publication_id]['a'] + 1
     
         log_job(job, "publications %s" % len(publications_dict))
         for publication in Publication.objects.filter(id__in=publications_dict.keys()):
@@ -452,14 +454,15 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
             publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
             publication.save()
     
-        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False):
+        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('contents','metadata'):
             amount = articles_dict[article.id]['total']
+            amount = 0 if not amount else amount
             article.total_credibility = amount
             article.scores = articles_dict[article.id]
             if article.publication_id:
                 pub_articles = publications_dict[article.publication_id]['a']
                 pub_amount = publications_dict[article.publication_id]['t']
-                article.scores['publisher_average'] = amount if pub_articles < 2 else amount - (pub_amount / pub_articles)
+                article.scores['publisher_average'] = int(amount) if pub_articles < 2 else int(amount - (pub_amount / pub_articles))
             else:
                 article.scores['publisher_average'] = 0 
             article.save()

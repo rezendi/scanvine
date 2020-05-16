@@ -129,7 +129,7 @@ class Article(models.Model):
         return round(self.total_credibility / 1000)
 
     def relative_cred(self):
-        return round(self.scores['publisher_average'] / 1000)
+        return round(int(self.scores['publisher_average']) / 1000)
 
 
 class Share(models.Model):

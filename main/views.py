@@ -20,7 +20,7 @@ def index(request):
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
-    articles = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date))
+    articles = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
         'category': 'Top',
         'articles': articles.order_by('-total_credibility')[:page_size],
@@ -36,7 +36,7 @@ def author(request, author_id):
     if days > 0:
         end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
         start_date = end_date - datetime.timedelta(days=days)
-        articles = articles.filter(created_at__range=(start_date, end_date))
+        articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
         'author': author,
         'articles': articles.order_by('-total_credibility')[:page_size]
@@ -52,7 +52,7 @@ def publication(request, publication_id):
     if days > 0:
         end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
         start_date = end_date - datetime.timedelta(days=days)
-        articles = articles.filter(created_at__range=(start_date, end_date))
+        articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
         'publication': publication,
         'articles': articles.order_by('-total_credibility')[:page_size]
@@ -99,7 +99,7 @@ def category(request, category):
         score=Cast(
             KeyTextTransform(category_key, 'scores'), models.IntegerField()
         )
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by("-score")[:page_size]
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by("-score")[:page_size]
 
     for article in articles:
         article.score = round(article.score/1000)
@@ -130,7 +130,10 @@ def buzz(request):
         score=Cast(
             KeyTextTransform('publisher_average', 'scores'), models.IntegerField()
         )
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by(order_by)[:page_size]
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by(order_by)[:page_size]
+    
+    for article in articles:
+        print("score %s" % article.scores)
     context = {
         'category': 'Buzz',
         'articles': articles,
