@@ -1,11 +1,12 @@
 <H1><a href="/">Scanvine</a></H1>
 <H2>{{publication}}</H2>
+Total credibility {{publication.total_cred}}
+Average credibility {{publication.average_cred}}
 <table>
     <tr>
         <th>Score</th>
         <th>Article</th>
         <th>Author</th>
-        <th>Publication</th>
         <th>Date</th>
     </tr>
     {% for article in articles %}
