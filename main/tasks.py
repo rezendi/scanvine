@@ -356,45 +356,47 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
         ).order_by("id")
         log_job(job, "total shares analyzed %s" % len(q))
         share_ids = []
+        last_sharer = None
         for s in q:
             if sharer_id and sharer_id != s.id and points > 0:
-                do_allocate(share_ids, days, points)
+                do_allocate(share_ids, s, days, points)
                 share_ids = []
                 points = 0
+                total_sharers += 1
             share_ids.append(s.inshare_id)
             points += points_for(s.inshare_sentiment)
             sharer_id = s.id
-            total_sharers +=1
-        do_allocate(share_ids, days, points)
+            last_sharer = 2
+        do_allocate(share_ids, last_sharer, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated to %s sharers" % total_sharers+1, Job.Status.COMPLETED)
+    log_job(job, "allocated to %s sharers" % (total_sharers+1), Job.Status.COMPLETED)
 
-def do_allocate(share_ids, days, points):
+def do_allocate(share_ids, sharer, days, points):
     if points==0:
         return
     cred_per_point = 5040 * days // points
     shares = Share.objects.filter(id__in=share_ids)
     for share in shares:
-        sharer = share.sharer
         article = share.article
-        author = article.author if article else None
-        if sharer and article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
-            share_cred = cred_per_point * share.share_points()
-            existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
-            if existing:
-                tranche = existing[0]
-                if tranche.category != sharer.category or tranche.quantity != share_cred:
-                    tranche.category = sharer.category
-                    tranche.quantity = share_cred
-                    tranche.save()
-            else:
-                tranche = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+        # TODO: prevent self-sharing
+        # author = article.author if article else None
+        # if article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
+        share_cred = cred_per_point * share.share_points()
+        existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
+        if existing:
+            tranche = existing[0]
+            if tranche.category != sharer.category or tranche.quantity != share_cred:
+                tranche.category = sharer.category
+                tranche.quantity = share_cred
                 tranche.save()
-            share.status = Share.Status.CREDIBILITY_ALLOCATED
-            share.save()
+        else:
+            tranche = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+            tranche.save()
+        share.status = Share.Status.CREDIBILITY_ALLOCATED
+        share.save()
 
 def points_for(sentiment):
         if sentiment is None:
