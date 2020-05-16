@@ -17,7 +17,7 @@ SORT_BY = {
 def index(request):
     template = loader.get_template('main/index.html')
     page_size = int(request.GET.get('s', '10'))
-    days = int(request.GET.get('d', '7'))
+    days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
     articles = Article.objects.filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date))
@@ -30,11 +30,13 @@ def index(request):
 def author(request, author_id):
     template = loader.get_template('main/author.html')
     page_size = int(request.GET.get('s', '10'))
-    days = int(request.GET.get('d', '7'))
-    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
-    start_date = end_date - datetime.timedelta(days=days)
+    days = int(request.GET.get('d', '0'))
     author = Author.objects.get(id=author_id)
-    articles = Article.objects.filter(author_id=author_id).filter(created_at__range=(start_date, end_date))
+    articles = Article.objects.filter(author_id=author_id)
+    if days > 0:
+        end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+        start_date = end_date - datetime.timedelta(days=days)
+        articles = articles.filter(created_at__range=(start_date, end_date))
     context = {
         'author': author,
         'articles': articles.order_by('-total_credibility')[:page_size]
@@ -45,10 +47,12 @@ def publication(request, publication_id):
     template = loader.get_template('main/publication.html')
     page_size = int(request.GET.get('s', '10'))
     days = int(request.GET.get('d', '7'))
-    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
-    start_date = end_date - datetime.timedelta(days=days)
     publication = Publication.objects.get(id=publication_id)
-    articles = Article.objects.filter(publication_id=publication_id).filter(created_at__range=(start_date, end_date))
+    articles = Article.objects.filter(publication_id=publication_id)
+    if days > 0:
+        end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+        start_date = end_date - datetime.timedelta(days=days)
+        articles = articles.filter(created_at__range=(start_date, end_date))
     context = {
         'publication': publication,
         'articles': articles.order_by('-total_credibility')[:page_size]
@@ -87,7 +91,7 @@ def category(request, category):
     template = loader.get_template('main/category.html')
     category_key = category.lower()
     page_size = int(request.GET.get('s', '10'))
-    days = int(request.GET.get('d', '7'))
+    days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
 
@@ -117,14 +121,15 @@ def article(request, article_id):
 def buzz(request):
     template = loader.get_template('main/index.html')
     page_size = int(request.GET.get('s', '10'))
-    days = int(request.GET.get('d', '7'))
+    days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
+    order_by = 'score' if request.GET.get('o')=='r' else '-score'
     articles = Article.objects.annotate(
         score=Cast(
             KeyTextTransform('publisher_average', 'scores'), models.IntegerField()
         )
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by("-score")[:page_size]
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by(order_by)[:page_size]
     context = {
         'category': 'Buzz',
         'articles': articles,

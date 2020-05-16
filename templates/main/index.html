@@ -14,6 +14,7 @@
 <table>
     <tr>
         <th>Score</th>
+        <th>Buzz</th>
         <th>Article</th>
         <th><a href="/main/authors">Author</a></th>
         <th><a href="/main/publications">Publication</a></th>
@@ -22,6 +23,7 @@
     {% for article in articles %}
         <tr>
             <td>{{article.credibility}}</td>
+            <td>{{article.relative_cred}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
             <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>

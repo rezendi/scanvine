@@ -128,6 +128,10 @@ class Article(models.Model):
     def credibility(self):
         return round(self.total_credibility / 1000)
 
+    def relative_cred(self):
+        return round(self.scores['publisher_average'] / 1000)
+
+
 class Share(models.Model):
     class Status(models.IntegerChoices):
         CREDIBILITY_FINALIZED = 4
