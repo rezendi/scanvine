@@ -366,7 +366,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
             share_ids.append(s.inshare_id)
             points += points_for(s.inshare_sentiment)
             sharer_id = s.id
-            last_sharer = 2
+            last_sharer = s
         do_allocate(share_ids, last_sharer, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
