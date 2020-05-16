@@ -391,14 +391,17 @@ CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_reputations():
-    job = launch_job("set_reputations")
+def set_scores(date=datetime.datetime.utcnow().date(), days=7):
+    job = launch_job("set_scores")
+    end_date = date + datetime.timedelta(days=1)
+    start_date = end_date - datetime.timedelta(days=days)
+    log_job(job, "date range %s - %s" % (start_date, end_date))
     articles_dict = {}
     authors_dict = {}
     publications_dict = {}
     total_quantity = 0
     total_tranches = 0
-    shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED)
+    shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date))
     for share in shares:
         tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
         if not tranches:

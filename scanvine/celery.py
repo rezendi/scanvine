@@ -42,7 +42,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'schedule': 1212.0,
             },
             'add-every-1500-seconds': {
-                'task': 'main.tasks.set_reputations',
+                'task': 'main.tasks.set_scores',
                 'schedule': 1515.0,
             },
             'add-every-9000-seconds': {

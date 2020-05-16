@@ -198,7 +198,7 @@ class JobAdmin(ScanvineAdmin):
             path('parse_unparsed/',         self.parse_unparsed),
             path('analyze_sentiment/',      self.analyze_sentiment),
             path('allocate_credibility/',   self.allocate_credibility),
-            path('set_reputations/',        self.set_reputations),
+            path('set_scores/',        self.set_scores),
             path('clean_up_jobs/',          self.clean_up_jobs),
         ]
         return my_urls + urls
@@ -238,9 +238,9 @@ class JobAdmin(ScanvineAdmin):
             allocate_credibility.delay()
             return redirect('/admin/main/job/')
 
-    def set_reputations(self, request):
+    def set_scores(self, request):
         if request.user.is_superuser:
-            set_reputations.delay()
+            set_scores.delay()
             return redirect('/admin/main/job/')
 
     def clean_up_jobs(self, request):
