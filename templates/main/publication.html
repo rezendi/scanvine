@@ -1,5 +1,6 @@
 <H1><a href="/">Scanvine</a></H1>
 <H2>{{publication}}</H2>
+Total articles {{ article_count }} 
 Total credibility {{publication.total_cred}}
 Average credibility {{publication.average_cred}}
 <table>
@@ -14,7 +15,7 @@ Average credibility {{publication.average_cred}}
             <td>{{article.credibility}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
-            <td>{{article.created_at}}</td>
+            <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
         <tr>
     {% endfor %}
 </table>

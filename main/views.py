@@ -33,13 +33,15 @@ def author(request, author_id):
     days = int(request.GET.get('d', '0'))
     author = Author.objects.get(id=author_id)
     articles = Article.objects.filter(author_id=author_id)
+    article_count = articles.count()
     if days > 0:
         end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
         'author': author,
-        'articles': articles.order_by('-total_credibility')[:page_size]
+        'articles': articles.order_by('-total_credibility')[:page_size],
+        'article_count' : article_count,
     }
     return HttpResponse(template.render(context, request))
 
@@ -49,13 +51,15 @@ def publication(request, publication_id):
     days = int(request.GET.get('d', '7'))
     publication = Publication.objects.get(id=publication_id)
     articles = Article.objects.filter(publication_id=publication_id)
+    article_count = articles.count()
     if days > 0:
         end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
-        'publication': publication,
-        'articles': articles.order_by('-total_credibility')[:page_size]
+        'publication' : publication,
+        'articles' : articles.order_by('-total_credibility')[:page_size],
+        'article_count' : article_count,
     }
     return HttpResponse(template.render(context, request))
 
