@@ -373,9 +373,15 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "allocated to %s sharers" % (total_sharers+1), Job.Status.COMPLETED)
 
 def do_allocate(shares, days, points):
-    if points==0:
+    if points==0 or days==0:
         return
-    cred_per_point = 5040 * days // points
+    # we don't want to super favor people who rarely share over people who regularly share, as the latter are really the heartbeat of the grapevine
+    # but we also don't want to favor people who tweet absolutely everything
+    # figure 6 shares per day as roughly optimum
+    avg_daily_shares = len(shares) // days
+    cred_per_day = 10080 * avg_daily_shares // 6
+    cred_per_point = cred_per_day * days // points
+
     for share in shares:
         # TODO: prevent self-sharing
         # article = share.article
