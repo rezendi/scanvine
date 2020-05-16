@@ -1,0 +1,30 @@
+<H1><a href="/">Scanvine</a></H1>
+<p>
+    <span>scanning the grapevine</span> | 
+    <span><a href="/main/">All</a></span>
+    <span>{% if category == 'Health' %}Health{%else %}<a href="/main/category/health">Health</a>{% endif %}</span>
+    <span>{% if category == 'Science' %}Science{%else %}<a href="/main/category/science">Science</a>{% endif %}</span>
+    <span>{% if category == 'Tech' %}Tech{%else %}<a href="/main/category/tech">Tech</a>{% endif %}</span>
+    <span>{% if category == 'Business' %}Business{%else %}<a href="/main/category/business">Business</a>{% endif %}</span>
+<span>{% if category == 'Media' %}Media{%else %}<a href="/main/category/media">Media</a>{% endif %}</span>
+</p>
+<H2>{{category}} Articles</H2>
+
+<table>
+    <tr>
+        <th>Score</th>
+        <th>Article</th>
+        <th><a href="/main/authors">Author</a></th>
+        <th><a href="/main/publications">Publication</a></th>
+        <th>Date</th>
+    </tr>
+    {% for article in articles %}
+        <tr>
+            <td>{{article.score}}</td>
+            <td><a href="{{article.url}}">{{article.title}}</a></td>
+            <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
+            <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
+            <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
+        <tr>
+    {% endfor %}
+</table>
