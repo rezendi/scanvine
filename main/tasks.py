@@ -459,7 +459,7 @@ def set_reputations():
             % (total_quantity, len(shares), total_tranches, len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
 
 @shared_task(rate_limit="1/m")
-def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=30):
+def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
     job = launch_job("clean_up_jobs")
     cutoff = date - datetime.timedelta(days=days)
     to_delete = Job.objects.filter(created_at__lte=cutoff)
