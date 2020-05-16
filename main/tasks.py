@@ -379,7 +379,8 @@ def do_allocate(shares, days, points):
     # but we also don't want to favor people who tweet absolutely everything
     # figure 6 shares per day as roughly optimum
     avg_daily_shares = len(shares) // days
-    cred_per_day = 10080 * avg_daily_shares // 6
+    delta_from_optimum = 1+abs(avg_daily_shares-6)
+    cred_per_day = 10080 * avg_daily_shares // delta_from_optimum
     cred_per_point = cred_per_day * days // points
 
     for share in shares:
