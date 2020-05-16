@@ -156,7 +156,7 @@ def fetch_shares():
             if existing:
                 log_job(job, "Share already found %s" % tweet['id'])
                 continue
-            sharer = Sharer.objects.filter(twitter_id=tweet['user_id'])
+            sharer = Sharer.objects.filter(twitter_id=tweet['user_id'], status=Sharer.Status.LISTED)
             if not sharer:
                 log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
                 continue
