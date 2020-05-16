@@ -349,7 +349,9 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
         total_sharers = sharer_id = points = 0
-        shares = Share.objects.select_related('sharer').filter(created_at__range=(start_date, end_date)).order_by("sharer_id")
+        shares = Share.objects.select_related('sharer').filter(
+            status__gte=Share.Status.SENTIMENT_CALCULATED, created_at__range=(start_date, end_date)
+        ).order_by("sharer_id")
         log_job(job, "total shares analyzed %s" % len(shares))
         article_ids = set()
         to_allocate = []
@@ -407,7 +409,7 @@ CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(date=datetime.datetime.utcnow().date(), days=7):
+def set_scores(date=datetime.datetime.utcnow().date(), days=30):
     job = launch_job("set_scores")
     end_date = date + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
@@ -480,11 +482,12 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
                 if not author_id in authors_dict:
                     authors_dict[author_id] = 0
                 authors_dict[author_id] = authors_dict[author_id] + author_amount
-    
+
         log_job(job, "authors %s" % len(authors_dict))
         for author in Author.objects.filter(id__in=authors_dict.keys()):
-            author.total_credibility = authors_dict[author_id]
-            author.current_credibility = authors_dict[author_id] # TODO spendability
+            amount = authors_dict[author.id]
+            author.total_credibility = amount
+            author.current_credibility = amount # TODO spendability
             author.save()
 
     except Exception as ex:

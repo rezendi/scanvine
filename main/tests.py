@@ -126,6 +126,56 @@ class AuthorTests(TestCase):
         self.assertEqual(article.author.name, 'L.A. Mcdermott')
 
 
+class ScoringTest(TestCase):
+    def test_scoring(self):
+        urls = ["http://test.com/one", "http://test.com/two", "http://test2.com/three", "http://test2.com/four"]
+        htmls = ['<html><title>Testarticle One</title><meta name="author" content="Testauthor One"></html>',
+                 '<html><title>Testarticle Two</title><meta name="author" content="Testauthor Two"></html>',
+                 '<html><title>Testarticle Three</title><meta name="author" content="Testauthor Three"></html>',
+                 '<html><title>Testarticle Four</title><meta name="author" content="Testauthor Three"></html>']
+        article_ids = sharer_ids = share_ids = set()
+        for idx, url in enumerate(urls):
+            article = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=htmls[idx], title='', metadata='')
+            article.save()
+            article_ids.add(article.id)
+            tasks.parse_article_metadata(article.id)
+            sharer = Sharer(twitter_id=int("54321%s" % article.id), status=Sharer.Status.CREATED, name="Name %s" % article.id,
+                 twitter_screen_name = "twitter_%s" % article.id, profile="description %s" % article.title, category=idx%3, verified=False)
+            sharer.save()
+            sharer_ids.add(sharer.id)
+            share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = int("12345%s" % article.id),
+                  sharer_id = sharer.id, article_id = article.id, net_sentiment=16*idx)
+            expected = 1 if idx< 2 else 2 if idx==2 else 3
+            self.assertEqual(expected, share.share_points())
+            share.save()
+            share_ids.add(share.id)
+        sharer_ids = list(sharer_ids)
+        article_ids = list(article_ids)
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, sharer_id = sharer_ids[0], article_id = article_ids[3], net_sentiment=16)
+        share.save()
+        share_ids.add(share.id)
+        tasks.allocate_credibility()
+        tasks.set_scores()
+        self.assertEqual(4, len(article_ids))
+        self.assertEqual(4, len(sharer_ids))
+        self.assertEqual(5, len(share_ids))
+        for idx, id in enumerate(share_ids):
+            expected = 1 if idx< 2 else 2 if idx==2 else 3 if idx==3 else 1
+            tranche = Tranche.objects.get(receiver=id)
+            self.assertIsNotNone(tranche)
+            self.assertEqual(1008*expected, tranche.quantity)
+        for idx, id in enumerate(article_ids):
+            article = Article.objects.get(id=id)
+            expected = 1 if idx< 2 else 2 if idx==2 else 4
+            self.assertEqual(1008*expected, article.total_credibility)
+        authors = Author.objects.all()
+        self.assertEqual(3, len(authors))
+        for author in authors:
+            if author.name == "Testauthor Three":
+                self.assertEqual(6048, author.total_credibility)
+            else:
+                self.assertEqual(1008, author.total_credibility)
+    
 class EndToEndTest(TestCase):
     def test_share_fetch_parse(self):
         admin.add_tweet(TEST_TWEET_ID)

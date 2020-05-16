@@ -73,8 +73,8 @@ class Publication(models.Model):
     domain = models.CharField(db_index=True, max_length=255)
     url_policy = models.CharField(max_length=255, blank=True, default='')
     parser_rules = models.TextField(blank=True, default='')
-    average_credibility = models.BigIntegerField()
-    total_credibility = models.BigIntegerField()
+    average_credibility = models.BigIntegerField(default=0)
+    total_credibility = models.BigIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
