@@ -347,16 +347,15 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     end_date = date + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
     log_job(job, "date range %s - %s" % (start_date, end_date))
-    share_ids = []
     try:
-        sharer_id = 0
-        points = 0
+        total_sharers = sharer_id = points = 0
         q = Sharer.objects.all().annotate(
             inshare=FilteredRelation('share', condition=Q(share__created_at__range=(start_date, end_date))),
             inshare_id = F('share__id'),
             inshare_sentiment = F('share__net_sentiment')
         ).order_by("id")
-        print("total shares analyzed %s" % len(q))
+        log_job("total shares analyzed %s" % len(q))
+        share_ids = []
         for s in q:
             if sharer_id and sharer_id != s.id and points > 0:
                 do_allocate(share_ids, days, points)
@@ -365,18 +364,19 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
             share_ids.append(s.inshare_id)
             points += points_for(s.inshare_sentiment)
             sharer_id = s.id
+            total_sharers +=1
         do_allocate(share_ids, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated", Job.Status.COMPLETED)
+    log_job(job, "allocated to %s sharers" % total_sharers+1, Job.Status.COMPLETED)
 
 def do_allocate(share_ids, days, points):
     if points==0:
         return
     cred_per_point = 5040 * days // points
-    shares = Share.objects.filter(status=Share.Status.SENTIMENT_CALCULATED,id__in=share_ids)
+    shares = Share.objects.filter(id__in=share_ids)
     for share in shares:
         sharer = share.sharer
         article = share.article
