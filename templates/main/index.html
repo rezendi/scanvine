@@ -1,8 +1,8 @@
 <H1><a href="/">Scanvine</a></H1>
 <p>
     <span>scanning the grapevine</span> | 
-    <span>All</span>
-    <span><a href="/main/buzz">Buzz</a></span>
+    <span>{% if category == 'Top' %}All{%else %}<a href="/main/">All</a>{% endif %}</span>
+    <span>{% if category == 'Buzz' %}Buzz{%else %}<a href="/main/buzz">Buzz</a>{% endif %}</span>
     <span><a href="/main/category/health">Health</a></span>
     <span><a href="/main/category/science">Science</a></span>
     <span><a href="/main/category/tech">Tech</a></span>

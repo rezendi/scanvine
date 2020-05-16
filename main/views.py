@@ -126,7 +126,7 @@ def buzz(request):
         )
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).order_by("-score")[:page_size]
     context = {
-        'category': 'Top',
+        'category': 'Buzz',
         'articles': articles,
     }
     return HttpResponse(template.render(context, request))
