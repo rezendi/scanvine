@@ -349,67 +349,48 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
         total_sharers = sharer_id = points = 0
-        q = Sharer.objects.all().annotate(
-            inshare=FilteredRelation('share', condition=Q(share__created_at__range=(start_date, end_date))),
-            inshare_id = F('share__id'),
-            inshare_sentiment = F('share__net_sentiment')
-        ).order_by("id")
-        log_job(job, "total shares analyzed %s" % len(q))
-        share_ids = []
-        last_sharer = None
-        for s in q:
-            if sharer_id and sharer_id != s.id and points > 0:
-                do_allocate(share_ids, s, days, points)
-                share_ids = []
+        shares = Share.objects.select_related('sharer').filter(created_at__range=(start_date, end_date)).order_by("sharer_id")
+        log_job(job, "total shares analyzed %s" % len(shares))
+        to_allocate = []
+        for share in shares:
+            if sharer_id and sharer_id != share.sharer_id and points > 0:
+                do_allocate(to_allocate, days, points)
+                to_allocate = []
                 points = 0
                 total_sharers += 1
-            share_ids.append(s.inshare_id)
-            points += points_for(s.inshare_sentiment)
-            sharer_id = s.id
-            last_sharer = s
-        do_allocate(share_ids, last_sharer, days, points)
+            points += share.share_points()
+            to_allocate.append(share)
+            sharer_id = share.sharer_id
+        do_allocate(shares, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
     log_job(job, "allocated to %s sharers" % (total_sharers+1), Job.Status.COMPLETED)
 
-def do_allocate(share_ids, sharer, days, points):
+def do_allocate(shares, days, points):
     if points==0:
         return
     cred_per_point = 5040 * days // points
-    shares = Share.objects.filter(id__in=share_ids)
     for share in shares:
-        article = share.article
         # TODO: prevent self-sharing
+        # article = share.article
         # author = article.author if article else None
         # if article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
         share_cred = cred_per_point * share.share_points()
-        existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
+        existing = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
         if existing:
             tranche = existing[0]
-            if tranche.category != sharer.category or tranche.quantity != share_cred:
-                tranche.category = sharer.category
+            if tranche.category != share.sharer.category or tranche.quantity != share_cred:
+                tranche.category = share.sharer.category
                 tranche.quantity = share_cred
                 tranche.save()
         else:
-            tranche = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+            tranche = Tranche(source=0, status=0, type=0, tags='', category=share.sharer.category, sender=share.sharer_id, receiver=share.id, quantity = share_cred)
             tranche.save()
         share.status = Share.Status.CREDIBILITY_ALLOCATED
         share.save()
 
-def points_for(sentiment):
-        if sentiment is None:
-            return 0
-        if abs(sentiment) > 80:
-            return 8
-        if abs(sentiment) > 60:
-            return 5
-        if abs(sentiment) > 40:
-            return 3
-        if abs(sentiment) > 20:
-            return 2
-        return 1
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 

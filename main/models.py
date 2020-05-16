@@ -26,8 +26,6 @@ class Sharer(models.Model):
     verified = models.BooleanField()
     name = models.CharField(max_length=255)
     profile = models.CharField(max_length=1023)
-    metadata_change_date = models.DateTimeField(null=True, blank=True)
-    previous_metadata = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -119,7 +117,6 @@ class Article(models.Model):
     contents = models.TextField()
     metadata = models.TextField(blank=True, default='')
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
-    first_published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
     total_credibility = models.BigIntegerField(default=0, db_index=True)
