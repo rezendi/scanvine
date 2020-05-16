@@ -451,12 +451,12 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=30):
             publications_dict[publication_id]['a'] = publications_dict[publication_id]['a'] + 1
     
         log_job(job, "publications %s" % len(publications_dict))
-        for publication in Publication.objects.filter(id__in=publications_dict.keys()):
+        for publication in Publication.objects.filter(id__in=publications_dict.keys()).defer('parser_rules'):
             publication.total_credibility = publications_dict[publication.id]['t']
             publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
             publication.save()
     
-        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('contents','metadata'):
+        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
             amount = articles_dict[article.id]['total']
             amount = 0 if not amount else amount
             article.total_credibility = amount
@@ -484,7 +484,7 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=30):
                 authors_dict[author_id] = authors_dict[author_id] + author_amount
 
         log_job(job, "authors %s" % len(authors_dict))
-        for author in Author.objects.filter(id__in=authors_dict.keys()):
+        for author in Author.objects.filter(id__in=authors_dict.keys()).defer('name','twitter_id','twitter_screen_name','metadata'):
             amount = authors_dict[author.id]
             author.total_credibility = amount
             author.current_credibility = amount # TODO spendability
