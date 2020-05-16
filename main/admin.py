@@ -20,8 +20,16 @@ class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     list_filter = ('status', 'category', 'created_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
-    exclude = ('metadata_change_date','previous_metadata')
     actions = ['deselect','list']
+    readonly_fields= ('created_at','updated_at')
+    fields = (
+        ('status','category'),
+        'twitter_screen_name',
+        'name',
+        'profile',
+        ('twitter_id','twitter_list_id','verified'),
+        ('created_at','updated_at')
+    )
 
     def deselect(modeladmin, request, queryset):
         for obj in queryset:
@@ -51,6 +59,16 @@ class ArticleAdmin(ScanvineAdmin):
     raw_id_fields = ("publication", 'author')
     exclude = ('contents',)
     actions = ['reparse']
+    readonly_fields= ('created_at','updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('title', ('publication', 'author'), ('status', 'language', ), 'url', 'initial_url', 'total_credibility')
+        }),
+        ('Metadata', {
+            'classes': ('collapse',),
+            'fields': ('metadata','scores',),
+        })
+    )
     
     def response_change(self, request, obj):
         if "_reparse" in request.POST:
@@ -86,7 +104,16 @@ class AuthorAdmin(ScanvineAdmin):
     change_form_template = "admin/author_change_form.html"
     list_display = ('id', 'name', 'created_at',)
     search_fields = ('name',)
-    view_on_site = True
+    readonly_fields= ('created_at','updated_at')
+    fields = (
+        ('status','is_collaboration'),
+        'name',
+        'twitter_screen_name',
+        'twitter_id',
+        ('total_credibility','current_credibility'),
+        ('created_at','updated_at'),
+        'metadata',
+    )
 
     def get_search_results(self, request, queryset, search_term):
         if search_term == "empty":
@@ -106,8 +133,17 @@ admin.site.register(Collaboration)
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
     change_form_template = "admin/publication_change_form.html"
-    list_display = ('id', 'domain', 'name', 'average_credibility', 'total_credibility')
+    list_display = ('id',   'domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name','domain')
+    readonly_fields= ('created_at','updated_at')
+    fields = (
+        ('status','name'),
+        'domain',
+        'url_policy',
+        'parser_rules',
+        ('average_credibility', 'total_credibility'),
+        ('created_at','updated_at')
+    )
 
     def response_change(self, request, obj):
         if "_reparse" in request.POST:
@@ -123,6 +159,17 @@ class ShareAdmin(ScanvineAdmin):
     search_fields = ('text','url')
     raw_id_fields = ("sharer", 'article')
     actions = ['make_published']
+    readonly_fields= ('created_at','updated_at')
+    fields = (
+        'sharer',
+        'article',
+        'status',
+        'twitter_id',
+        'text',
+        ('source','language'),
+        ('net_sentiment', 'sentiment'),
+        ('created_at','updated_at')
+    )
     
     def get_search_results(self, request, queryset, search_term):
         if (search_term.startswith("add:")):

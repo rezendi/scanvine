@@ -438,7 +438,7 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
-        for article in Article.objects.filter(id__in=articles_dict.keys()).values('id','author_id','publication_id'):
+        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).values('id','author_id','publication_id'):
             publication_id = article['publication_id']
             if not publication_id or not 'author_id' in article:
                 continue
