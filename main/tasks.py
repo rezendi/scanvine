@@ -380,7 +380,7 @@ def do_allocate(shares, days, points):
     # figure 6 shares per day as roughly optimum
     avg_daily_shares = len(shares) / days
     delta_from_optimum = 1+abs(avg_daily_shares-6)
-    cred_per_day = 5040 / delta_from_optimum
+    cred_per_day = 10080 / delta_from_optimum
     cred_per_point = round(cred_per_day * days / points)
 
     for share in shares:
