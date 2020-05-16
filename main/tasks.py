@@ -365,7 +365,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
                 to_allocate.append(share)
             article_ids.add(share.article_id)
             sharer_id = share.sharer_id
-        do_allocate(shares, days, points)
+        do_allocate(to_allocate, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
@@ -373,15 +373,15 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "allocated to %s sharers" % (total_sharers+1), Job.Status.COMPLETED)
 
 def do_allocate(shares, days, points):
-    if points==0 or days==0:
+    if points==0 or days==0 or not shares:
         return
     # we don't want to super favor people who rarely share over people who regularly share, as the latter are really the heartbeat of the grapevine
     # but we also don't want to favor people who tweet absolutely everything
     # figure 6 shares per day as roughly optimum
-    avg_daily_shares = len(shares) // days
+    avg_daily_shares = len(shares) / days
     delta_from_optimum = 1+abs(avg_daily_shares-6)
-    cred_per_day = 10080 * avg_daily_shares // delta_from_optimum
-    cred_per_point = cred_per_day * days // points
+    cred_per_day = 5040 / delta_from_optimum
+    cred_per_point = round(cred_per_day * days / points)
 
     for share in shares:
         # TODO: prevent self-sharing
@@ -417,65 +417,73 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
     publications_dict = {}
     total_quantity = 0
     total_tranches = 0
-    shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date))
-    for share in shares:
-        tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
-        if not tranches:
-            continue
-        if len(tranches) > 1:
-            log_job(job, "Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
-        total_tranches += 1
-        tranche = tranches[0]
-        if not share.article_id in articles_dict:
-            articles_dict[share.article_id] = {}
-            for key in ['total'] + CATEGORIES:
-                articles_dict[share.article_id][key] = 0
-        articles_dict[share.article_id]['total'] = articles_dict[share.article_id]['total'] + tranche.quantity
-        articles_dict[share.article_id][CATEGORIES[tranche.category]] = articles_dict[share.article_id][CATEGORIES[tranche.category]] + tranche.quantity
-        total_quantity += tranche.quantity
+    try:
+        shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date))
+        log_job(job, "shares %s" % len(shares))
+        for share in shares:
+            tranches = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
+            if not tranches:
+                continue
+            if len(tranches) > 1:
+                log_job(job, "Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
+            total_tranches += 1
+            tranche = tranches[0]
+            if not share.article_id in articles_dict:
+                articles_dict[share.article_id] = {}
+                for key in ['total'] + CATEGORIES:
+                    articles_dict[share.article_id][key] = 0
+            articles_dict[share.article_id]['total'] = articles_dict[share.article_id]['total'] + tranche.quantity
+            articles_dict[share.article_id][CATEGORIES[tranche.category]] = articles_dict[share.article_id][CATEGORIES[tranche.category]] + tranche.quantity
+            total_quantity += tranche.quantity
+    
+        log_job(job, "articles %s" % len(articles_dict))
+        for article in Article.objects.filter(id__in=articles_dict.keys()):
+            if not article.author_id or not article.publication_id:
+                continue
+            if not article.publication_id in publications_dict:
+                publications_dict[article.publication_id] = {'t':0, 'a':0}
+            amount = articles_dict[article.id]['total']
+            publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
+            publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
+    
+        log_job(job, "publications %s" % len(publications_dict))
+        for publication in Publication.objects.filter(id__in=publications_dict.keys()):
+            publication.total_credibility = publications_dict[publication.id]['t']
+            publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
+            publication.save()
+    
+        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False):
+            amount = articles_dict[article.id]['total']
+            article.total_credibility = amount
+            article.scores = articles_dict[article.id]
+            if article.publication_id:
+                pub_articles = publications_dict[article.publication_id]['a']
+                pub_amount = publications_dict[article.publication_id]['t']
+                article.scores['publisher_average'] = amount if pub_articles < 2 else amount - (pub_amount / pub_articles)
+            else:
+                article.scores['publisher_average'] = 0 
+            article.save()
+            author_ids = [article.author.id]
+            collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
+            if collaborators:
+                author_ids = [c.individual_id for c in collaborators]
+            author_amount = amount / len(author_ids)
+            for author_id in author_ids:
+                if not author_id in authors_dict:
+                    authors_dict[author_id] = 0
+                authors_dict[author_id] = authors_dict[author_id] + author_amount
+    
+        log_job(job, "authors %s" % len(authors_dict))
+        for author in Author.objects.filter(id__in=authors_dict.keys()):
+            author.total_credibility = authors_dict[author_id]
+            author.current_credibility = authors_dict[author_id] # TODO spendability
+            author.save()
 
-    for article in Article.objects.filter(id__in=articles_dict.keys()):
-        if not article.author_id or not article.publication_id:
-            continue
-        if not article.publication_id in publications_dict:
-            publications_dict[article.publication_id] = {'t':0, 'a':0}
-        amount = articles_dict[article.id]['total']
-        publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
-        publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
-
-    for publication in Publication.objects.filter(id__in=publications_dict.keys()):
-        publication.total_credibility = publications_dict[publication.id]['t']
-        publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
-        publication.save()
-
-    for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False):
-        amount = articles_dict[article.id]['total']
-        article.total_credibility = amount
-        article.scores = articles_dict[article.id]
-        if article.publication_id:
-            pub_articles = publications_dict[article.publication_id]['a']
-            pub_amount = publications_dict[article.publication_id]['t']
-            article.scores['publisher_average'] = amount if pub_articles < 2 else amount - (pub_amount / pub_articles)
-        else:
-            article.scores['publisher_average'] = 0 
-        article.save()
-        author_ids = [article.author.id]
-        collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
-        if collaborators:
-            author_ids = [c.individual_id for c in collaborators]
-        author_amount = amount / len(author_ids)
-        for author_id in author_ids:
-            if not author_id in authors_dict:
-                authors_dict[author_id] = 0
-            authors_dict[author_id] = authors_dict[author_id] + author_amount
-
-    for author in Author.objects.filter(id__in=authors_dict.keys()):
-        author.total_credibility = authors_dict[author_id]
-        author.current_credibility = authors_dict[author_id] # TODO spendability
-        author.save()
-
-    log_job(job, "Allocated %s total %s shares %s tranches %s articles %s authors %s publications"
-            % (total_quantity, len(shares), total_tranches, len(articles_dict), len(authors_dict), len (publications_dict)), Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
+        raise ex
+    log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
 
 @shared_task(rate_limit="1/m")
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
