@@ -2,6 +2,7 @@ import datetime
 from django.http import HttpResponse
 from django.template import loader
 from .models import *
+from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
 SORT_BY = {
@@ -11,14 +12,6 @@ SORT_BY = {
     'os':'total_credibility',
     'da':'-average_credibility',
     'a':'average_credibility',
-}
-
-CATEGORIES = {
-    'health':0,
-    'science':1,
-    'tech':2,
-    'business':3,
-    'media':4,
 }
 
 def index(request):
@@ -80,26 +73,21 @@ def publications(request):
     return HttpResponse(template.render(context, request))
 
 def category(request, category):
-    template = loader.get_template('main/index.html')
-    category_id = CATEGORIES[category.lower()]
+    template = loader.get_template('main/category.html')
+    category_key = category.lower()
     page_size = int(request.GET.get('s', '10'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=7)
 
-    # Get shares for the given time, and tranches for the given category.
-    # TODO: move this into a single query. Should be only two DB calls though so hopefully not too bad performance
-    shares = Share.objects.filter(status__gte=Share.Status.CREATED).filter(created_at__range=(start_date, end_date))
-    tranches = Tranche.objects.filter(receiver__in=shares.values('id')).filter(category=category_id)
-    tqs = aqs = {}
-    for t in tranches:
-        tqs[t.receiver] = t.quantity
-    for share in shares:
-        aqs[share.article_id] = tqs[share.id] if share.id in tqs else 0
+    # articles = articles.filter(updated_at__range=(start_date, end_date))
+    articles = Article.objects.annotate(
+        score=Cast(
+            KeyTextTransform(category_key, 'scores'), models.IntegerField()
+        )
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).order_by("-score")[:page_size]
 
-    articles = Article.objects.filter(id__in=shares.values('article_id'))
     for article in articles:
-        article.total_credibility = aqs[article.id]
-    articles = sorted(articles, key = lambda a: a.total_credibility, reverse=True)[:page_size]
+        article.score = round(article.score/1000)
 
     context = {
         'category': category.title(),

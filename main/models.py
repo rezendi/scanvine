@@ -95,8 +95,7 @@ class Publication(models.Model):
 
 def default_scores():
     return {
-        'total':0,
-        'publisher_average':0,
+        'total':0, 'publisher_average':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
     }
 
 class Article(models.Model):

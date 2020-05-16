@@ -387,6 +387,8 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "allocated %s" % total_points, Job.Status.COMPLETED)
 
 
+CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
+
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def set_reputations():
@@ -406,8 +408,11 @@ def set_reputations():
         total_tranches += 1
         tranche = tranches[0]
         if not share.article_id in articles_dict:
-            articles_dict[share.article_id] = 0
-        articles_dict[share.article_id] = articles_dict[share.article_id] + tranche.quantity
+            articles_dict[share.article_id] = {}
+            for key in ['total'] + CATEGORIES:
+                articles_dict[share.article_id][key] = 0
+        articles_dict[share.article_id]['total'] = articles_dict[share.article_id]['total'] + tranche.quantity
+        articles_dict[share.article_id][CATEGORIES[tranche.category]] = articles_dict[share.article_id][CATEGORIES[tranche.category]] + tranche.quantity
         total_quantity += tranche.quantity
 
     for article in Article.objects.filter(id__in=articles_dict.keys()):
@@ -415,7 +420,7 @@ def set_reputations():
             continue
         if not article.publication_id in publications_dict:
             publications_dict[article.publication_id] = {'t':0, 'a':0}
-        amount = articles_dict[article.id]
+        amount = articles_dict[article.id]['total']
         publications_dict[article.publication_id]['a'] = publications_dict[article.publication_id]['a'] + 1
         publications_dict[article.publication_id]['t'] = publications_dict[article.publication_id]['t'] + amount
 
@@ -429,12 +434,10 @@ def set_reputations():
         article = Article.objects.get(id=article.id)
         if not article.author_id:
             continue
-        amount = articles_dict[article.id]
+        amount = articles_dict[article.id]['total']
         article.total_credibility = amount
-        article.scores = {
-            'total' : amount,
-            'publisher_average' : publications_dict[article.publication_id]['a'] if article.publication_id else 0
-        }
+        article.scores = articles_dict[article.id]
+        article.scores['publisher_average'] =  article.publication.average_credibility if article.publication_id else 0
         article.save()
         author_ids = [article.author.id]
         collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
