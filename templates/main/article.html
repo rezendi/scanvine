@@ -14,3 +14,11 @@
     <dl>Published</dl>
     <dd>{{article.published_at}}</dd>
 </dt>
+
+<h3>Shares</h3>
+{% for share in shares %}
+<dt>
+    <dl>{{share.sharer}}</dl>
+    <dd>{{share.text}}</dd>
+</dt>
+{% endfor %}

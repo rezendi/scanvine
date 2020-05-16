@@ -115,6 +115,7 @@ def article(request, article_id):
     article = Article.objects.get(id=article_id)
     context = {
         'article': article,
+        'shares': Share.objects.filter(article_id=article.id)
     }
     return HttpResponse(template.render(context, request))
 
