@@ -326,7 +326,7 @@ def analyze_sentiment():
             share.status = Share.Status.SENTIMENT_CALCULATED
             share.save()
         for error in sentiments['ErrorList']:
-            log_job("Sentiment error %s" % result['ErrorMessage'])
+            log_job(job, "Sentiment error %s" % result['ErrorMessage'])
             idx = result['Index']
             share = shares[idx]
             share.status = Share.Status.SENTIMENT_ERROR
@@ -354,7 +354,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
             inshare_id = F('share__id'),
             inshare_sentiment = F('share__net_sentiment')
         ).order_by("id")
-        log_job("total shares analyzed %s" % len(q))
+        log_job(job, "total shares analyzed %s" % len(q))
         share_ids = []
         for s in q:
             if sharer_id and sharer_id != s.id and points > 0:
@@ -429,7 +429,7 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
         if not tranches:
             continue
         if len(tranches) > 1:
-            log_job("Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
+            log_job(job, "Extraneous tranche found for %s %s" % (share.sharer_id, share.id))
         total_tranches += 1
         tranche = tranches[0]
         if not share.article_id in articles_dict:
@@ -462,7 +462,7 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
         amount = articles_dict[article.id]['total']
         article.total_credibility = amount
         article.scores = articles_dict[article.id]
-        article.scores['publisher_average'] =  article.publication.average_credibility if article.publication_id else 0
+        article.scores['publisher_average'] =  (amount - article.publication.average_credibility) if article.publication_id else 0
         article.save()
         author_ids = [article.author.id]
         collaborators = Collaboration.objects.filter(partnership_id=article.author.id)

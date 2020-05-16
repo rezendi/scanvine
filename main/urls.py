@@ -10,4 +10,5 @@ urlpatterns = [
     path('publication/<int:publication_id>/', views.publication, name='publication'),
     path('article/<int:article_id>/', views.article, name='article'),
     path('category/<str:category>/', views.category, name='category'),
+    path('buzz/', views.buzz, name='buzz'),
 ]
