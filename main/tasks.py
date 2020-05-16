@@ -377,11 +377,10 @@ def do_allocate(shares, days, points):
         return
     # we don't want to super favor people who rarely share over people who regularly share, as the latter are really the heartbeat of the grapevine
     # but we also don't want to favor people who tweet absolutely everything
-    # figure 6 shares per day as roughly optimum
-    avg_daily_shares = len(shares) / days
-    delta_from_optimum = 1+abs(avg_daily_shares-6)
-    cred_per_day = 10080 / delta_from_optimum
-    cred_per_point = round(cred_per_day * days / points)
+    # figure 5 shares per day as roughly optimum
+    optimum_daily_shares = 5 * days
+    delta_from_optimum = 1 + abs(len(shares)-optimum_daily_shares)
+    cred_per_point = 5040 * len(shares) / delta_from_optimum
 
     for share in shares:
         # TODO: prevent self-sharing
