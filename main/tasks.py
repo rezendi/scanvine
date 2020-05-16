@@ -437,15 +437,16 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
         publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
         publication.save()
 
-    annotated = Article.objects.annotate(publisher_average=F('publication__average_credibility'))
-    for article in annotated.filter(id__in=articles_dict.keys()):
-        article = Article.objects.get(id=article.id)
-        if not article.author_id:
-            continue
+    for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False):
         amount = articles_dict[article.id]['total']
         article.total_credibility = amount
         article.scores = articles_dict[article.id]
-        article.scores['publisher_average'] =  (amount - article.publication.average_credibility) if article.publication_id else 0
+        if article.publication_id:
+            pub_articles = publications_dict[article.publication_id]['a']
+            pub_amount = publications_dict[article.publication_id]['t']
+            article.scores['publisher_average'] = amount if pub_articles < 2 else amount - (pub_amount / pub_articles)
+        else:
+            article.scores['publisher_average'] = 0 
         article.save()
         author_ids = [article.author.id]
         collaborators = Collaboration.objects.filter(partnership_id=article.author.id)
@@ -457,10 +458,9 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=7):
                 authors_dict[author_id] = 0
             authors_dict[author_id] = authors_dict[author_id] + author_amount
 
-    for author_id in authors_dict.keys():
-        author = Author.objects.get(id=author_id) # TODO batch
+    for author in Author.objects.filter(id__in=authors_dict.keys()):
         author.total_credibility = authors_dict[author_id]
-        author.current_credibility =authors_dict[author_id] # TODO spendability
+        author.current_credibility = authors_dict[author_id] # TODO spendability
         author.save()
 
     log_job(job, "Allocated %s total %s shares %s tranches %s articles %s authors %s publications"
