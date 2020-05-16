@@ -351,15 +351,19 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
         total_sharers = sharer_id = points = 0
         shares = Share.objects.select_related('sharer').filter(created_at__range=(start_date, end_date)).order_by("sharer_id")
         log_job(job, "total shares analyzed %s" % len(shares))
+        article_ids = set()
         to_allocate = []
         for share in shares:
             if sharer_id and sharer_id != share.sharer_id and points > 0:
                 do_allocate(to_allocate, days, points)
                 to_allocate = []
+                article_ids = set()
                 points = 0
                 total_sharers += 1
             points += share.share_points()
-            to_allocate.append(share)
+            if not share.article_id in article_ids:
+                to_allocate.append(share)
+            article_ids.add(share.article_id)
             sharer_id = share.sharer_id
         do_allocate(shares, days, points)
     except Exception as ex:

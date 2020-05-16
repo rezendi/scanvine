@@ -2,6 +2,7 @@
 
 {% block submit_buttons_bottom %}
     {{ block.super }}
+    <a href="/admin/main/tranche/?receiver={{object_id}}">Tranches</a>
     <div class="submit-row">
             <input type="submit" value="Reparse" name="_reparse">
     </div>
