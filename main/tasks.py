@@ -1,7 +1,7 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
-from django.db.models import F
+from django.db.models import F, Q, FilteredRelation
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
 from . import article_parsers
@@ -347,45 +347,67 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     end_date = date + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
     log_job(job, "date range %s - %s" % (start_date, end_date))
-    total_points = 0
+    share_ids = []
     try:
-        for sharer in Sharer.objects.all():
-            shares = Share.objects.filter(sharer_id=sharer.id, status=Share.Status.SENTIMENT_CALCULATED, net_sentiment__isnull=False,
-                                          created_at__range=(start_date, end_date))
-            if not shares:
-                continue
-            points = 0
-            for s in shares:
-                points += s.share_points()
-            if points==0:
-                continue
-            total_points += points
-            cred_per_point = 5040 * days // points
-            for share in shares:
-                article = share.article
-                author = article.author if article else None
-                if not article or not author:
-                    continue
-                if author.name == sharer.name or author.twitter_id == sharer.twitter_id:
-                    continue
-                share_cred = cred_per_point * s.share_points()
-                existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
-                if existing:
-                    tranche = existing[0]
-                    tranche.category = sharer.category
-                    tranche.quantity = share_cred
-                    tranche.save()
-                else:
-                    t = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
-                    t.save()
-                s.status = Share.Status.CREDIBILITY_ALLOCATED
-                s.save()
+        sharer_id = 0
+        points = 0
+        q = Sharer.objects.all().annotate(
+            inshare=FilteredRelation('share', condition=Q(share__created_at__range=(start_date, end_date))),
+            inshare_id = F('share__id'),
+            inshare_sentiment = F('share__net_sentiment')
+        ).order_by("id")
+        print("total shares analyzed %s" % len(q))
+        for s in q:
+            if sharer_id and sharer_id != s.id and points > 0:
+                do_allocate(share_ids, days, points)
+                share_ids = []
+                points = 0
+            share_ids.append(s.inshare_id)
+            points += points_for(s.inshare_sentiment)
+            sharer_id = s.id
+        do_allocate(share_ids, days, points)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated %s" % total_points, Job.Status.COMPLETED)
+    log_job(job, "allocated", Job.Status.COMPLETED)
 
+def do_allocate(share_ids, days, points):
+    if points==0:
+        return
+    cred_per_point = 5040 * days // points
+    shares = Share.objects.filter(status=Share.Status.SENTIMENT_CALCULATED,id__in=share_ids)
+    for share in shares:
+        sharer = share.sharer
+        article = share.article
+        author = article.author if article else None
+        if sharer and article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
+            share_cred = cred_per_point * share.share_points()
+            existing = Tranche.objects.filter(sender=sharer.id, receiver=share.id)
+            if existing:
+                tranche = existing[0]
+                if tranche.category != sharer.category or tranche.quantity != share_cred:
+                    tranche.category = sharer.category
+                    tranche.quantity = share_cred
+                    tranche.save()
+            else:
+                tranche = Tranche(source=0, status=0, type=0, tags='', category=sharer.category, sender=sharer.id, receiver=share.id, quantity = share_cred)
+                tranche.save()
+            share.status = Share.Status.CREDIBILITY_ALLOCATED
+            share.save()
+
+def points_for(sentiment):
+        if sentiment is None:
+            return 0
+        if abs(sentiment) > 80:
+            return 8
+        if abs(sentiment) > 60:
+            return 5
+        if abs(sentiment) > 40:
+            return 3
+        if abs(sentiment) > 20:
+            return 2
+        return 1
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 
