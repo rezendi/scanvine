@@ -40,6 +40,12 @@ def json_ld_parser(soup):
     if 'sv_author' not in metadata and '@graph' in metadata:
         graph = metadata['@graph']
         graph = graph[0] if type(graph)==list and len(graph)==1 else graph
+        if type(graph)==list:
+            for g in graph:
+                if type(g) is dict and '@type' in g and (g['@type']=="Person" or g['@type']==["Person"]):
+                        graph = g
+                        break
+
         if 'author' in graph:
             auth = graph['author']
             auth = auth['name'] if type(auth) is dict and 'name' in auth else auth
