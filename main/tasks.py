@@ -73,10 +73,10 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
-    category = 2 # datetime.datetime.now().microsecond % len(LIST_IDS)
+    category = datetime.datetime.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
     try:
-        selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED)[0:80]
+        selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED)[0:99]
         if selected:
             selected_ids = [s.twitter_id for s in selected]
             retval = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
@@ -86,7 +86,7 @@ def ingest_sharers():
               s.twitter_list_id = twitter_list_id
               s.save()    
         log_job(job, "Added to list %s: %s" % (category, len(selected)))
-        deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:80]
+        deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:99]
         if deselected:
             deselected_ids = [s.twitter_id for s in deselected]
             retval = api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
@@ -106,7 +106,7 @@ def ingest_sharers():
 def refresh_sharers():
     job = launch_job("refresh_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
-    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
+    (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=4000, include_entities=False, skip_status=True)
     log_job(job, "total in category %s %s" % (category, len(listed)))
     new = [l for l in listed if len(Sharer.objects.filter(twitter_id=l.id))==0]
     for n in new:
