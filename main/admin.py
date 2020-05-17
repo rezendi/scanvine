@@ -48,6 +48,11 @@ class SharerAdmin(ScanvineAdmin):
             return super().get_search_results(request, queryset, '')
         return super().get_search_results(request, queryset, search_term)
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
 
 @admin.register(Article)
