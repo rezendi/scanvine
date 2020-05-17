@@ -109,7 +109,7 @@ def meta_parser(soup):
     # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
-        for word in ['author', 'byline', 'contributor', 'authors']:
+        for word in ['author', 'author-name', 'byline', 'contributor', 'authors']:
             if byline:
                 break
             wordline = ''
@@ -387,6 +387,8 @@ def better_name(oldval, newval):
         newval = newval['name'] if 'name' in newval else None
     if not oldval:
         return newval
+    if not newval:
+        return oldval
     if newval and (newval.startswith("[") or newval.startswith("{")):
         return oldval
     new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
