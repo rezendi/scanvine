@@ -1,7 +1,6 @@
 import datetime
-from django.http import HttpResponse
-from django.template import loader
 from django.shortcuts import render
+from django.utils.timezone import make_aware
 from django.db.models import F
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -22,7 +21,7 @@ def index_view(request):
         return search_view(request)
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
-    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
@@ -36,7 +35,7 @@ def index_view(request):
 def buzz_view(request):
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
-    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     order_by = 'buzz' if request.GET.get('o')=='r' else '-buzz'
     articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
@@ -56,7 +55,7 @@ def author_view(request, author_id):
     articles = Article.objects.filter(author_id=author_id)
     article_count = articles.count()
     if days > 0:
-        end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+        end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
@@ -73,7 +72,7 @@ def publication_view(request, publication_id):
     articles = Article.objects.filter(publication_id=publication_id)
     article_count = articles.count()
     if days > 0:
-        end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+        end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
     context = {
@@ -113,7 +112,7 @@ def category_view(request, category):
     category_key = category.lower()
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
-    end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
+    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
 
     articles = Article.objects.annotate(
