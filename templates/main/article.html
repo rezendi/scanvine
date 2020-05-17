@@ -1,6 +1,8 @@
 <dt>
     <dl>Title</dl>
     <dd><a href="{{article.url}}">{{article.title}}</a></dd>
+    <dl>URL</dl>
+    <dd>{{article.url}}</dd>
     <dl>Score</dl>
     <dd>{{article.credibility}}</dd>
     <dl>Publication</dl>
@@ -18,7 +20,7 @@
 <h3>Shares</h3>
 {% for share in shares %}
 <dt>
-    <dl>{{share.sharer}}</dl>
-    <dd>{{share.text}}</dd>
+    <dl><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}">{{share.sharer.name}}</a></dl>
+    <dd><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.text}}</dd>
 </dt>
 {% endfor %}
