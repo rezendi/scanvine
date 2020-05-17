@@ -78,11 +78,19 @@ def ingest_sharers():
     selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
     if selected:
         selected_ids = [s.twitter_id for s in selected]
-        list = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
+        api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
         for s in selected:
           s.status = Sharer.Status.LISTED
           s.twitter_list_id = twitter_list_id
           s.save()    
+    deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:100]
+    if deselected:
+        deselected_ids = [s.twitter_id for s in deselected]
+        api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
+        for s in deselected:
+          s.twitter_list_id = None
+          s.save()    
+        log_job(job, "Removed from list %s - %s: %s" % (category, twitter_list_id, len(deselected)))
     log_job(job, "Added to list %s - %s: %s" % (category, twitter_list_id, len(selected)), Job.Status.COMPLETED)
 
 # Take users from our Twitter list, add them to the DB if not there already
