@@ -359,7 +359,7 @@ def clean_author_name(name, publication = None):
             newname = newname.replace('  ',' ')
     newname = newname.replace('  ',' ').strip()
     if newname.startswith("http"):
-        split = newname.rpartition("/")[2]
+        split = newname.rpartition("/")
         newname = split[0].rpartition("/")[2] if split[2].isnumeric() else spllit[2]
         tentative = newname.split("-")
         if len(tentative)>1 and len (tentative) <5:
