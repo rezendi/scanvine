@@ -13,7 +13,7 @@
     <input type="search" placeholder="Search" name="search" value="{{search}}">
     <button type="submit">Search</button>
 </form>
-<H2>{{Category}} Articles</H2>
+<H2>{{category}} Articles</H2>
 
 <table>
     <tr>
@@ -27,7 +27,7 @@
     {% for article in articles %}
         <tr>
             <td>{{article.credibility}}</td>
-            <td>{{article.relative_cred}}</td>
+            <td>{{article.buzz}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
             <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
