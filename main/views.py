@@ -1,9 +1,10 @@
 import datetime
 from django.http import HttpResponse
 from django.template import loader
-from .models import *
+from django.shortcuts import render
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
+from .models import *
 
 SORT_BY = {
     'dc':'-created_at',
@@ -14,9 +15,11 @@ SORT_BY = {
     'a':'average_credibility',
 }
 
-def index(request):
-    template = loader.get_template('main/index.html')
-    page_size = int(request.GET.get('s', '10'))
+def index_view(request):
+    query = request.GET.get('search', '')
+    if query:
+        return search_view(request)
+    page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
@@ -25,11 +28,10 @@ def index(request):
         'category': 'Top',
         'articles': articles.order_by('-total_credibility')[:page_size],
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/index.html', context)
 
-def author(request, author_id):
-    template = loader.get_template('main/author.html')
-    page_size = int(request.GET.get('s', '10'))
+def author_view(request, author_id):
+    page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '0'))
     author = Author.objects.get(id=author_id)
     articles = Article.objects.filter(author_id=author_id)
@@ -43,11 +45,10 @@ def author(request, author_id):
         'articles': articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/author.html', context)
 
-def publication(request, publication_id):
-    template = loader.get_template('main/publication.html')
-    page_size = int(request.GET.get('s', '10'))
+def publication_view(request, publication_id):
+    page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '7'))
     publication = Publication.objects.get(id=publication_id)
     articles = Article.objects.filter(publication_id=publication_id)
@@ -61,11 +62,10 @@ def publication(request, publication_id):
         'articles' : articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/publication.html', context)
 
-def authors(request):
-    template = loader.get_template('main/authors.html')
-    page_size = int(request.GET.get('s', '10'))
+def authors_view(request):
+    page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', 'ds')
     authors = Author.objects.all().order_by(SORT_BY[sort])[:page_size]
     for author in authors:
@@ -75,11 +75,10 @@ def authors(request):
     context = {
         'authors': authors,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/authors.html', context)
 
-def publications(request):
-    template = loader.get_template('main/publications.html')
-    page_size = int(request.GET.get('s', '10'))
+def publications_view(request):
+    page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', 'ds')
     publications = Publication.objects.all().order_by(SORT_BY[sort])[:page_size]
     for publication in publications:
@@ -89,12 +88,11 @@ def publications(request):
     context = {
         'publications': publications,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/publications.html', context)
 
-def category(request, category):
-    template = loader.get_template('main/category.html')
+def category_view(request, category):
     category_key = category.lower()
-    page_size = int(request.GET.get('s', '10'))
+    page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
@@ -112,20 +110,18 @@ def category(request, category):
         'category': category.title(),
         'articles': articles,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/category.html', context)
     
-def article(request, article_id):
-    template = loader.get_template('main/article.html')
+def article_view(request, article_id):
     article = Article.objects.get(id=article_id)
     context = {
         'article': article,
         'shares': Share.objects.filter(article_id=article.id)
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/article.html', context)
 
-def buzz(request):
-    template = loader.get_template('main/index.html')
-    page_size = int(request.GET.get('s', '10'))
+def buzz_view(request):
+    page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
@@ -142,6 +138,54 @@ def buzz(request):
         'category': 'Buzz',
         'articles': articles,
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'main/index.html', context)
     
+def search_view(request):
+    query = request.GET.get('search', '').strip()
+    template = ''
+    articles = []
+    authors = []
+    publications = []
+
+    if query.isnumeric() or (query.rpartition(":")[2]).rpartition("/")[2].isnumeric():
+        query = int(query.rpartition(":")[2].rpartition("/")[2])
+        shares = Share.objects.filter(twitter_id=query)
+        if shares:
+            return article_view(request, shares[0].id)
+
+    words = query.split(" ")
+    if len(words) < 5:
+        authors = Author.objects.filter(name__icontains=query).order_by("-total_credibility")
+        if authors:
+            if len(authors)==1:
+                return author_view(request, authors[0].id)
+            for author in authors:
+                author.total_articles = Article.objects.filter(author_id=author.id).count()
+                latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
+                author.latest = latest[0] if latest else None
+            template = 'main/authors.html'
+
+    if query.startswith("pub:"):
+        query = query.replace("pub:","")
+        publications = Publication.objects.filter(name__icontains=query).order_by("-average_credibility")
+        if not publications:
+            publications = Publication.objects.filter(domain__icontains=query).order_by("-average_credibility")
+        if publications:
+            if len(publications)==1:
+                return publication_view(request, publications[0].id)
+            template = 'main/publications.html'
+
+    if not template:
+        articles = Article.objects.filter(title__icontains=query).order_by("-total_credibility")
+        if articles:
+            if len(articles)==1:
+                return article_view(request, articles[0].id)
+        template = 'main/index.html'
+
+    context = {
+        'authors' : authors,
+        'articles' : articles,
+        'publications' : publications,
+    }
+    return render(request, template, context)
 
