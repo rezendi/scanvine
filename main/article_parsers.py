@@ -236,10 +236,8 @@ def youtube_parser(soup):
         if ("%s" % script).startswith("<script>var ytplayer"):
             text = ("%s" % script).partition(";(function")[0]
             text = text.partition("author")[2]
-            text = text.partition("isPrivate")[0]
-            text = text.partition("isLowLatencyLive")[0]
+            text = text.partition(",")[0]
             text = text.replace('\\"','').replace(":",'')
-            text = text.rpartition(",")[0]
     return {'sv_author': text}
 
 # Constructor methods
