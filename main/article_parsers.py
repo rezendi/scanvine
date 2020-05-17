@@ -191,7 +191,8 @@ def meta_parser(soup):
 def npr_parser(soup):
     npr = "".join(soup.find("script", {"id":"npr-vars"}).contents)
     metadata = json.loads(npr.partition("NPR.serverVars = ")[2][:-2])
-    metadata['sv_author'] = metadata['byline']
+    if 'byline' in metadata:
+        metadata['sv_author'] = metadata['byline'] 
     metadata['sv_publication'] = "NPR"
     return metadata
 

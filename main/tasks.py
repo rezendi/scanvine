@@ -358,9 +358,7 @@ def allocate_credibility(date=datetime.datetime.utcnow().date(), days=7):
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
         total_sharers = sharer_id = points = 0
-        shares = Share.objects.select_related('sharer').filter(
-            status__gte=Share.Status.SENTIMENT_CALCULATED, created_at__range=(start_date, end_date)
-        ).order_by("sharer_id")
+        shares = Share.objects.filter(status__gte=Share.Status.SENTIMENT_CALCULATED, created_at__range=(start_date, end_date)).order_by("sharer_id")
         log_job(job, "total shares analyzed %s" % len(shares))
         article_ids = set()
         to_allocate = []
@@ -395,7 +393,7 @@ def do_allocate(shares, days, points):
     cred_per_point = 1008
 
     for share in shares:
-        # TODO: prevent self-sharing
+        # TODO: prevent self-sharing, but in a less transactionally inefficient way
         # article = share.article
         # author = article.author if article else None
         # if article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
@@ -403,12 +401,12 @@ def do_allocate(shares, days, points):
         existing = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
         if existing:
             tranche = existing[0]
-            if tranche.category != share.sharer.category or tranche.quantity != share_cred:
-                tranche.category = share.sharer.category
+            if tranche.category != share.category or tranche.quantity != share_cred:
+                tranche.category = share.category
                 tranche.quantity = share_cred
                 tranche.save()
         else:
-            tranche = Tranche(source=0, status=0, type=0, tags='', category=share.sharer.category, sender=share.sharer_id, receiver=share.id, quantity = share_cred)
+            tranche = Tranche(source=0, status=0, type=0, tags='', category=share.category, sender=share.sharer_id, receiver=share.id, quantity = share_cred)
             tranche.save()
         share.status = Share.Status.CREDIBILITY_ALLOCATED
         share.save()
@@ -448,7 +446,7 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=30):
             articles_dict[article_id][CATEGORIES[tranche.category]] = articles_dict[article_id][CATEGORIES[tranche.category]] + tranche.quantity
             total_quantity += tranche.quantity
     
-        log_job(job, "articles %s" % len(articles_dict))
+        #TODO: refactor publications stuff into some simple DB math once the articles are written, maybe a separate job
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).values('id','author_id','publication_id'):
             publication_id = article['publication_id']
             if not publication_id or not 'author_id' in article:
@@ -459,12 +457,15 @@ def set_scores(date=datetime.datetime.utcnow().date(), days=30):
             publications_dict[publication_id]['t'] = publications_dict[publication_id]['t'] + amount
             publications_dict[publication_id]['a'] = publications_dict[publication_id]['a'] + 1
     
+        #TODO: refactor publications stuff into some simple DB math once the articles are written, maybe a separate job
         log_job(job, "publications %s" % len(publications_dict))
         for publication in Publication.objects.filter(id__in=publications_dict.keys()).defer('parser_rules'):
             publication.total_credibility = publications_dict[publication.id]['t']
             publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
             publication.save()
     
+        log_job(job, "articles %s" % len(articles_dict))
+        #TODO: handle buzz with a join at query time rather than precalculating it here
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
             amount = articles_dict[article.id]['total']
             amount = 0 if not amount else amount
