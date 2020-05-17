@@ -169,7 +169,7 @@ class ShareAdmin(ScanvineAdmin):
     fields = (
         'sharer',
         'article',
-        'status',
+        ('status', 'category'),
         'twitter_id',
         'text',
         ('source','language'),
@@ -205,7 +205,6 @@ class JobAdmin(ScanvineAdmin):
     list_filter = ('status', 'name', 'created_at', 'updated_at')
 
     def changelist_view(self, request, extra_context=None):
-
         latest_jobs=[]
         job_names = Job.objects.values('name').distinct()
         for job_name in job_names:

@@ -574,46 +574,8 @@ def clean_up_url(url, contents=None):
     return url.partition("#")[0].partition("?")[0]
 
 
-# List management
-
-HEALTH = "epidemiologist,virologist,immunologist,doctor,public health,chief medical,surgeon,cardiologist,ob/gyn,pediatrician,"
-HEALTH+= "dermatologist,endocrinologist,gastroenterologist,infectious disease physician,nephrologist,ophthalmologist,"
-HEALTH+= "pulmonologist,neurologist,nurse practitioner,radiologist,anesthesiologist,oncologist"
-SCIENCE = "biologist,physicist,statistician,mathematician,chemistry+professor,biology+professor,physics+professor,mathematics+professor,"
-SCIENCE+= "astrophysicist,astronomer,microbiologist,geneticist,geologist,seismologist,botanist,climatologist,hydrologist,ichthyologist,entomologist,"
-SCIENCE+= "science+PhD|Ph.D.,chemistry+PhD|Ph.D.,physics+PhD|Ph.D.,biology+PhD|Ph.D.,"
-TECH = "startup+investor,startups+investor,venture capitalist,vc,CTO,founder+tech,CEO+tech,CEO+software,CEO+hardware,"
-TECH+= "cofounder,engineer+author,engineering+author,software+author,hardware+author,engineering+PhD|Ph.D.,"
-BUSINESS ="economist,investor,fund manager,market analyst,financial analyst,"
-MEDIA ="novelist,crime writer,crime author,thriller author,thriller writer,romance author,game writer,"
-MEDIA+= "fantasy author,fantasy writer,science fiction author,writer of SF,SF author,screenwriter,scriptwriter,comics writer,"
-MEDIA+= "TV writer,television writer,TV director,television director,Hollywood+director,"
-MEDIA+= "movie producer,TV producer,television producer,showrunner,game producer,literary agent,talent agent,publisher,"
-
-sections = [HEALTH, SCIENCE, TECH, BUSINESS, MEDIA]
-
-def promote_matching_sharers():
-    regex_prefix = "\y" if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=="production" else "\b"
-    for idx, section in enumerate(sections):
-        sharers = set()
-        keywords = section.split(",")
-        keywords = [k for k in keywords if len(k)>1]
-        for keyword in keywords:
-            matching = Sharer.objects.filter(status=Sharer.Status.CREATED)
-            keys = [keyword] if keyword.find("+") < 0 else keyword.split("+")
-            for key in keys:
-                matching = matching.filter(profile__iregex=r"%s%s%s" % (regex_prefix, key, regex_prefix))
-            print("keyword %s %s matches %s" % (idx, keyword, len(matching)))
-            for match in matching:
-                sharers.add(match.id)
-                match.status = Sharer.Status.SELECTED
-                match.category = idx
-                match.save()
-        print("total %s" % len(sharers))
-
-def reset_sharers():
-        matching = Sharer.objects.filter(status=Sharer.Status.SELECTED)
-        for match in matching:
-            match.status = Sharer.Status.CREATED
-            match.save()
-
+def assign_share_categories():
+    shares = Share.objects.select_related('sharer').filter(status__gte=Share.Status.CREATED)
+    for share in shares:
+        share.category = share.sharer.category
+        share.save()

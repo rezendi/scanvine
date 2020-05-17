@@ -29,10 +29,15 @@ if not settings.configured:
         else:
             settings.DATABASES = {
                 'default': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': os.path.join(settings.BASE_DIR, 'db.sqlite3'),
+                    'ENGINE':   'django.db.backends.postgresql_psycopg2',
+                    'NAME':     'postgres',
+                    'USER':     'postgres',
+                    'PASSWORD': 'mysecretpassword',
+                    'HOST':     'localhost',
+                    'PORT':     '5432',
                 }
             }
+
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
@@ -41,7 +46,7 @@ from main import tasks
 #result = tasks.get_potential_sharers.delay()
 #output = result.wait(timeout=None, interval=0.5)
 
-tasks.promote_matching_sharers()
+tasks.assign_share_categories()
 
 # result = tasks.ingest_sharers.delay()
 # output = result.wait(timeout=None, interval=0.5)
