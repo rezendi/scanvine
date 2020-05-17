@@ -589,7 +589,7 @@ def log_job(job, action, status = None):
 def clean_up_url(url, contents=None):
     # TODO: filter out url cruft more elegantly, depending on site
     if url.find("youtube.com") >= 0:
-        return url.partition("#")[0]
+        return url.partition("#")[0].partition("&")[0]
     if url.startswith("https://apple.news/") and contents:
         soup = BeautifulSoup(contents, "html.parser")
         links = soup.find_all("a")
