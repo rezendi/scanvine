@@ -62,17 +62,17 @@ class ArticleAdmin(ScanvineAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('title', 'metadata')
     raw_id_fields = ("publication", 'author')
-    exclude = ('contents',)
+    excluse = ('content')
     actions = ['reparse']
     readonly_fields= ('created_at','updated_at')
     fieldsets = (
         (None, {
-            'fields': ('title', ('publication', 'author'), ('status', 'language', ), 'url', 'initial_url', 'total_credibility')
+            'fields': ( 'title', ('publication', 'author'), ('status', 'language'), 'url', 'total_credibility', ('created_at','updated_at','published_at') )
         }),
         ('Metadata', {
             'classes': ('collapse',),
-            'fields': ('metadata','scores',),
-        })
+            'fields': ('initial_url','metadata','scores',),
+        }),
     )
     
     def response_change(self, request, obj):

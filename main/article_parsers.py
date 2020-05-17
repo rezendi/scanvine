@@ -1,4 +1,5 @@
 import json, re
+import dateparser
 from .models import *
 
 # Parser methods
@@ -52,7 +53,6 @@ def json_ld_parser(soup):
         if auth:
             metadata['sv_author'] = auth
 
-
     pub = None
     if 'publisher' in metadata:
         pub = metadata['publisher']
@@ -63,6 +63,11 @@ def json_ld_parser(soup):
     if pub and type(pub) is str:
         metadata['sv_publication'] = str(pub).replace("The ","")
 
+    if 'datePublished' in metadata:
+        date = dateparser.parse(metadata['datePublished'])
+        if date:
+            metadata['sv_pub_date'] = date.isoformat()
+        
     # print("0 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 0'
     return metadata
 
@@ -100,23 +105,6 @@ def meta_parser(soup):
                     author_name = author['content'] if not author_name else "%s, %s" % (author_name, author['content'])
             if author_name:
                 metadata['sv_author'] = author_name
-
-    if 'title' in metadata:
-        metadata['sv_title'] = metadata['title']
-    else:
-        title = soup.find("meta", {"property":"og:title"})
-        if not title:
-            title = soup.find("meta", {"property":"twitter:title"})
-        if not title:
-            title = soup.find("meta", {"property":"sailthru:title"})
-        if title:
-            title_text = None
-            if 'value' in title.attrs:
-                title_text = title['value']
-            if 'content' in title.attrs:
-                title_text = title['content']
-            if title_text:
-                metadata['sv_title'] = title_text
 
     # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
@@ -168,6 +156,23 @@ def meta_parser(soup):
             print("Found vcards")
             metadata['sv_author'] = byline
 
+    if 'title' in metadata:
+        metadata['sv_title'] = metadata['title']
+    else:
+        title = soup.find("meta", {"property":"og:title"})
+        if not title:
+            title = soup.find("meta", {"property":"twitter:title"})
+        if not title:
+            title = soup.find("meta", {"property":"sailthru:title"})
+        if title:
+            title_text = None
+            if 'value' in title.attrs:
+                title_text = title['value']
+            if 'content' in title.attrs:
+                title_text = title['content']
+            if title_text:
+                metadata['sv_title'] = title_text
+
     if 'publisher' in metadata:
         metadata['sv_publication'] = metadata['publisher']
     else:
@@ -175,6 +180,11 @@ def meta_parser(soup):
         if pub and 'content' in pub:
             metadata['sv_publication'] = str(pub['content']).replace("The ","")
 
+    if 'article:published' in metadata:
+        date = dateparser.parse(metadata['article:published'])
+        if date:
+            metadata['sv_pub_date'] = date.isoformat()
+        
     # print("1 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 1'
     return metadata
 

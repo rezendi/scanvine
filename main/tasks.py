@@ -296,6 +296,7 @@ def parse_article_metadata(article_id):
 
         article.metadata = metadata if metadata else article.metadata
         article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata else article.title
+        article.published_at = datetime.datetime.fromisoformat(metadata['sv_pub_date']) if 'sv_pub_date' in metadata else article.published_at
         author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
