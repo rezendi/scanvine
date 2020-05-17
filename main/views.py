@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
+from .tasks import clean_up_url
 
 SORT_BY = {
     'dc':'-created_at',
@@ -176,7 +177,13 @@ def search_view(request):
             template = 'main/publications.html'
 
     if not template:
-        articles = Article.objects.filter(title__icontains=query).order_by("-total_credibility")
+        urlquery = clean_up_url(query)
+        articles = Article.objects.filter(url=urlquery).order_by("-total_credibility")
+        if articles:
+            if len(articles)==1:
+                return article_view(request, articles[0].id)
+        else:
+            articles = Article.objects.filter(title__icontains=query).order_by("-total_credibility")
         if articles:
             if len(articles)==1:
                 return article_view(request, articles[0].id)
