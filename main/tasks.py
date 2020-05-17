@@ -75,25 +75,30 @@ def ingest_sharers():
     job = launch_job("ingest_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
-    selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
-    if selected:
-        selected_ids = [s.twitter_id for s in selected]
-        retval = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
-        log_job(job, "add retval %s" % retval)
-        for s in selected:
-          s.status = Sharer.Status.LISTED
-          s.twitter_list_id = twitter_list_id
-          s.save()    
-    deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:100]
-    if deselected:
-        deselected_ids = [s.twitter_id for s in deselected]
-        retval = api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
-        log_job(job, "del retval %s" % retval)
-        for s in deselected:
-          s.twitter_list_id = None
-          s.save()    
-        log_job(job, "Removed from list %s - %s: %s" % (category, twitter_list_id, len(deselected)))
-    log_job(job, "Added to list %s - %s: %s" % (category, twitter_list_id, len(selected)), Job.Status.COMPLETED)
+    try:
+        selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
+        if selected:
+            selected_ids = [s.twitter_id for s in selected]
+            retval = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
+            log_job(job, "add retval %s" % retval)
+            for s in selected:
+              s.status = Sharer.Status.LISTED
+              s.twitter_list_id = twitter_list_id
+              s.save()    
+        deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:100]
+        if deselected:
+            deselected_ids = [s.twitter_id for s in deselected]
+            retval = api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
+            log_job(job, "del retval %s" % retval)
+            for s in deselected:
+              s.twitter_list_id = None
+              s.save()    
+            log_job(job, "Removed from list %s - %s: %s" % (category, twitter_list_id, len(deselected)))
+        log_job(job, "Added to list %s - %s: %s" % (category, twitter_list_id, len(selected)), Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Ingest sharers error %s" % ex, Job.Status.ERROR)
+        raise ex
 
 # Get users from our Twitter list, add them to the DB if not there already, fix those tagged as listed
 @shared_task(rate_limit="6/m")
