@@ -54,7 +54,7 @@ services:
   flower:
     image: mher/flower
     restart: unless-stopped
-    command: ["flower", "--broker=amqp://guest:guest@rabbitmq:5672", "--url-prefix=flower"]
+    command: ["flower", "--broker=amqp://guest:guest@rabbitmq:5672"]
     ports:
       - "5555:5555"
     depends_on:
