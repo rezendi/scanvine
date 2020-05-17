@@ -76,7 +76,7 @@ def ingest_sharers():
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
     try:
-        selected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.SELECTED)[0:100]
+        selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED)[0:100]
         if selected:
             selected_ids = [s.twitter_id for s in selected]
             retval = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
@@ -85,6 +85,7 @@ def ingest_sharers():
               s.status = Sharer.Status.LISTED
               s.twitter_list_id = twitter_list_id
               s.save()    
+        log_job(job, "Added to list %s: %s" % (category, len(selected)))
         deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:100]
         if deselected:
             deselected_ids = [s.twitter_id for s in deselected]
@@ -93,8 +94,8 @@ def ingest_sharers():
             for s in deselected:
               s.twitter_list_id = None
               s.save()    
-            log_job(job, "Removed from list %s - %s: %s" % (category, twitter_list_id, len(deselected)))
-        log_job(job, "Added to list %s - %s: %s" % (category, twitter_list_id, len(selected)), Job.Status.COMPLETED)
+            log_job(job, "Removed from list %s: %s" % (category, len(deselected)))
+        log_job(job, "Category %s ingestion for %s complete" % (category, twitter_list_id), Job.Status.COMPLETED)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Ingest sharers error %s" % ex, Job.Status.ERROR)
