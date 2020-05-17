@@ -77,7 +77,7 @@ def ingest_sharers():
     category = 2 if category==0 else 4
     twitter_list_id = LIST_IDS[category]
     try:
-        selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED).order("-twitter_id")[0:99]
+        selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED).order_by("-twitter_id")[0:99]
         if selected:
             selected_ids = [s.twitter_id for s in selected]
             retval = api.CreateListsMember(list_id=twitter_list_id, user_id=selected_ids)
