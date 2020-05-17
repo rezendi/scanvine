@@ -73,7 +73,8 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
-    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    category = datetime.datetime.now().microsecond % 2
+    category = 2 if category==0 else 4
     twitter_list_id = LIST_IDS[category]
     try:
         selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED)[0:99]
