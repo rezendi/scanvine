@@ -129,6 +129,9 @@ def meta_parser(soup):
                     candidate=candidate_tag.find('a')['data-name']
                     wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
                     continue
+                words = candidate_tag.text.split(" ")
+                if len(words) > 32:
+                    continue
                 for candidate in candidate_tag.stripped_strings:
                     candidate = candidate.partition("\n")[0].strip()
                     candidate = '' if any(char.isdigit() for char in candidate) else candidate
