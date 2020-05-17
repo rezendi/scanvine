@@ -122,13 +122,15 @@ class AuthorAdmin(ScanvineAdmin):
 
     def get_search_results(self, request, queryset, search_term):
         if search_term == "empty":
-            empty_ids= []
+            empty_ids = []
+            still_empty = []
             for author in Author.objects.all():
-                articles = Article.objects.filter(author_id=author.id)
-                collaborations = Collaboration.objects.filter(individual=author.id)
-                if not articles and not collaborations:
+                if not Article.objects.filter(author_id=author.id)[:1]:
                     empty_ids.append(author.id)
-            return (Author.objects.filter(id__in=empty_ids), True)
+            for id in empty_ids:
+                if not Collaboration.objects.filter(individual=id)[:1]:
+                    still_empty.append(id)
+            return (Author.objects.filter(id__in=still_empty), True)
         return super().get_search_results(request, queryset, search_term)
 
 
