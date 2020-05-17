@@ -23,7 +23,7 @@ def index_view(request):
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
-    articles = Article.objects.select_related('publication').annotate(buzz=F('total_credibility') - F('publication__average_credibility') / 1000).filter(
+    articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata').order_by('-total_credibility')[:page_size]
     context = {
@@ -38,7 +38,7 @@ def buzz_view(request):
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
     order_by = 'buzz' if request.GET.get('o')=='r' else '-buzz'
-    articles = Article.objects.select_related('publication').annotate(buzz=F('total_credibility') - F('publication__average_credibility') / 1000).filter(
+    articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata').order_by(order_by)[:page_size]
     
