@@ -156,6 +156,7 @@ class Share(models.Model):
     net_sentiment = models.DecimalField(null = True, blank = True, decimal_places = 2, max_digits = 4, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    category = models.IntegerField(db_index=True, default=0)
     
     def calculate_sentiment(self, score):
         # very very basic sentiment math
