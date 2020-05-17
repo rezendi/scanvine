@@ -86,21 +86,26 @@ def ingest_sharers():
               s.status = Sharer.Status.LISTED
               s.twitter_list_id = twitter_list_id
               s.save()    
-        log_job(job, "Added to list %s: %s" % (category, len(selected)))
-        deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:99]
-        if deselected:
-            deselected_ids = [s.twitter_id for s in deselected]
-            retval = api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
-            log_job(job, "del retval %s" % retval)
-            for s in deselected:
-              s.twitter_list_id = None
-              s.save()    
-            log_job(job, "Removed from list %s: %s" % (category, len(deselected)))
-        log_job(job, "Category %s ingestion for %s complete" % (category, twitter_list_id), Job.Status.COMPLETED)
+        log_job(job, "Added to list %s: %s" % (category, len(selected)), Job.Status.COMPLETED)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Ingest sharers error %s" % ex, Job.Status.ERROR)
         raise ex
+
+@shared_task(rate_limit="30/h")
+def deingest_sharers():
+    job = launch_job("ingest_sharers")
+    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    twitter_list_id = LIST_IDS[category]
+    deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:99]
+    if deselected:
+        deselected_ids = [s.twitter_id for s in deselected]
+        retval = api.DestroyListsMember(list_id=twitter_list_id, user_id=deselected_ids)
+        log_job(job, "del retval %s" % retval)
+        for s in deselected:
+          s.twitter_list_id = None
+          s.save()    
+        log_job(job, "Removed from list %s: %s" % (category, len(deselected)), Job.Status.COMPLETED)
 
 # Get users from our Twitter list, add them to the DB if not there already, fix those tagged as listed
 @shared_task(rate_limit="6/m")
