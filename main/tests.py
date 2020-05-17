@@ -154,8 +154,16 @@ class ScoringTest(TestCase):
         share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, sharer_id = sharer_ids[0], article_id = article_ids[3], net_sentiment=16)
         share.save()
         share_ids[4]=share.id
+
+        # last share shouldn't have a tranche, because that sharer already shared that article
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, sharer_id = sharer_ids[0], article_id = article_ids[3], net_sentiment=99)
+        share.save()
         tasks.allocate_credibility()
         tasks.set_scores()
+        tranches = Tranche.objects.filter(receiver=share.id)
+        self.assertEqual(0, len(tranches))
+
+        # OK, check tranches
         for idx, id in share_ids.items():
             expected = 1 if idx< 2 else 2 if idx==2 else 3 if idx==3 else 1
             tranche = Tranche.objects.get(receiver=id)

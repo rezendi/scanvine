@@ -2,8 +2,7 @@ import datetime
 from django.http import HttpResponse
 from django.template import loader
 from django.shortcuts import render
-from django.db.models.functions import Cast
-from django.contrib.postgres.fields.jsonb import KeyTextTransform
+from django.db.models import F
 from .models import *
 from .tasks import clean_up_url
 
@@ -126,15 +125,11 @@ def buzz_view(request):
     days = int(request.GET.get('d', '3'))
     end_date = datetime.datetime.utcnow().date() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days)
-    order_by = 'score' if request.GET.get('o')=='r' else '-score'
-    articles = Article.objects.annotate(
-        score=Cast(
-            KeyTextTransform('publisher_average', 'scores'), models.IntegerField()
-        )
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by(order_by)[:page_size]
+    order_by = 'buzz' if request.GET.get('o')=='r' else '-buzz'
+    articles = Article.objects.select_related('publication').annotate(buzz=F('total_credibility') - F('publication__average_credibility')).filter(
+        status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
+    ).defer('contents','metadata').order_by(order_by)[:page_size]
     
-    for article in articles:
-        print("score %s" % article.scores)
     context = {
         'category': 'Buzz',
         'articles': articles,
