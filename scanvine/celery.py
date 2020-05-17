@@ -34,8 +34,12 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'schedule': 303.0,
             },
             'add-every-900-seconds': {
-                'task': 'main.tasks.ingest_sharers',
+                'task': 'main.tasks.refresh_sharers',
                 'schedule': 909.0,
+            },
+            'add-every-900-seconds-2': {
+                'task': 'main.tasks.ingest_sharers',
+                'schedule': 919.0,
             },
             'add-every-1200-seconds': {
                 'task': 'main.tasks.allocate_credibility',
