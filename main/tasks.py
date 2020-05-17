@@ -171,7 +171,7 @@ def fetch_shares():
             sharer = sharer[0]
             if len(str(url))>200:
                 url = str(url)[0:199]
-            s = Share(source=0, language='en', status=Share.Status.CREATED,
+            s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
                       sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
             s.save()
             count += 1
