@@ -471,12 +471,6 @@ def set_scores(date=make_aware(datetime.datetime.now()), days=30):
             amount = 0 if not amount else amount
             article.total_credibility = amount
             article.scores = articles_dict[article.id]
-            if article.publication_id:
-                pub_articles = publications_dict[article.publication_id]['a']
-                pub_amount = publications_dict[article.publication_id]['t']
-                article.scores['publisher_average'] = int(amount) if pub_articles < 2 else int(amount - (pub_amount / pub_articles))
-            else:
-                article.scores['publisher_average'] = 0 
             article.save()
 
             # allocate author scores

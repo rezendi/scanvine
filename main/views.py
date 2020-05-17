@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.template import loader
 from django.shortcuts import render
 from django.db.models import F
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
 
@@ -116,13 +117,11 @@ def category_view(request, category):
     start_date = end_date - datetime.timedelta(days=days)
 
     articles = Article.objects.annotate(
-        score=Cast(
-            KeyTextTransform(category_key, 'scores'), models.IntegerField()
-        )
+        score=KeyTextTransform(category_key, 'scores')
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by("-score")[:page_size]
 
     for article in articles:
-        article.score = round(article.score/1000)
+        article.score = round(int(article.score)/1000)
 
     context = {
         'category': category.title(),
