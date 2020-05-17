@@ -9,11 +9,6 @@ http {
               server django:8080 weight=10 max_fails=3 fail_timeout=30s;
         }
          
-        upstream flower-app {
-              least_conn;
-              server flower:5555 weight=10 max_fails=3 fail_timeout=30s;
-        }
-         
         server {
               listen 80 default_server;
               listen [::]:80 default_server;
@@ -43,12 +38,9 @@ http {
               }
 
               location /flower/ {
-                proxy_pass http://flower-app;
+                proxy_pass http://localhost:5555;
                 proxy_set_header Host $host;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
+                proxy_set_header X-Real-IP $remote_addr;
               }
 
               location / {
