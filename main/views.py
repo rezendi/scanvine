@@ -1,7 +1,8 @@
 import datetime
 from django.shortcuts import render
 from django.utils.timezone import make_aware
-from django.db.models import F
+from django.db.models import F, IntegerField
+from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -45,7 +46,7 @@ def index_view(request):
             articles.append(article)
         for article in articles2:
             if article.diff==0 and not article.id in [a.id for a in articles1]:
-                article.buzz = article.total_credibility
+                article.buzz = article.total_credibility // 1000
                 articles.append(article)
         articles.sort(key = lambda L: L.buzz, reverse=True)
         
@@ -124,11 +125,11 @@ def category_view(request, category):
     start_date = end_date - datetime.timedelta(days=days)
 
     articles = Article.objects.annotate(
-        score=KeyTextTransform(category_key, 'scores')
+        score=Cast(KeyTextTransform(category_key, 'scores'), IntegerField())
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by("-score")[:page_size]
 
     for article in articles:
-        article.score = round(int(article.score)/1000)
+        article.score = article.score // 1000
 
     context = {
         'category': category.title(),
