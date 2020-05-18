@@ -385,7 +385,7 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def allocate_credibility(date=make_aware(datetime.datetime.now()), days=7):
+def allocate_credibility(date=make_aware(datetime.datetime.utcnow()), days=7):
     job = launch_job("allocate_credibility")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
@@ -401,14 +401,16 @@ def allocate_credibility(date=make_aware(datetime.datetime.now()), days=7):
                 to_allocate = []
                 points = 0
                 total_sharers += 1
+            to_allocate.append(share)
             points += share.share_points()
             sharer_id = share.sharer_id
         do_allocate(to_allocate, days, points)
+        total_sharers += 1
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated to %s sharers" % (total_sharers+1), Job.Status.COMPLETED)
+    log_job(job, "allocated %s points to %s sharers" % (points, total_sharers), Job.Status.COMPLETED)
 
 def do_allocate(shares, days, points):
     if points==0 or days==0 or not shares:
@@ -451,7 +453,7 @@ CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(date=make_aware(datetime.datetime.now()), days=30):
+def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
     job = launch_job("set_scores")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
