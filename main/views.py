@@ -34,6 +34,9 @@ def index_view(request):
     # we can't (easily) do the single-article-publication special case handling in DB, so do it here
     if not is_buzz:
         articles = articles.order_by("-total_credibility")[:page_size]
+        for article in articles2:
+            if article.diff==0:
+                article.buzz = article.total_credibility
     else:
         articles1 = articles.order_by("-buzz")[:page_size] # default list
         articles2 = articles.order_by("-total_credibility")[:page_size] # may have entries to insert
