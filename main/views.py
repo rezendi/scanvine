@@ -1,7 +1,7 @@
 import datetime
 from django.shortcuts import render
 from django.utils.timezone import make_aware
-from django.db.models import F, Count
+from django.db.models import F, Count, OuterRef, Subquery
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -20,6 +20,7 @@ def index_view(request):
     if query:
         return search_view(request)
     is_buzz = request.path.startswith("/buzz") or request.path.startswith("/main/buzz")
+    print("is_buzz %s" % is_buzz)
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
@@ -27,7 +28,7 @@ def index_view(request):
     order_by = "-buzz" if is_buzz else "-total_credibility"
     order_by = order_by.replace("-","+") if request.GET.get('o')=='r' else order_by
     articles = Article.objects.select_related('publication').annotate(
-        fellow_articles=Count('publication'),
+        fellow_articles = Count(Subquery(Publication.objects.filter(id=OuterRef('publication_id')).values('id'))),
         buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000
     ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
