@@ -1,7 +1,7 @@
 import datetime
 from django.shortcuts import render
 from django.utils.timezone import make_aware
-from django.db.models import F, Count, OuterRef, Subquery
+from django.db.models import F
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -28,13 +28,13 @@ def index_view(request):
     order_by = "-buzz" if is_buzz else "-total_credibility"
     order_by = order_by.replace("-","+") if request.GET.get('o')=='r' else order_by
     articles = Article.objects.select_related('publication').annotate(
-        fellow_articles = Count(Subquery(Publication.objects.filter(id=OuterRef('publication_id')).values('id'))),
-        buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000
+        buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000,
+        diff=(F('total_credibility') - F('publication__total_credibility'))
     ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata').order_by(order_by)[:page_size]
     for article in articles:
-        if article.fellow_articles==1:
+        if article.diff==0:
             article.buzz = article.total_credibility // 1000
     context = {
         'category': 'Buzz' if is_buzz else 'Top',
