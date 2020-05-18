@@ -513,8 +513,10 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             author.save()
 
         for publication in Publication.objects.all():
-            publication.total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
-            publication.average_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Avg('total_credibility'))['total_credibility__avg']
+            total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
+            publication.total_credibility = total_credibility if total_credibility else 0
+            average_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Avg('total_credibility'))['total_credibility__avg']
+            publication.average_credibility = average_credibility if average_credibility else 0
             publication.save()
 
     except Exception as ex:
