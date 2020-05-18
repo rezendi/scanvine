@@ -133,51 +133,53 @@ class ScoringTest(TestCase):
                  '<html><title>Testarticle Two</title><meta name="author" content="Testauthor One, Testauthor Two"></html>',
                  '<html><title>Testarticle Three</title><meta name="author" content="Testauthor Three"></html>',
                  '<html><title>Testarticle Four</title><meta name="author" content="Testauthor Three"></html>']
-        article_ids = {}
-        sharer_ids = {}
-        share_ids = {}
         for idx, url in enumerate(urls):
             article = Article(status=Article.Status.CREATED, language='en', url = url, initial_url=url, contents=htmls[idx], title='', metadata='')
             article.save()
-            article_ids[idx] = article.id
             tasks.parse_article_metadata(article.id)
             sharer = Sharer(twitter_id=int("54321%s" % article.id), status=Sharer.Status.CREATED, name="Name %s" % article.id,
                  twitter_screen_name = "twitter_%s" % article.id, profile="description %s" % article.title, category=idx%3, verified=False)
             sharer.save()
-            sharer_ids[idx] = sharer.id
             share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = int("12345%s" % article.id),
-                  sharer_id = sharer.id, article_id = article.id, net_sentiment=16*idx)
+                  sharer_id = sharer.id, article_id = article.id, category=idx%3, net_sentiment=16*idx)
             expected = 1 if idx< 2 else 2 if idx==2 else 3
             self.assertEqual(expected, share.share_points())
             share.save()
-            share_ids[idx] = share.id
-        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, sharer_id = sharer_ids[0], article_id = article_ids[3], net_sentiment=16)
-        share.save()
-        share_ids[4]=share.id
 
         # last share shouldn't have a tranche, because that sharer already shared that article
-        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, sharer_id = sharer_ids[0], article_id = article_ids[3], net_sentiment=99)
+        # UNTIL we assign to the share with the highest net sentiment, which we don't do yet
+        sharer = Share.objects.all()[:1][0]
+        article = Share.objects.all()[:4][3]
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=16)
         share.save()
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=99)
+        share.save()
+
+        # do the aallocation
         tasks.allocate_credibility()
         tasks.set_scores()
         tranches = Tranche.objects.filter(receiver=share.id)
         self.assertEqual(0, len(tranches))
 
         # OK, check tranches
-        for idx, id in share_ids.items():
-            expected = 1 if idx< 2 else 2 if idx==2 else 3 if idx==3 else 1
+        for share in Share.objects.all().order_by("id")[:4]:
+            id = share.id
+            expected = 1 if id< 3 else 2 if id==3 else 3 if id==4 else 1
             tranche = Tranche.objects.get(receiver=id)
             self.assertIsNotNone(tranche)
             self.assertEqual(1008*expected, tranche.quantity)
-        for idx, id in article_ids.items():
-            article = Article.objects.get(id=id)
-            expected = 1 if idx< 2 else 2 if idx==2 else 4
+        for article in Article.objects.all().order_by("id"):
+            id = article.id
+            expected = 1 if id< 3 else 2 if id==3 else 4 if id==4 else 0
             self.assertEqual(1008*expected, article.total_credibility)
-        authors = Author.objects.all()
-        self.assertEqual(4, len(authors))
-        collaborations = Collaboration.objects.all()
-        self.assertEqual(2, len(collaborations))
-        for author in authors:
+            expected_health_buzz = 1008 if id==1 else 4032 if id==4 else 0
+            self.assertEqual(expected_health_buzz, article.scores['health'])
+            expected_tech_buzz = 2016 if id==3 else 0
+            self.assertEqual(expected_tech_buzz, article.scores['tech'])
+            self.assertEqual(0, article.scores['media'])
+        self.assertEqual(4, Author.objects.all().count())
+        self.assertEqual(2, Collaboration.objects.all().count())
+        for author in Author.objects.all():
             if author.name == "Testauthor Three":
                 self.assertEqual(6048, author.total_credibility)
             elif author.name == "Testauthor Two":
