@@ -1,7 +1,7 @@
 import datetime
 from django.shortcuts import render
 from django.utils.timezone import make_aware
-from django.db.models import F
+from django.db.models import F, Count
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -19,35 +19,28 @@ def index_view(request):
     query = request.GET.get('search', '')
     if query:
         return search_view(request)
+    is_buzz = request.path.startswith("/buzz") or request.path.startswith("/main/buzz")
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
-    articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
+    order_by = "-buzz" if is_buzz else "-total_credibility"
+    order_by = order_by.replace("-","+") if request.GET.get('o')=='r' else order_by
+    articles = Article.objects.select_related('publication').annotate(
+        fellow_articles=Count('publication'),
+        buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000
+    ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
-    ).defer('contents','metadata').order_by('-total_credibility')[:page_size]
+    ).defer('contents','metadata').order_by(order_by)[:page_size]
+    for article in articles:
+        if article.fellow_articles==1:
+            article.buzz = article.total_credibility // 1000
     context = {
-        'category': 'Top',
+        'category': 'Buzz' if is_buzz else 'Top',
         'articles': articles,
     }
     return render(request, 'main/index.html', context)
 
-def buzz_view(request):
-    page_size = int(request.GET.get('s', '20'))
-    days = int(request.GET.get('d', '3'))
-    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
-    start_date = end_date - datetime.timedelta(days=days)
-    order_by = 'buzz' if request.GET.get('o')=='r' else '-buzz'
-    articles = Article.objects.select_related('publication').annotate(buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000).filter(
-        status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
-    ).defer('contents','metadata').order_by(order_by)[:page_size]
-    
-    context = {
-        'category': 'Buzz',
-        'articles': articles,
-    }
-    return render(request, 'main/index.html', context)
-    
 def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '0'))

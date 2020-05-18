@@ -451,7 +451,6 @@ def do_allocate(shares, days, points):
 
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
-
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
@@ -482,13 +481,13 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
                 for key in ['total'] + CATEGORIES:
                     articles_dict[article_id][key] = 0
             articles_dict[article_id]['total'] = articles_dict[article_id]['total'] + tranche.quantity
-            articles_dict[article_id][CATEGORIES[tranche.category]] = articles_dict[article_id][CATEGORIES[tranche.category]] + tranche.quantity
+            category = CATEGORIES[tranche.category]
+            articles_dict[article_id][category] = articles_dict[article_id][category] + tranche.quantity
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
             amount = articles_dict[article.id]['total']
-            amount = 0 if not amount else amount
             article.total_credibility = amount
             article.scores = articles_dict[article.id]
             article.save()
@@ -509,9 +508,8 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
 
         log_job(job, "authors %s" % len(authors_dict))
         for author in Author.objects.filter(id__in=authors_dict.keys()).defer('name','twitter_id','twitter_screen_name','metadata'):
-            amount = authors_dict[author.id]
-            author.total_credibility = amount
-            author.current_credibility = amount # TODO spendability
+            author.total_credibility = authors_dict[author.id]
+            author.current_credibility = authors_dict[author.id] # TODO spendability
             author.save()
 
         for publication in Publication.objects.all():
