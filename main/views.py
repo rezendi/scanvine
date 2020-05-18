@@ -24,7 +24,7 @@ def index_view(request):
     days = int(request.GET.get('d', '3'))
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
-    articles = Article.objects.select_related('publication').annotate(
+    articles_query = Article.objects.select_related('publication').annotate(
         buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000,
         diff=(F('total_credibility') - F('publication__total_credibility')),
     ).filter(
@@ -33,18 +33,22 @@ def index_view(request):
     
     # we can't (easily) do the single-article-publication special case handling in DB, so do it here
     if not is_buzz:
-        articles = articles.order_by("-total_credibility")[:page_size]
+        articles = articles_query.order_by("-total_credibility")[:page_size]
         for article in articles:
             if article.diff==0:
-                article.buzz = article.total_credibility
+                article.buzz = article.total_credibility // 1000
     else:
-        articles1 = articles.order_by("-buzz")[:page_size] # default list
-        articles2 = articles.order_by("-total_credibility")[:page_size] # may have entries to insert
+        articles = []
+        articles1 = articles_query.order_by("-buzz")[:page_size] # default list
+        articles2 = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
+        for article in articles1:
+            articles.append(article)
         for article in articles2:
             if article.diff==0 and not article.id in [a.id for a in articles1]:
                 article.buzz = article.total_credibility
-                articles1.append(article)
-        articles = articles1.sort(key = lambda L: L.buzz, reverse=True)[:page_size]
+                articles.append(article)
+        articles.sort(key = lambda L: L.buzz, reverse=True)
+        
     
     context = {
         'category': 'Buzz' if is_buzz else 'Top',
