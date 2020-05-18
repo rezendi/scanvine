@@ -130,7 +130,7 @@ class ScoringTest(TestCase):
     def test_scoring(self):
         urls = ["http://test.com/one", "http://test.com/two", "http://test2.com/three", "http://test2.com/four"]
         htmls = ['<html><title>Testarticle One</title><meta name="author" content="Testauthor One"></html>',
-                 '<html><title>Testarticle Two</title><meta name="author" content="Testauthor Two"></html>',
+                 '<html><title>Testarticle Two</title><meta name="author" content="Testauthor One, Testauthor Two"></html>',
                  '<html><title>Testarticle Three</title><meta name="author" content="Testauthor Three"></html>',
                  '<html><title>Testarticle Four</title><meta name="author" content="Testauthor Three"></html>']
         article_ids = {}
@@ -174,12 +174,24 @@ class ScoringTest(TestCase):
             expected = 1 if idx< 2 else 2 if idx==2 else 4
             self.assertEqual(1008*expected, article.total_credibility)
         authors = Author.objects.all()
-        self.assertEqual(3, len(authors))
+        self.assertEqual(4, len(authors))
+        collaborations = Collaboration.objects.all()
+        self.assertEqual(2, len(collaborations))
         for author in authors:
             if author.name == "Testauthor Three":
                 self.assertEqual(6048, author.total_credibility)
+            elif author.name == "Testauthor Two":
+                self.assertEqual(504, author.total_credibility)
+            elif author.name == "Testauthor One":
+                self.assertEqual(1512, author.total_credibility)
             else:
-                self.assertEqual(1008, author.total_credibility)
+                self.assertEqual(0, author.total_credibility)
+        pub = Publication.objects.get(domain="test.com")
+        self.assertEqual(2016, pub.total_credibility)
+        self.assertEqual(1008, pub.average_credibility)
+        pub = Publication.objects.get(domain="test2.com")
+        self.assertEqual(6048, pub.total_credibility)
+        self.assertEqual(3024, pub.average_credibility)
     
 class EndToEndTest(TestCase):
     def test_share_fetch_parse(self):

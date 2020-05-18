@@ -1,6 +1,7 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from django.db.models import Sum, Avg
 from django.utils.timezone import make_aware
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
@@ -410,7 +411,7 @@ def allocate_credibility(date=make_aware(datetime.datetime.utcnow()), days=7):
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated %s points to %s sharers" % (points, total_sharers), Job.Status.COMPLETED)
+    log_job(job, "allocated to %s sharers" % total_sharers, Job.Status.COMPLETED)
 
 def do_allocate(shares, days, points):
     if points==0 or days==0 or not shares:
@@ -425,7 +426,7 @@ def do_allocate(shares, days, points):
 
     article_ids = set()
     for share in shares:
-        # TODO: prevent self-sharing, but in a less transactionally inefficient way
+        # TODO: prevent self-sharing, but in a less inefficient way
         # article = share.article
         # author = article.author if article else None
         # if article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
@@ -464,6 +465,7 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
     total_quantity = 0
     total_tranches = 0
     try:
+        #TODO do this as a big three-table join
         shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date)).values('id','sharer_id','article_id')
         log_job(job, "shares %s" % len(shares))
         for share in shares:
@@ -482,24 +484,6 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             articles_dict[article_id]['total'] = articles_dict[article_id]['total'] + tranche.quantity
             articles_dict[article_id][CATEGORIES[tranche.category]] = articles_dict[article_id][CATEGORIES[tranche.category]] + tranche.quantity
             total_quantity += tranche.quantity
-    
-        #TODO: refactor publications stuff into some simple DB math once the articles are written, maybe a separate job
-        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).values('id','author_id','publication_id'):
-            publication_id = article['publication_id']
-            if not publication_id or not 'author_id' in article:
-                continue
-            if not publication_id in publications_dict:
-                publications_dict[publication_id] = {'t':0, 'a':0}
-            amount = articles_dict[article['id']]['total']
-            publications_dict[publication_id]['t'] = publications_dict[publication_id]['t'] + amount
-            publications_dict[publication_id]['a'] = publications_dict[publication_id]['a'] + 1
-    
-        #TODO: refactor publications stuff into some simple DB math once the articles are written, maybe a separate job
-        log_job(job, "publications %s" % len(publications_dict))
-        for publication in Publication.objects.filter(id__in=publications_dict.keys()).defer('parser_rules'):
-            publication.total_credibility = publications_dict[publication.id]['t']
-            publication.average_credibility = publication.total_credibility / publications_dict[publication.id]['a']
-            publication.save()
     
         log_job(job, "articles %s" % len(articles_dict))
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
@@ -529,6 +513,11 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             author.total_credibility = amount
             author.current_credibility = amount # TODO spendability
             author.save()
+
+        for publication in Publication.objects.all():
+            publication.total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
+            publication.average_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Avg('total_credibility'))['total_credibility__avg']
+            publication.save()
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
