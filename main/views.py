@@ -1,4 +1,4 @@
-import datetime
+import datetime, math
 from django.shortcuts import render
 from django.utils.timezone import make_aware
 from django.db.models import F, IntegerField
@@ -26,7 +26,7 @@ def index_view(request):
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     articles_query = Article.objects.select_related('publication').annotate(
-        buzz=(F('total_credibility') - F('publication__average_credibility')) / 1000,
+        buzz=(F('total_credibility') - F('publication__average_credibility')),
         diff=(F('total_credibility') - F('publication__total_credibility')),
     ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
@@ -36,26 +36,32 @@ def index_view(request):
     if not is_buzz:
         articles = articles_query.order_by("-total_credibility")[:page_size]
         for article in articles:
-            if article.diff==0:
-                article.buzz = article.total_credibility // 1000
+            article.buzz = max(article.buzz, alt_buzz(article)) // 1000
     else:
         articles = []
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
         articles2 = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
         for article in articles1:
+            article.buzz = article.buzz // 1000
             articles.append(article)
         for article in articles2:
-            if article.diff==0 and not article.id in [a.id for a in articles1]:
-                article.buzz = article.total_credibility // 1000
+            if not article.id in [a.id for a in articles1]:
+                article.buzz = max(article.buzz, alt_buzz(article)) // 1000
                 articles.append(article)
         articles.sort(key = lambda L: L.buzz, reverse=True)
-        
     
     context = {
         'category': 'Buzz' if is_buzz else 'Top',
         'articles': articles,
     }
     return render(request, 'main/index.html', context)
+
+def alt_buzz(article):
+    if article.total_credibility <= 0 or article.total_credibility > article.publication.total_credibility:
+        return 0
+    fraction = article.total_credibility / article.publication.total_credibility
+    return math.sqrt(fraction) * article.total_credibility
+
 
 def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))

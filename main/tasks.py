@@ -134,7 +134,7 @@ def refresh_sharers():
     log_job(job, "Mislabelled listed sharers: %s" % len(mislabelled_listed))
 
     # move those actually listed to listed
-    mislabelled_selected = Sharer.objects.filter(status=Sharer.Status.SELECTED, category=category, twitter_id__in=ids)
+    mislabelled_selected = Sharer.objects.exclude(status=Sharer.Status.LISTED).filter(category=category, twitter_id__in=ids)
     for sharer in mislabelled_selected:
         sharer.twitter_list_id = LIST_IDS[category]
         sharer.status = Sharer.Status.LISTED
