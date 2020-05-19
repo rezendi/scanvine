@@ -93,7 +93,7 @@ def ingest_sharers():
         raise ex
 
 @shared_task(rate_limit="30/h")
-def deingest_sharers():
+def regurgitate_sharers():
     job = launch_job("regurgitate_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
