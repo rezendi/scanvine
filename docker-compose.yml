@@ -34,7 +34,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO", "--beat"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO"]
     volumes:
       - .:/app
     depends_on:
