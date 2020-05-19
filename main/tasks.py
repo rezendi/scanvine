@@ -94,7 +94,7 @@ def ingest_sharers():
 
 @shared_task(rate_limit="30/h")
 def deingest_sharers():
-    job = launch_job("ingest_sharers")
+    job = launch_job("regurgitate_sharers")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
     deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:99]

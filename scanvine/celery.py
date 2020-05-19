@@ -58,7 +58,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'schedule': 90099.0,
             },
 #            'add-every-9000-seconds-3': {
-#                'task': 'main.tasks.deingest_sharers',
+#                'task': 'main.tasks.regurgitate_sharers',
 #                'schedule': 90199.0,
 #            },
         }
