@@ -75,7 +75,7 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 def ingest_sharers():
     job = launch_job("ingest_sharers")
     category = datetime.datetime.now().microsecond % 2
-    category = 2 if category==0 else 4
+    category = 2
     twitter_list_id = LIST_IDS[category]
     try:
         selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED).order_by("-twitter_id")[0:99]
