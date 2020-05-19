@@ -189,9 +189,11 @@ class ScoringTest(TestCase):
             else:
                 self.assertEqual(0, author.total_credibility)
         pub = Publication.objects.get(domain="test.com")
+        self.assertEqual(1008, pub.scores['health'])
         self.assertEqual(2016, pub.total_credibility)
         self.assertEqual(1008, pub.average_credibility)
         pub = Publication.objects.get(domain="test2.com")
+        self.assertEqual(4032, pub.scores['health'])
         self.assertEqual(6048, pub.total_credibility)
         self.assertEqual(3024, pub.average_credibility)
     

@@ -66,6 +66,11 @@ class Collaboration(models.Model):
         return "%s (%s)" % (self.individual.name, self.partnership.name)
 
 
+def default_scores():
+    return {
+        'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
+    }
+
 # might need to break this down into separate publication and site tables
 class Publication(models.Model):
     status = models.IntegerField(db_index=True)
@@ -77,6 +82,7 @@ class Publication(models.Model):
     total_credibility = models.BigIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    scores = JSONField(db_index=True, default=default_scores)
 
     def __str__(self):
         return self.name if self.name else self.domain
@@ -90,11 +96,6 @@ class Publication(models.Model):
     def average_cred(self):
         return round(self.average_credibility / 1000)
 
-
-def default_scores():
-    return {
-        'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
-    }
 
 class Article(models.Model):
     class Status(models.IntegerChoices):

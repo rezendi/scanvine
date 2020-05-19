@@ -1,7 +1,9 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, IntegerField
+from django.db.models.functions import Cast
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.utils.timezone import make_aware
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
@@ -519,6 +521,12 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             publication.total_credibility = total_credibility if total_credibility else 0
             average_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Avg('total_credibility'))['total_credibility__avg']
             publication.average_credibility = average_credibility if average_credibility else 0
+            publication.scores = {'total': publication.total_credibility}
+            for category in CATEGORIES:
+                category_score = Article.objects.filter(publication_id=publication.id).annotate(
+                    score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
+                ).aggregate(Sum('score'))['score__sum']
+                publication.scores[category] = category_score
             publication.save()
 
     except Exception as ex:
