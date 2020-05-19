@@ -36,7 +36,7 @@ def index_view(request):
     if not is_buzz:
         articles = articles_query.order_by("-total_credibility")[:page_size]
         for article in articles:
-            article.buzz = max(article.buzz, alt_buzz(article)) // 1000
+            article.buzz = int(max(article.buzz, alt_buzz(article))) // 1000
     else:
         articles = []
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list

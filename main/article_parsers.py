@@ -192,6 +192,11 @@ def meta_parser(soup):
         date = dateparser.parse(metadata['article:published'])
         if date:
             metadata['sv_pub_date'] = date.isoformat()
+    else:
+        time = soup.find("time")
+        if time and 'datetime' in time.attrs:
+            date = dateparser.parse(time.attrs['datetime'])
+            metadata['sv_pub_date'] = date.isoformat()
         
     # print("1 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 1'
     return metadata
