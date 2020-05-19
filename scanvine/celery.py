@@ -53,9 +53,9 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'task': 'main.tasks.parse_unparsed_articles',
                 'schedule': 9099.0,
             },
-            'add-every-9000-seconds-3': {
+            'add-every-90000-seconds': {
                 'task': 'main.tasks.ingest_sharers',
-                'schedule': 9119.0,
+                'schedule': 90119.0,
             },
 #            'add-every-9000-seconds-3': {
 #                'task': 'main.tasks.regurgitate_sharers',
