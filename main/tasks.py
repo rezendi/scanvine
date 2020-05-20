@@ -518,27 +518,30 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             author.save()
 
         # TODO split this out into its own job, probably
+        log_job(job, "publications %s" % Publication.objects.count())
         for publication in Publication.objects.all():
-            total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
+            articles = Article.objects.filter(publication_id=publication.id)
+            total_articles = articles.count()
+            total_credibility = articles.aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = int(total_credibility if total_credibility else 0)
-            total_articles = Article.objects.filter(publication_id=publication.id).count()
             publication.average_credibility = 0 if total_articles==0 else publication.total_credibility / total_articles
             for category in ['total'] + CATEGORIES:
-                category_average_score = Article.objects.filter(publication_id=publication.id).annotate(
+                category_average_score = articles.annotate(
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
                 ).aggregate(Avg('score'))['score__avg']
                 publication.scores[category] = int(category_average_score if category_average_score else 0)
-                category_count = Article.objects.annotate(
+                category_count = articles.annotate(
                     category_score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
-                ).filter(publication_id=publication.id).filter(**{'category_score__gt': 0}).count()
+                ).filter(**{'category_score__gt': 0}).count()
                 publication.scores["%s_count" % category] = int(category_count if category_count else 0)
             publication.save()
+
+        log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
 
 @shared_task(rate_limit="1/m")
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
