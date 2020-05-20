@@ -1,152 +1,30 @@
-{% load static %}
-<html>
-    <head>
-        <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
-        <title>Scanvine | scanning the grapevine</title>
-    <style>
-a {
-    text-decoration: none;
-    color:black;
-}
-a:hover {
-    text-decoration: none;
-    color:blue;
-}
-
-header {
-    display:flex;
-    justify-content:space-around;
-    align-content:flex-start;
-    padding:20px 50px 10px 50px;
-}
-
-#home {
-    display:flex;
-}
-
-#nav {
-    margin-left:10px;
-    display:flex;
-    flex-direction:column;
-    align-content:center;
-}
-
-#aggregate-links {
-    display:flex;
-    justify-content:flex-start;
-}
-
-main {
-    display:flex;
-    justify-content:space-around;
-}
-
-section {
-    width:66%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-}
-
-article {
-    border-top:1px solid lavender;
-    border-style:thin;
-    display:flex;
-    flex-direction:column;
-    width:100%;
-    padding:10px;
-}
-
-.article-title {
-    font-size:larger;
-    padding-bottom:5px;
-}
-
-.article-image {
-    width:120px;
-    display:flex;
-    justify-content:center;
-}
-.article-bottom {
-    display:flex;
-    align-content:space-between;
-}
-
-.article-info {
-    padding:5px;
-    display:flex;
-    flex-direction:column;
-}
-.article-scores {
-    padding:5px;
-}
-
-    </style>
-    </head>
-    <body>
-        <header>
-            <div id="home">
-                <img src="/static/Scanvine_S.png" height="55" width="55"/>
-                <div id="nav">
-                    <a href="/"><b>Scanvine</b></a>
-                    <div id="aggregate-links">
-                        <a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
+{% extends "main/base.html" %}
+{% block title %}{{scoring}} {{category}} Stories | Scanvine{% endblock %}
+{% block main %}
+<section>
+    <H2>{{scoring}} {{category}} Stories</H2>
+    <div class="article-list">
+        {% for article in articles %}
+        <article>
+            <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:94}}</a>
+            <div class="article-bottom">
+                {% if article.thumbnail_url %}
+                    <div class="article-image" title="{{article.score}}">
+                        <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
                     </div>
-                    <form>
-                        <input type="search" placeholder="Search" name="search" value="{{search}}">
-                        <button type="submit">Search</button>
-                    </form>
-                </div>
+                {% endif %}
+                <span class="article-info">
+                    <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
+                    <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
+                    <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
+                    {% ifequal request.GET.svd "true" %}
+                        <a href="/admin/main/article/{{article.id}}/change/">article</a> total {{article.total_credibility}} score {{article.score}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}} {{article.scores}}
+                        <a href="/admin/main/publication/{{publicationpublication.id}}/change/">publication</a> total {{article.publication.total_credibility}} average {{article.publication.average_credibility}} {{article.publication.scores}}
+                    {% endifequal %}
+                </span>
             </div>
-            <div id="filter-menu">
-                <div id="filter-scoring">
-                    {% for link in scoring_links %}
-                    <span class="scoring">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
-                    {% endfor %}
-                </div>
-                <div id="filter-category">
-                    {% for link in category_links %}
-                    <span class="category">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
-                    {% endfor %}
-                </div>
-                <div id="filter-timing">
-                    {% for link in timing_links %}
-                    <span class="timing">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-        </header>
-        
-        <main>
-            <section>
-        <H2>{{scoring}} {{category}} Articles</H2>
-        <div class="article-list">
-            {% for article in articles %}
-            <article>
-                <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:94}}</a>
-                <div class="article-bottom">
-                    {% if article.thumbnail_url %}
-                        <div class="article-image" title="{{article.score}}">
-                            <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
-                        </div>
-                    {% endif %}
-                    <span class="article-info">
-                        <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
-                        <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
-                        <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
-                        {% ifequal request.GET.svd "true" %}
-                            <a href="/admin/main/article/{{article.id}}/change/">article</a> total {{article.total_credibility}} score {{article.score}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}} {{article.scores}}
-                            <a href="/admin/main/publication/{{publicationpublication.id}}/change/">publication</a> total {{article.publication.total_credibility}} average {{article.publication.average_credibility}} {{article.publication.scores}}
-                        {% endifequal %}
-                    </span>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-            </section>
-        </main>
-        
-        <footer>
-        </footer>
-    </body>
-</html>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

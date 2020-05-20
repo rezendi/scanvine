@@ -56,6 +56,9 @@ class Author(models.Model):
     def get_absolute_url(self):
         return "/authors/%s" % self.id
 
+    def credibility(self):
+        return 0 if not self.total_credibility else self.total_credibility // 1000
+
 
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')
@@ -89,6 +92,12 @@ class Publication(models.Model):
 
     def get_absolute_url(self):
         return "/publications/%s" % self.id
+
+    def total_cred(self):
+        return 0 if not self.total_credibility else self.total_credibility // 1000
+
+    def average_cred(self):
+        return 0 if not self.average_credibility else self.average_credibility // 1000
 
 
 def default_scores():

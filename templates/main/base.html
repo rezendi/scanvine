@@ -1,0 +1,135 @@
+{% load static %}
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css">
+    <title>{% block title %}My amazing site{% endblock %}</title>
+    <head>
+        <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
+        <title>Scanvine | scanning the grapevine</title>
+    <style>
+a {
+    text-decoration: none;
+    color:black;
+}
+a:hover {
+    text-decoration: none;
+    color:blue;
+}
+
+header {
+    display:flex;
+    justify-content:space-around;
+    align-content:flex-start;
+    padding:20px 50px 10px 50px;
+}
+
+#home {
+    display:flex;
+}
+
+#nav {
+    margin-left:10px;
+    display:flex;
+    flex-direction:column;
+    align-content:center;
+}
+
+#aggregate-links {
+    display:flex;
+    justify-content:flex-start;
+}
+
+main {
+    display:flex;
+    justify-content:space-around;
+}
+
+section {
+    width:66%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+article {
+    border-top:1px solid lavender;
+    border-style:thin;
+    display:flex;
+    flex-direction:column;
+    width:100%;
+    padding:10px;
+}
+
+.article-title {
+    font-size:larger;
+    padding-bottom:5px;
+}
+
+.article-image {
+    width:120px;
+    display:flex;
+    justify-content:center;
+}
+
+.article-bottom {
+    display:flex;
+    align-content:space-between;
+}
+
+.article-info {
+    padding:5px;
+    display:flex;
+    flex-direction:column;
+}
+
+.article-scores {
+    padding:5px;
+}
+
+#authors-names {
+    display:flex;
+    flex-direction:row;
+    justify-content:flex-start;
+}
+    </style>
+</head>
+
+<body>
+    <header>
+        <div id="home">
+            <img src="/static/Scanvine_S.png" height="55" width="55"/>
+            <div id="nav">
+                <a href="/"><b>Scanvine</b></a>
+                <div id="aggregate-links">
+                    <a href="/main/">Stories</a>&nbsp;|&nbsp;<a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
+                </div>
+                <form>
+                    <input type="search" placeholder="Search" name="search" value="{{search}}">
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+        <div id="filter-menu">
+            <div id="filter-scoring">
+                {% for link in scoring_links %}
+                <span class="scoring">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                {% endfor %}
+            </div>
+            <div id="filter-category">
+                {% for link in category_links %}
+                <span class="category">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                {% endfor %}
+            </div>
+            <div id="filter-timing">
+                {% for link in timing_links %}
+                <span class="timing">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </header>
+        
+    <main>
+        {% block main %}{% endblock %}
+    </main>
+</body>
+</html>

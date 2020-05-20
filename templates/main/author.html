@@ -1,9 +1,14 @@
-<H1><a href="/">Scanvine</a></H1>
+{% extends "main/base.html" %}
+{% block title %}{{base_author.name}} | Scanvine{% endblock %}
+{% block main %}
+<section>
 {% for author in authors %}
-<a href="/main/author/{{author.id}}">{{author.name}}</a>{% if not forloop.last%}, {% endif %}
+<div id="authors_names">
+    <a href="/main/author/{{author.id}}"><b>{{author.name}}</b></a>{% if not forloop.last%}, {% endif %}
+</div>
 {% endfor %}
 <hr/>
-Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.total_credibility}} {% endif %}
+Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.credibility}} {% endif %}
 <table>
     <tr>
         <th>Score</th>
@@ -13,10 +18,12 @@ Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{ba
     </tr>
     {% for article in articles %}
         <tr>
-            <td>{{article.total_credibility}}</td>
+            <td>{{article.total_cred}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
             <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
         <tr>
     {% endfor %}
 </table>
+</section>
+{% endblock %}
