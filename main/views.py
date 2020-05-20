@@ -2,68 +2,76 @@ import datetime, math
 from django.shortcuts import render
 from django.utils.timezone import make_aware
 from django.db.models import F, IntegerField
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Abs, Left, Length
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
 
-SORT_BY = {
-    'dc':'-created_at',
-    'oc':'-created_at',
-    'ds':'-total_credibility',
-    'os':'total_credibility',
-    'da':'-average_credibility',
-    'a':'average_credibility',
-}
+CATEGORIES = ['health','science','tech','business','media']
 
-def index_view(request, category=None):
+def index_view(request, category=None, scoring=None, days=None):
     query = request.GET.get('search', '')
     if query:
         return search_view(request)
 
-    is_buzz = not request.path.startswith("/raw") and not request.path.startswith("/main/raw")
     page_size = int(request.GET.get('s', '20'))
-    days = int(request.GET.get('d', '3'))
+    days = int(scoring) if scoring and not days and scoring.isnumeric() else days
+    days = int(days) if days else 3
+    scoring = 'top' if scoring != "raw" and scoring != "odd" else scoring
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
-    if category:
-        category_key = category.lower()
-        articles_query = Article.objects.annotate(
-            score=Cast(KeyTextTransform(category_key, 'scores'), IntegerField())
-        )
-    else:
-        articles_query = Article.objects.select_related('publication').annotate(
-            buzz=(F('total_credibility') - F('publication__average_credibility')),
-            diff=(F('total_credibility') - F('publication__total_credibility')),
-        )
-    articles_query = articles_query.filter(
+    category = 'total' if not category or category not in CATEGORIES else category
+    # I can't believe this crazy sql stuff is necessary. TODO: refactor
+    articles_query = Article.objects.select_related('publication').annotate(
+        score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
+        pub_category_average=Cast(Left(KeyTextTransform(category, 'publication__scores'), Length(KeyTextTransform(category, 'publication__scores'))-2), IntegerField()),
+        buzz=(F('score') - Cast(F('pub_category_average'), IntegerField())),
+    ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata')
-    
-    if category:
-        articles = articles_query.order_by("-score")[:page_size]
-        for article in articles:
-            article.score = article.score // 1000
-    elif not is_buzz:
-        articles = articles_query.order_by("-total_credibility")[:page_size]
-        for article in articles:
-            article.score = article.total_credibility // 1000
-    else:
+
+    articles = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
+
+    if scoring=='top':
         # we can't (easily) do the single-article-publication special case handling in DB, so do it here
-        articles = []
+        articles2 = articles
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
-        articles2 = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
+        articles = []
         for article in articles1:
-            article.score = article.buzz // 1000
+            article.score = article.buzz
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
-                article.score = int(max(article.buzz, alt_buzz(article))) // 1000
+                article.score = int(max(article.buzz, alt_buzz(article)))
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
+
+    for article in articles:
+        article.score = int(article.score) // 1000
     
+    category = 'all' if category=='total' else category
+    
+    category_links = [{'name':'All', 'href': 'no' if category=='all' else 'all/%s/%s' % (scoring,days)}]
+    category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
+    scoring_links = [
+        {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
+        {'name':'Raw', 'href': 'no' if scoring=='raw' else '%s/raw/%s' % (category,days)},
+        {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
+    ]
+    timing_links = [
+        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (scoring,category)},
+        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (scoring,category)},
+        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (scoring,category)},
+        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (scoring,category)},
+    ]
+
     context = {
-        'category': category.title() if category else 'Top' if is_buzz else 'Raw',
+        'category': category.title(),
+        'scoring' : scoring,
+        'days' : days,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
         'articles': articles,
     }
     return render(request, 'main/index.html', context)

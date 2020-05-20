@@ -68,7 +68,7 @@ article {
     <body>
         <header>
             <div id="home">
-                <a href="/">Scanvine</a>
+                <a href="/">Scanvine | scanning the grapevine</a>
                 <div id="search">
                     <hr/>
                     <form>
@@ -79,24 +79,19 @@ article {
             </div>
             <div id="filter-menu">
                 <div id="filter-scoring">
-                    <span class="scoring">{% if category == 'Top' %}Top{%else %}<a href="/main/">Top</a>{% endif %}</span> |
-                    <span class="scoring">{% if category == 'Raw' %}Raw{%else %}<a href="/main/raw">Raw</a>{% endif %}</span> |
-                    <span class="scoring">{% if category == 'Odd' %}Odd{%else %}<a href="/main/">Odd</a>{% endif %}</span>
+                    {% for link in scoring_links %}
+                    <span class="scoring">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    {% endfor %}
                 </div>
                 <div id="filter-category">
-                    <span class="category">All</span> |
-                    <span class="category"><a href="/main/category/health">Health</a></span> |
-                    <span class="category"><a href="/main/category/science">Science</a></span> |
-                    <span class="category"><a href="/main/category/tech">Tech</a></span> |
-                    <span class="category"><a href="/main/category/business">Business</a></span> |
-                    <span class="category"><a href="/main/category/media">Media</a></span> 
+                    {% for link in category_links %}
+                    <span class="category">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    {% endfor %}
                 </div>
                 <div id="filter-timing">
-                    <span class="timing"><a href="/">Today</a></span> |
-                    <span class="timing"><a href="/">3 days</a></span> |
-                    <span class="timing"><a href="/">Week</a></span> |
-                    <span class="timing"><a href="/">Month</a></span> |
-                    <span class="timing"><a href="/">Ever</a></span>
+                    {% for link in timing_links %}
+                    <span class="timing">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    {% endfor %}
                 </div>
             </div>
         </header>
