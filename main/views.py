@@ -44,7 +44,7 @@ def index_view(request, category=None, scoring=None, days=None):
         articles2 = articles_query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
         for article in articles1:
-            article.score = article.buzz
+            article.score = int(max(article.buzz, alt_buzz(article, category)))
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
@@ -92,7 +92,7 @@ def alt_buzz(article, category):
     if total_pub_category_score == 0:
         return article.score
     fraction = article.score / total_pub_category_score
-    return math.sqrt(fraction) * article.score
+    return (math.sqrt(fraction) * article.score) // 1000
 
 
 def author_view(request, author_id):
