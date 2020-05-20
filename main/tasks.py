@@ -521,7 +521,7 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = total_credibility if total_credibility else 0
             total_articles = Article.objects.filter(publication_id=publication.id).count()
-            publication.average_credibility = publication.total_credibility / total_articles
+            publication.average_credibility = 0 if total_articles==0 else publication.total_credibility / total_articles
             publication.scores = {'total': publication.total_credibility}
             for category in CATEGORIES:
                 category_average_score = Article.objects.filter(publication_id=publication.id).annotate(
