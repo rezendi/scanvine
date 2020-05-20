@@ -376,6 +376,14 @@ def parse_article_metadata(article_id):
             article.author_id = None
             article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
         article.save()
+
+        if author and len(author.name) > 6:
+            for share in Share.objects.filter(article_id=article.id):
+                if share.sharer_id and share.sharer.name == author.name:
+                    Tranche.filter(receiver=share.id).delete()
+                    share.status = Share.Status.SELF_SHARE
+                    share.save()
+
     except Exception as ex2:
         log_job(job, "Article parse error %s" % ex2, Job.Status.ERROR)
         article.status = Article.Status.METADATA_PARSE_ERROR

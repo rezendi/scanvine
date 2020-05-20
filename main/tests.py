@@ -149,7 +149,7 @@ class ScoringTest(TestCase):
         # last share shouldn't have a tranche, because that sharer already shared that article
         # UNTIL we assign to the share with the highest net sentiment, which we don't do yet
         sharer = Share.objects.all()[:1][0]
-        article = Share.objects.all()[:4][3]
+        article = Article.objects.all()[:4][3]
         share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=16)
         share.save()
         share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=99)
@@ -162,19 +162,17 @@ class ScoringTest(TestCase):
         self.assertEqual(0, len(tranches))
 
         # OK, check tranches
-        for share in Share.objects.all().order_by("id")[:4]:
-            id = share.id
-            expected = 1 if id< 3 else 2 if id==3 else 3 if id==4 else 1
-            tranche = Tranche.objects.get(receiver=id)
+        for idx,share in enumerate(Share.objects.all().order_by("id")[:4]):
+            expected = 1 if idx< 2 else 2 if idx==2 else 3 if idx==3 else 1
+            tranche = Tranche.objects.get(receiver=share.id)
             self.assertIsNotNone(tranche)
             self.assertEqual(1008*expected, tranche.quantity)
-        for article in Article.objects.all().order_by("id"):
-            id = article.id
-            expected = 1 if id< 3 else 2 if id==3 else 4 if id==4 else 0
+        for idx,article in enumerate(Article.objects.all().order_by("id")):
+            expected = 1 if idx< 2 else 2 if idx==2 else 4 if idx==3 else 0
             self.assertEqual(1008*expected, article.total_credibility)
-            expected_health_buzz = 1008 if id==1 else 4032 if id==4 else 0
+            expected_health_buzz = 1008 if idx==0 else 4032 if idx==3 else 0
             self.assertEqual(expected_health_buzz, article.scores['health'])
-            expected_tech_buzz = 2016 if id==3 else 0
+            expected_tech_buzz = 2016 if idx==2 else 0
             self.assertEqual(expected_tech_buzz, article.scores['tech'])
             self.assertEqual(0, article.scores['media'])
         self.assertEqual(4, Author.objects.all().count())
@@ -189,11 +187,11 @@ class ScoringTest(TestCase):
             else:
                 self.assertEqual(0, author.total_credibility)
         pub = Publication.objects.get(domain="test.com")
-        self.assertEqual(1008, pub.scores['health'])
+        self.assertEqual(504, pub.scores['health'])
         self.assertEqual(2016, pub.total_credibility)
         self.assertEqual(1008, pub.average_credibility)
         pub = Publication.objects.get(domain="test2.com")
-        self.assertEqual(4032, pub.scores['health'])
+        self.assertEqual(2016, pub.scores['health'])
         self.assertEqual(6048, pub.total_credibility)
         self.assertEqual(3024, pub.average_credibility)
     
