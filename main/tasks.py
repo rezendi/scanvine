@@ -380,7 +380,7 @@ def parse_article_metadata(article_id):
         if author and len(author.name) > 6:
             for share in Share.objects.filter(article_id=article.id):
                 if share.sharer_id and share.sharer.name == author.name:
-                    Tranche.filter(receiver=share.id).delete()
+                    Tranche.objects.filter(receiver=share.id).delete()
                     share.status = Share.Status.SELF_SHARE
                     share.save()
 
