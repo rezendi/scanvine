@@ -24,7 +24,7 @@ def index_view(request, category=None, scoring=None, days=None):
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        buzz=(F('score') / (F('pub_category_average')+1)),
+        buzz=(F('score') - F('pub_category_average')),
         pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         odd=(F('score') / (F('pub_article_count')+1)),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False).filter(
@@ -44,7 +44,7 @@ def index_view(request, category=None, scoring=None, days=None):
         articles2 = articles_query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
         for article in articles1:
-            article.score = int(max(article.buzz, alt_buzz(article, category)))
+            article.score = article.buzz
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
@@ -92,7 +92,7 @@ def alt_buzz(article, category):
     if total_pub_category_score == 0:
         return article.score
     fraction = article.score / total_pub_category_score
-    return (math.sqrt(fraction) * article.score) // 1000
+    return math.sqrt(fraction) * article.score
 
 
 def author_view(request, author_id):
