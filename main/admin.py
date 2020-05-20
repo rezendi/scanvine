@@ -140,7 +140,7 @@ admin.site.register(Collaboration)
 @admin.register(Publication)
 class PublicationAdmin(ScanvineAdmin):
     change_form_template = "admin/publication_change_form.html"
-    list_display = ('id',   'domain', 'name', 'average_credibility', 'total_credibility')
+    list_display = ('id', 'domain', 'name', 'average_credibility', 'total_credibility')
     search_fields = ('name','domain')
     readonly_fields= ('created_at','updated_at')
     fields = (

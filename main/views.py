@@ -25,8 +25,8 @@ def index_view(request, category=None, scoring=None, days=None):
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
         buzz=(F('score') - F('pub_category_average')),
-        pub_article_count=Cast(KeyTextTransform('count', 'publication__scores'), IntegerField()),
-        odd=(F('score') / F('pub_article_count')+1),
+        pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
+        odd=(F('score') / (F('pub_article_count')+1)),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(
         Q(published_at__range=(start_date, end_date)) | Q(published_at__isnull=True, created_at__range=(start_date,end_date))
     ).defer('contents','metadata')
@@ -65,11 +65,16 @@ def index_view(request, category=None, scoring=None, days=None):
         {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
     ]
     timing_links = [
-        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (scoring,category)},
-        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (scoring,category)},
-        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (scoring,category)},
-        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (scoring,category)},
+        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
+        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
+        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
+        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
     ]
+    
+    if request.GET.get('svd','')=='true':
+        for array in [category_links, scoring_links, timing_links]:
+            for vals in array:
+                vals['href'] = vals['href'] + "?svd=true"
 
     context = {
         'category': category.title(),

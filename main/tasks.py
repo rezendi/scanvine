@@ -517,6 +517,7 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
             author.current_credibility = authors_dict[author.id] # TODO spendability
             author.save()
 
+        # TODO split this out into its own job, probably
         for publication in Publication.objects.all():
             total_credibility = Article.objects.filter(publication_id=publication.id).aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = int(total_credibility if total_credibility else 0)
@@ -527,7 +528,10 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
                 ).aggregate(Avg('score'))['score__avg']
                 publication.scores[category] = int(category_average_score if category_average_score else 0)
-                publication.scores['count'] = int(total_articles if total_articles else 0)
+                category_count = Article.objects.annotate(
+                    category_score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
+                ).filter(publication_id=publication.id).filter(**{'category_score__gt': 0}).count()
+                publication.scores["%s_count" % category] = int(category_count if category_count else 0)
             publication.save()
 
     except Exception as ex:
