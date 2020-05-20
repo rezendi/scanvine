@@ -1,6 +1,6 @@
 <H1><a href="/">Scanvine</a></H1>
 <H2>{{author.name}}</H2>
-Tracked articles {{ article_count }} Credibility {{author.credibility}}
+Tracked articles {{ article_count }} Credibility {{author.total_credibility}}
 <table>
     <tr>
         <th>Score</th>
@@ -10,7 +10,7 @@ Tracked articles {{ article_count }} Credibility {{author.credibility}}
     </tr>
     {% for article in articles %}
         <tr>
-            <td>{{article.credibility}}</td>
+            <td>{{article.total_credibility}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
             <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>

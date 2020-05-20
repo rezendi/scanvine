@@ -120,8 +120,8 @@ article {
                         <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
                         <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
                         {% ifequal request.GET.svd "true" %}
-                            article {{article.score}} {{article.buzz}} {{article.total_credibility}} {{article.scores}}
-                            publication {{article.publication.total_credibility}} {{article.publication.average_credibility}} {{article.publication.scores}}
+                            article total {{article.total_credibility}} score {{article.score}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}} {{article.scores}}
+                            publication total {{article.publication.total_credibility}} average {{article.publication.average_credibility}} {{article.publication.scores}}
                         {% endifequal %}
                     </span>
                 </div>

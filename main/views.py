@@ -52,9 +52,6 @@ def index_view(request, category=None, scoring=None, days=None):
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
-    for article in articles:
-        article.score = int(article.score) // 1000
-    
     category = 'all' if category=='total' else category
     
     category_links = [{'name':'All', 'href': 'no' if category=='all' else 'all/%s/%s' % (scoring,days)}]
