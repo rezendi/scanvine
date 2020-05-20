@@ -1,5 +1,7 @@
+{% load static %}
 <html>
     <head>
+        <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
         <title>Scanvine | scanning the grapevine</title>
     <style>
 a {
@@ -19,6 +21,11 @@ header {
 }
 
 #home {
+    display:flex;
+}
+
+#nav {
+    margin-left:5px;
     display:flex;
     flex-direction:column;
     align-content:center;
@@ -79,14 +86,17 @@ article {
     <body>
         <header>
             <div id="home">
-                <a href="/"><b>Scanvine</b></a>
-                <div id="aggregate-links">
-                    <a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
+                <img src="/static/Scanvine_S.png" height="55" width="55"/>
+                <div id="nav">
+                    <a href="/"><b>Scanvine</b></a>
+                    <div id="aggregate-links">
+                        <a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
+                    </div>
+                    <form>
+                        <input type="search" placeholder="Search" name="search" value="{{search}}">
+                        <button type="submit">Search</button>
+                    </form>
                 </div>
-                <form>
-                    <input type="search" placeholder="Search" name="search" value="{{search}}">
-                    <button type="submit">Search</button>
-                </form>
             </div>
             <div id="filter-menu">
                 <div id="filter-scoring">

@@ -301,6 +301,7 @@ def reparse_articles():
         last_id = int(last_id_string)
     page_size = 100
     articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED)[:page_size]
+    log_job(job, "Reparsing %s articles" % articles.count(), Job.Status.COMPLETED)
     new_last_id = last_id
     for article in articles:
         new_last_id = article.id
