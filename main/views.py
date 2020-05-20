@@ -52,9 +52,7 @@ def index_view(request, category=None, scoring=None, days=None):
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
-    category = 'all' if category=='total' else category
-    
-    category_links = [{'name':'All', 'href': 'no' if category=='all' else 'all/%s/%s' % (scoring,days)}]
+    category_links = [{'name':'All', 'href': 'no' if category=='total' else 'all/%s/%s' % (scoring,days)}]
     category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
@@ -71,11 +69,13 @@ def index_view(request, category=None, scoring=None, days=None):
     if request.GET.get('svd','')=='true':
         for array in [category_links, scoring_links, timing_links]:
             for vals in array:
-                vals['href'] = vals['href'] + "?svd=true"
+                vals['href'] = vals['href'] + "?svd=true" if vals['href']!='no' else vals['href']
 
+    category = '' if category=='total' else category
+    
     context = {
         'category': category.title(),
-        'scoring' : scoring,
+        'scoring' : scoring.title(),
         'days' : days,
         'category_links': category_links,
         'scoring_links' : scoring_links,

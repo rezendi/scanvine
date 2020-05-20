@@ -105,6 +105,7 @@ class Article(models.Model):
         PUBLICATION_PARSE_ERROR = -1
         METADATA_PARSE_ERROR = -2
         AUTHOR_NOT_FOUND = -3
+        POTENTIAL_DUPLICATE = -4
     
     publication = models.ForeignKey(Publication, null=True, blank=True, on_delete = models.SET_NULL)
     author = models.ForeignKey(Author, null=True, blank=True, on_delete = models.SET_NULL)

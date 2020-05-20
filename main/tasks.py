@@ -300,10 +300,16 @@ def reparse_articles():
         last_id_string = previous_jobs[0].actions.partition("\n")[0]
         last_id = int(last_id_string)
     page_size = 100
-    articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED)[:page_size]
+    articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED).order_by("id")[:page_size]
     log_job(job, "Reparsing %s articles" % articles.count(), Job.Status.COMPLETED)
     new_last_id = last_id
     for article in articles:
+        if len(article.title) > 32:
+            duplicates = Article.objects.exclude(id=article.id).filter(title=article.title)
+            if duplicates:
+                duplicate = duplicates[0]
+                duplicate.status = Article.status.POTENTIAL_DUPLICATE
+                duplicate.save()
         new_last_id = article.id
         s = parse_article_metadata.signature((article.id,))
         s.apply_async()
