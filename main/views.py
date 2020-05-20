@@ -24,7 +24,7 @@ def index_view(request, category=None, scoring=None, days=None):
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        buzz=(F('score') - F('pub_category_average')),
+        buzz=(F('score') / (F('pub_category_average')+1)),
         pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         odd=(F('score') / (F('pub_article_count')+1)),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False).filter(
