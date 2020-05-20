@@ -298,10 +298,11 @@ def reparse_articles():
     last_id = 0
     if previous_jobs:
         last_id_string = previous_jobs[0].actions.partition("\n")[0]
-        last_id = int(last_id_string)
+        last_id_string = '' if not last_id_string else last_id_string
+        last_id = int("".join(filter(str.isdigit, last_id_string)))
     page_size = 100
     articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED).order_by("id")[:page_size]
-    log_job(job, "Reparsing %s articles" % articles.count(), Job.Status.COMPLETED)
+    log_job(job, "Reparsing %s articles" % len(articles), Job.Status.COMPLETED)
     new_last_id = last_id
     for article in articles:
         if len(article.title) > 32:
