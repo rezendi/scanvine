@@ -527,6 +527,7 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
                 ).aggregate(Avg('score'))['score__avg']
                 publication.scores[category] = int(category_average_score if category_average_score else 0)
+                publication.scores['count'] = int(total_articles if total_articles else 0)
             publication.save()
 
     except Exception as ex:

@@ -24,17 +24,22 @@ def index_view(request, category=None, scoring=None, days=None):
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        buzz=(F('score') - Cast(F('pub_category_average'), IntegerField())),
+        buzz=(F('score') - F('pub_category_average')),
+        pub_article_count=Cast(KeyTextTransform('count', 'publication__scores'), IntegerField()),
+        odd=(F('score') / F('pub_article_count')+1),
     ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata')
 
     articles = []
-    if scoring=='raw' or scoring=='odd':
+    if scoring=='raw':
         articles = articles_query.order_by("-score")[:page_size]
 
+    if scoring=='odd':
+        articles = articles_query.order_by("-odd")[:page_size]
+
     if scoring=='top':
-        # we can't (easily) do the single-article-publication special case handling in DB, so do it here
+        # we can't (easily) do the publications-with-few-articles special case handling in DB, so do it here
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
         articles2 = articles_query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
