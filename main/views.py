@@ -1,8 +1,8 @@
 import datetime, math
 from django.shortcuts import render
 from django.utils.timezone import make_aware
-from django.db.models import F, IntegerField
-from django.db.models.functions import Cast, Abs, Left, Length
+from django.db.models import F, Q, IntegerField
+from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -27,8 +27,8 @@ def index_view(request, category=None, scoring=None, days=None):
         buzz=(F('score') - F('pub_category_average')),
         pub_article_count=Cast(KeyTextTransform('count', 'publication__scores'), IntegerField()),
         odd=(F('score') / F('pub_article_count')+1),
-    ).filter(
-        status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(
+        Q(published_at__range=(start_date, end_date)) | Q(published_at__isnull=True, created_at__range=(start_date,end_date))
     ).defer('contents','metadata')
 
     articles = []
