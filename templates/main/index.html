@@ -8,7 +8,7 @@ a {
 header {
     display:flex;
     justify-content:space-around;
-    margin:10px 50px 10px 50px;
+    padding:20px 50px 10px 50px;
 }
 
 content {
@@ -24,9 +24,11 @@ section {
 }
 
 article {
+    border-top:1px solid lavender;
+    border-style:thin;
     display:flex;
     flex-direction:column;
-    width:800px;
+    width:100%;
     padding:10px;
 }
 
@@ -61,21 +63,22 @@ article {
             <H3><a href="/">Scanvine</a></H3>
             <div id="filter-menu">
                 <div id="filter-scoring">
-                    <span class="scoring">{% if category == 'Top' %}All{%else %}<a href="/main/">All</a>{% endif %}</span>
-                    <span class="scoring">{% if category == 'Buzz' %}Buzz{%else %}<a href="/main/buzz">Buzz</a>{% endif %}</span>
+                    <span class="scoring">{% if category == 'Top' %}Top{%else %}<a href="/main/">Top</a>{% endif %}</span> |
+                    <span class="scoring">{% if category == 'Raw' %}Raw{%else %}<a href="/main/raw">Raw</a>{% endif %}</span> |
+                    <span class="scoring">{% if category == 'Odd' %}Odd{%else %}<a href="/main/">Odd</a>{% endif %}</span>
                 </div>
                 <div id="filter-category">
-                    <span class="category"><a href="/main/category/health">Health</a></span>
-                    <span class="category"><a href="/main/category/science">Science</a></span>
-                    <span class="category"><a href="/main/category/tech">Tech</a></span>
-                    <span class="category"><a href="/main/category/business">Business</a></span>
+                    <span class="category"><a href="/main/category/health">Health</a></span> |
+                    <span class="category"><a href="/main/category/science">Science</a></span> |
+                    <span class="category"><a href="/main/category/tech">Tech</a></span> |
+                    <span class="category"><a href="/main/category/business">Business</a></span> |
                     <span class="category"><a href="/main/category/media">Media</a></span>
                 </div>
                 <div id="filter-timing">
-                    <span class="timing"><a href="/">Today</a></span>
-                    <span class="timing"><a href="/">Last 3 days</a></span>
-                    <span class="timing"><a href="/">Last week</a></span>
-                    <span class="timing"><a href="/">Last month</a></span>
+                    <span class="timing"><a href="/">Today</a></span> |
+                    <span class="timing"><a href="/">3 days</a></span> |
+                    <span class="timing"><a href="/">Week</a></span> |
+                    <span class="timing"><a href="/">Month</a></span> |
                     <span class="timing"><a href="/">Ever</a></span>
                 </div>
                 <div id="filter-search">
@@ -95,15 +98,15 @@ article {
         <div id="article-list">
             {% for article in articles %}
             <article>
-                <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:84}}</a>
+                <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:94}}</a>
                 <div class="article-bottom">
                     {% if article.thumbnail_url %}
-                        <div class="article-image">
+                        <div class="article-image" title="{{article.score}}">
                             <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
                         </div>
                     {% endif %}
                     <span class="article-info">
-                        <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:40}}</a>
+                        <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
                         <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
                         <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
                     </span>

@@ -63,7 +63,7 @@ def index_view(request, category=None):
         articles.sort(key = lambda L: L.score, reverse=True)
     
     context = {
-        'category': category.title() if category else 'Buzz' if is_buzz else 'Top',
+        'category': category.title() if category else 'Top' if is_buzz else 'Raw',
         'articles': articles,
     }
     return render(request, 'main/index.html', context)
