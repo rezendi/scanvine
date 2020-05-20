@@ -8,7 +8,7 @@
 </div>
 {% endfor %}
 <hr/>
-Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.credibility}} {% endif %}
+Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.credibility}} Average {{base_author.average_cred}} {% endif %}
 <table>
     <tr>
         <th>Score</th>
@@ -18,7 +18,7 @@ Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{ba
     </tr>
     {% for article in articles %}
         <tr>
-            <td>{{article.total_credibility}}</td>
+            <td>{{article.credibility}}</td>
             <td><a href="{{article.url}}">{{article.title}}</a></td>
             <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
             <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>

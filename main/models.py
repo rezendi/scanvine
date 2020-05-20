@@ -59,6 +59,9 @@ class Author(models.Model):
     def credibility(self):
         return 0 if not self.total_credibility else self.total_credibility // 1000
 
+    def average_cred(self):
+        return 0 if not self.average_credibility else self.average_credibility // 1000
+
 
 class Collaboration(models.Model):
     partnership = models.ForeignKey(Author, on_delete = models.CASCADE, related_name='collaborators')

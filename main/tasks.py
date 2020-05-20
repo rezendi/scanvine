@@ -1,7 +1,7 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
-from django.db.models import Sum, Avg, IntegerField
+from django.db.models import Sum, Avg, IntegerField, Q
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.utils.timezone import make_aware
@@ -295,25 +295,27 @@ def parse_unparsed_articles():
 def reparse_articles():
     job = launch_job("reparse_articles")
     previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="reparse_articles").order_by("-created_at")
-    last_id = 0
     if previous_jobs:
         last_id_string = previous_jobs[0].actions.partition("\n")[0]
         last_id_string = '' if not last_id_string else last_id_string
         last_id = int("".join(filter(str.isdigit, last_id_string)))
     page_size = 100
-    articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED).order_by("id")[:page_size]
+    articles = Article.objects.filter(status__gt=Article.Status.CREATED)
+    if last_id:
+        articles = articles.filter(id__lt=last_id)
+    articles = articles.order_by("-id")[:page_size]
     log_job(job, "Reparsing %s articles" % len(articles), Job.Status.COMPLETED)
     new_last_id = last_id
     for article in articles:
         if len(article.title) > 32:
-            duplicates = Article.objects.exclude(id=article.id).filter(title=article.title)
+            duplicates = Article.objects.exclude(Q(id=article.id) | Q(status=Article.Status.POTENTIAL_DUPLICATE)).filter(title=article.title)
             if duplicates:
-                duplicate = duplicates[0]
-                duplicate.status = Article.status.POTENTIAL_DUPLICATE
-                duplicate.save()
+                article.status = Article.Status.POTENTIAL_DUPLICATE
+                article.save()
         new_last_id = article.id
-        s = parse_article_metadata.signature((article.id,))
-        s.apply_async()
+        if article.status > Article.Status.CREATED: # if not a duplicate
+            s = parse_article_metadata.signature((article.id,))
+            s.apply_async()
     if len(articles) < page_size:
         new_last_id='0'
     log_job(job, "%s" % new_last_id, Job.Status.COMPLETED)
@@ -536,13 +538,16 @@ def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
                 author_amount = amount / len(author_ids)
             for author_id in author_ids:
                 if not author_id in authors_dict:
-                    authors_dict[author_id] = 0
-                authors_dict[author_id] = authors_dict[author_id] + author_amount
+                    authors_dict[author_id] = {'c':0,'t':0}
+                authors_dict[author_id]['t'] = authors_dict[author_id]['t'] + author_amount
+                authors_dict[author_id]['c'] = authors_dict[author_id]['c'] + 1
 
         log_job(job, "authors %s" % len(authors_dict))
         for author in Author.objects.filter(id__in=authors_dict.keys()).defer('name','twitter_id','twitter_screen_name','metadata'):
-            author.total_credibility = authors_dict[author.id]
-            author.current_credibility = authors_dict[author.id] # TODO spendability
+            author.total_credibility = authors_dict[author.id]['t']
+            author.current_credibility = authors_dict[author.id]['t'] # TODO spendability
+            total_articles = authors_dict[author.id]['c']
+            author.average_credibility = 0 if total_articles==0 else author.total_credibility / total_articles
             author.save()
 
         # TODO split this out into its own job, probably

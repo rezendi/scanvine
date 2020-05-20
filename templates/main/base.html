@@ -1,11 +1,9 @@
 {% load static %}
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="style.css">
     <title>{% block title %}My amazing site{% endblock %}</title>
-    <head>
-        <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
-        <title>Scanvine | scanning the grapevine</title>
+    <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
+    <title>Scanvine | scanning the grapevine</title>
     <style>
 a {
     text-decoration: none;
@@ -92,6 +90,24 @@ article {
     justify-content:flex-start;
 }
     </style>
+
+<script>window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+    t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+    t._e.push(f);
+  };
+
+  return t;
+}(document, "script", "twitter-wjs"));</script>
+
 </head>
 
 <body>
@@ -131,5 +147,9 @@ article {
     <main>
         {% block main %}{% endblock %}
     </main>
+
+    <footer>
+    </footer>
+{% block endjs %}{% endblock %}
 </body>
 </html>
