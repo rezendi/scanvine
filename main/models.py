@@ -89,7 +89,7 @@ class Publication(models.Model):
         return "/publications/%s" % self.id
 
 
-def default_article_scores():
+def default_scores():
     return {
         'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
     }
@@ -119,7 +119,7 @@ class Article(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
     total_credibility = models.BigIntegerField(default=0, db_index=True)
-    scores = JSONField(db_index=True, default=default_article_scores)
+    scores = JSONField(db_index=True, default=default_scores)
     thumbnail_url = models.URLField(null=True, blank=True, max_length=1023)
 
     def __str__(self):
