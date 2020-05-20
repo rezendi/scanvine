@@ -29,19 +29,21 @@ def index_view(request, category=None, scoring=None, days=None):
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata')
 
-    articles = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
+    articles = []
+    if scoring=='raw' or scoring=='odd':
+        articles = articles_query.order_by("-score")[:page_size]
 
     if scoring=='top':
         # we can't (easily) do the single-article-publication special case handling in DB, so do it here
-        articles2 = articles
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
+        articles2 = articles_query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
         for article in articles1:
             article.score = article.buzz
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
-                article.score = int(max(article.buzz, alt_buzz(article)))
+                article.score = int(max(article.buzz, alt_buzz(article, category)))
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
@@ -75,11 +77,15 @@ def index_view(request, category=None, scoring=None, days=None):
     }
     return render(request, 'main/index.html', context)
 
-def alt_buzz(article):
-    if article.total_credibility <= 0 or article.total_credibility > article.publication.total_credibility:
+def alt_buzz(article, category):
+    if article.score <= 0 or article.publication.average_credibility==0:
         return 0
-    fraction = article.total_credibility / article.publication.total_credibility
-    return math.sqrt(fraction) * article.total_credibility
+    total_pub_articles = article.publication.total_credibility / article.publication.average_credibility
+    total_pub_category_score = total_pub_articles * article.publication.scores[category]
+    if total_pub_category_score == 0:
+        return article.score
+    fraction = article.score / total_pub_category_score
+    return math.sqrt(fraction) * article.score
 
 
 def author_view(request, author_id):
