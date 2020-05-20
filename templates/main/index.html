@@ -4,6 +4,11 @@
     <style>
 a {
     text-decoration: none;
+    color:black;
+}
+a:hover {
+    text-decoration: none;
+    color:blue;
 }
 
 header {
@@ -81,17 +86,17 @@ article {
             <div id="filter-menu">
                 <div id="filter-scoring">
                     {% for link in scoring_links %}
-                    <span class="scoring">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    <span class="scoring">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
                     {% endfor %}
                 </div>
                 <div id="filter-category">
                     {% for link in category_links %}
-                    <span class="category">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    <span class="category">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
                     {% endfor %}
                 </div>
                 <div id="filter-timing">
                     {% for link in timing_links %}
-                    <span class="timing">{% ifequal link.href "no" %}{{link.name}}{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
+                    <span class="timing">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span> |
                     {% endfor %}
                 </div>
             </div>
