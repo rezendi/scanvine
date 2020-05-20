@@ -354,7 +354,7 @@ def parse_article_metadata(article_id):
             publication.save()
 
         article.metadata = metadata if metadata else article.metadata
-        article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata else article.title
+        article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata and metadata['sv_title'] else article.title
         article.published_at = datetime.datetime.fromisoformat(metadata['sv_pub_date']) if 'sv_pub_date' in metadata else article.published_at
         article.thumbnail_url = metadata['sv_image'] if 'sv_image' in metadata and len(metadata['sv_image'])<1024 else ''
         author = article_parsers.get_author_for(metadata, article.publication)
