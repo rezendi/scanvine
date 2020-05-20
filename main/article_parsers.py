@@ -204,7 +204,8 @@ def meta_parser(soup):
         time = soup.find("time")
         if time and 'datetime' in time.attrs:
             date = dateparser.parse(time.attrs['datetime'])
-            metadata['sv_pub_date'] = date.isoformat()
+            if date:
+                metadata['sv_pub_date'] = date.isoformat()
 
     if 'og:image' in metadata:
         metadata['sv_image'] = metadata['og:image']
