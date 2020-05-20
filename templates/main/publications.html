@@ -10,8 +10,8 @@
     </tr>
     {% for publication in publications %}
         <tr>
-            <td>{{publication.total_cred}}</td>
-            <td>{{publication.average_cred}}</td>
+            <td>{{publication.total_credibility}}</td>
+            <td>{{publication.average_credibility}}</td>
             <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
             <td>{{publication.total_articles}}</td>
             <td><a href="{{publication.latest.url}}">{{publication.latest.title}}</a> ||

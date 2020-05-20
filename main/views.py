@@ -112,6 +112,14 @@ def author_view(request, author_id):
     }
     return render(request, 'main/author.html', context)
 
+def article_view(request, article_id):
+    article = Article.objects.get(id=article_id)
+    context = {
+        'article': article,
+        'shares': Share.objects.filter(article_id=article.id)
+    }
+    return render(request, 'main/article.html', context)
+
 def publication_view(request, publication_id):
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '7'))
@@ -128,6 +136,10 @@ def publication_view(request, publication_id):
         'article_count' : article_count,
     }
     return render(request, 'main/publication.html', context)
+
+SORT_BY={
+    'ds':'-total_credibility',
+}
 
 def authors_view(request):
     page_size = int(request.GET.get('s', '20'))
@@ -154,14 +166,6 @@ def publications_view(request):
         'publications': publications,
     }
     return render(request, 'main/publications.html', context)
-
-def article_view(request, article_id):
-    article = Article.objects.get(id=article_id)
-    context = {
-        'article': article,
-        'shares': Share.objects.filter(article_id=article.id)
-    }
-    return render(request, 'main/article.html', context)
 
 def search_view(request):
     query = request.GET.get('search', '').strip()
