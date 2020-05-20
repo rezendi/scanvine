@@ -1,6 +1,9 @@
 <H1><a href="/">Scanvine</a></H1>
-<H2>{{author.name}}</H2>
-Tracked articles {{ article_count }} Credibility {{author.total_credibility}}
+{% for author in authors %}
+<a href="/main/author/{{author.id}}">{{author.name}}</a>{% if not forloop.last%}, {% endif %}
+{% endfor %}
+<hr/>
+Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.total_credibility}} {% endif %}
 <table>
     <tr>
         <th>Score</th>

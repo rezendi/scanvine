@@ -99,14 +99,25 @@ def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '0'))
     author = Author.objects.get(id=author_id)
-    articles = Article.objects.filter(author_id=author_id)
+    collaboration_ids = Collaboration.objects.filter(individual_id=author_id).values('partnership_id')
+    articles = Article.objects.filter(Q(author_id=author_id) | Q(author_id__in=collaboration_ids))
     article_count = articles.count()
     if days > 0:
         end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
+
+    if author.is_collaboration:
+        partner_ids = Collaboration.objects.filter(partnership_id=author_id).values('individual_id')
+        print("partner_ids %s" % partner_ids)
+        authors = Author.objects.filter(id__in=partner_ids)
+    else:
+        authors = [author]
+
     context = {
-        'author': author,
+        'collaboration' : author.is_collaboration,
+        'base_author' : author,
+        'authors': authors,
         'articles': articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
     }
