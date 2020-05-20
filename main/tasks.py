@@ -292,6 +292,26 @@ def parse_unparsed_articles():
         
 
 @shared_task()
+def reparse_articles():
+    job = launch_job("reparse_articles")
+    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="reparse_articles").order_by("-created_at")
+    last_id = 0
+    if previous_jobs:
+        last_id_string = previous_jobs[0].actions.partition("\n")[0]
+        last_id = int(last_id_string)
+    page_size = 100
+    articles = Article.objects.filter(id__gt=last_id, status__gt=Article.Status.CREATED)[:page_size]
+    new_last_id = last_id
+    for article in articles:
+        new_last_id = article.id
+        s = parse_article_metadata.signature((article.id,))
+        s.apply_async()
+    if len(articles) < page_size:
+        new_last_id='0'
+    log_job(job, "%s" % new_last_id, Job.Status.COMPLETED)
+        
+
+@shared_task()
 def reparse_publication_articles(publication_id):
     job = launch_job("reparse_publication_articles")
     articles = Article.objects.filter(publication_id = publication_id)

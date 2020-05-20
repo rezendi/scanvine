@@ -33,6 +33,10 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'task': 'main.tasks.associate_articles',
                 'schedule': 303.0,
             },
+            'add-every-900-seconds': {
+                'task': 'main.tasks.reparse_articles',
+                'schedule': 909.0,
+            },
             'add-every-1200-seconds': {
                 'task': 'main.tasks.allocate_credibility',
                 'schedule': 1212.0,

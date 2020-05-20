@@ -74,7 +74,8 @@ def json_ld_parser(soup):
             metadata['sv_pub_date'] = date.isoformat()
         
     if 'thumbnailUrl' in metadata:
-        thumbnail = metadata['thumbnailUrl'][0] if type(metadata['thumbnailUrl']) is list else thumbnail
+        thumbnail = metadata['thumbnailUrl']
+        thumbnail = thumbnail[0] if type(thumbnail) is list else thumbnail
         metadata['sv_image'] = thumbnail
     elif 'image' in metadata and 'url' in metadata['image']:
         metadata['sv_image'] = metadata['image']['url']
