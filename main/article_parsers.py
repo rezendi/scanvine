@@ -266,6 +266,9 @@ def get_author_for(metadata, publication):
         return None
     twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
     twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
+    if twitter_id and not twitter_id.isnumeric():
+        twitter_name = twitter_id if not twitter_name else twitter_name
+        twitter_id = None
     author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
 
     names = clean_author_string(author_string, publication).split(",")
