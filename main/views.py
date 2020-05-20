@@ -21,7 +21,6 @@ def index_view(request, category=None, scoring=None, days=None):
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     category = 'total' if not category or category not in CATEGORIES else category
-    # I can't believe this crazy sql stuff is necessary. TODO: refactor
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
