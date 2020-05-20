@@ -165,7 +165,7 @@ def meta_parser(soup):
         for vcard in vcards:
             if str(vcard).find("comment") > 0:
                 continue
-            text = vcard.find().text
+            text = vcard.find().text if vcard.find() else vcard.text
             if text:
                 byline = "%s, %s" % (byline, text) if byline else text
         if byline:
