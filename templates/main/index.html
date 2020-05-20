@@ -8,10 +8,17 @@ a {
 header {
     display:flex;
     justify-content:space-around;
+    align-content:flex-start;
     padding:20px 50px 10px 50px;
 }
 
-content {
+#home {
+    display:flex;
+    flex-direction:column;
+    align-content:center;
+}
+
+main {
     display:flex;
     justify-content:space-around;
 }
@@ -60,7 +67,16 @@ article {
     </head>
     <body>
         <header>
-            <H3><a href="/">Scanvine</a></H3>
+            <div id="home">
+                <a href="/">Scanvine</a>
+                <div id="search">
+                    <hr/>
+                    <form>
+                        <input type="search" placeholder="Search" name="search" value="{{search}}">
+                        <button type="submit">Search</button>
+                    </form>
+                </div>
+            </div>
             <div id="filter-menu">
                 <div id="filter-scoring">
                     <span class="scoring">{% if category == 'Top' %}Top{%else %}<a href="/main/">Top</a>{% endif %}</span> |
@@ -68,11 +84,12 @@ article {
                     <span class="scoring">{% if category == 'Odd' %}Odd{%else %}<a href="/main/">Odd</a>{% endif %}</span>
                 </div>
                 <div id="filter-category">
+                    <span class="category">All</span> |
                     <span class="category"><a href="/main/category/health">Health</a></span> |
                     <span class="category"><a href="/main/category/science">Science</a></span> |
                     <span class="category"><a href="/main/category/tech">Tech</a></span> |
                     <span class="category"><a href="/main/category/business">Business</a></span> |
-                    <span class="category"><a href="/main/category/media">Media</a></span>
+                    <span class="category"><a href="/main/category/media">Media</a></span> 
                 </div>
                 <div id="filter-timing">
                     <span class="timing"><a href="/">Today</a></span> |
@@ -81,21 +98,13 @@ article {
                     <span class="timing"><a href="/">Month</a></span> |
                     <span class="timing"><a href="/">Ever</a></span>
                 </div>
-                <div id="filter-search">
-                    <form>
-                        <input type="search" placeholder="Search" name="search" value="{{search}}">
-                        <button type="submit">Search</button>
-                    </form>
-                </div>
             </div>
-                </section>
-            </content>
         </header>
         
-        <content>
+        <main>
             <section>
         <H2>{{category}} Articles</H2>
-        <div id="article-list">
+        <div class="article-list">
             {% for article in articles %}
             <article>
                 <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:94}}</a>
@@ -114,6 +123,8 @@ article {
             </article>
             {% endfor %}
         </div>
+            </section>
+        </main>
         
         <footer>
         </footer>
