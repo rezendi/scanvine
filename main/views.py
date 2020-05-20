@@ -27,7 +27,7 @@ def index_view(request, category=None, scoring=None, days=None):
         buzz=(F('score') - F('pub_category_average')),
         pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         odd=(F('score') / (F('pub_article_count')+1)),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False).filter(
         Q(published_at__range=(start_date, end_date)) | Q(published_at__isnull=True, created_at__range=(start_date,end_date))
     ).defer('contents','metadata')
 

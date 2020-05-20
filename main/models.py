@@ -63,9 +63,10 @@ class Collaboration(models.Model):
         return "%s (%s)" % (self.individual.name, self.partnership.name)
 
 
-def default_scores():
+def default_publication_scores():
     return {
-        'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
+        'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0,
+        'total_count':0, 'health_count':0, 'science_count':0, 'tech_count':0, 'business_count':0, 'media_count':0,
     }
 
 # might need to break this down into separate publication and site tables
@@ -79,13 +80,19 @@ class Publication(models.Model):
     total_credibility = models.BigIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    scores = JSONField(db_index=True, default=default_scores)
+    scores = JSONField(db_index=True, default=default_publication_scores)
 
     def __str__(self):
         return self.name if self.name else self.domain
 
     def get_absolute_url(self):
         return "/publications/%s" % self.id
+
+
+def default_article_scores():
+    return {
+        'total':0, 'health':0, 'science':0, 'tech':0, 'business':0, 'media':0
+    }
 
 
 class Article(models.Model):
@@ -112,7 +119,7 @@ class Article(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
     total_credibility = models.BigIntegerField(default=0, db_index=True)
-    scores = JSONField(db_index=True, default=default_scores)
+    scores = JSONField(db_index=True, default=default_article_scores)
     thumbnail_url = models.URLField(null=True, blank=True, max_length=1023)
 
     def __str__(self):
