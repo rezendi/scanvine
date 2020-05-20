@@ -14,10 +14,11 @@ def json_ld_parser(soup):
             vals = json.loads(metastring)
             if type(vals) is list:
                 vals = vals[0]
+            if vals is not None:
+                metadata.update(vals)
         except Exception as ex:
             print("Could not parse LD-JSON %s" % metastring)
             return {}
-        metadata.update(vals)
     
     if 'headline' in metadata:
         metadata['sv_title'] = metadata['headline']
