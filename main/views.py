@@ -16,28 +16,40 @@ SORT_BY = {
     'a':'average_credibility',
 }
 
-def index_view(request):
+def index_view(request, category=None):
     query = request.GET.get('search', '')
     if query:
         return search_view(request)
-    is_buzz = request.path.startswith("/buzz") or request.path.startswith("/main/buzz")
+
+    is_buzz = not request.path.startswith("/raw") and not request.path.startswith("/main/raw")
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '3'))
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
-    articles_query = Article.objects.select_related('publication').annotate(
-        buzz=(F('total_credibility') - F('publication__average_credibility')),
-        diff=(F('total_credibility') - F('publication__total_credibility')),
-    ).filter(
+    if category:
+        category_key = category.lower()
+        articles_query = Article.objects.annotate(
+            score=Cast(KeyTextTransform(category_key, 'scores'), IntegerField())
+        )
+    else:
+        articles_query = Article.objects.select_related('publication').annotate(
+            buzz=(F('total_credibility') - F('publication__average_credibility')),
+            diff=(F('total_credibility') - F('publication__total_credibility')),
+        )
+    articles_query = articles_query.filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
     ).defer('contents','metadata')
     
-    # we can't (easily) do the single-article-publication special case handling in DB, so do it here
-    if not is_buzz:
+    if category:
+        articles = articles_query.order_by("-score")[:page_size]
+        for article in articles:
+            article.score = article.score // 1000
+    elif not is_buzz:
         articles = articles_query.order_by("-total_credibility")[:page_size]
         for article in articles:
             article.score = article.total_credibility // 1000
     else:
+        # we can't (easily) do the single-article-publication special case handling in DB, so do it here
         articles = []
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
         articles2 = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
@@ -51,7 +63,7 @@ def index_view(request):
         articles.sort(key = lambda L: L.score, reverse=True)
     
     context = {
-        'category': 'Buzz' if is_buzz else 'Top',
+        'category': category.title() if category else 'Buzz' if is_buzz else 'Top',
         'articles': articles,
     }
     return render(request, 'main/index.html', context)
@@ -123,26 +135,6 @@ def publications_view(request):
     }
     return render(request, 'main/publications.html', context)
 
-def category_view(request, category):
-    category_key = category.lower()
-    page_size = int(request.GET.get('s', '20'))
-    days = int(request.GET.get('d', '3'))
-    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
-    start_date = end_date - datetime.timedelta(days=days)
-
-    articles = Article.objects.annotate(
-        score=Cast(KeyTextTransform(category_key, 'scores'), IntegerField())
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)).defer('contents','metadata').order_by("-score")[:page_size]
-
-    for article in articles:
-        article.score = article.score // 1000
-
-    context = {
-        'category': category.title(),
-        'articles': articles,
-    }
-    return render(request, 'main/category.html', context)
-    
 def article_view(request, article_id):
     article = Article.objects.get(id=article_id)
     context = {

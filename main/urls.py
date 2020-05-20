@@ -9,6 +9,6 @@ urlpatterns = [
     path('author/<int:author_id>/', views.author_view, name='author'),
     path('publication/<int:publication_id>/', views.publication_view, name='publication'),
     path('article/<int:article_id>/', views.article_view, name='article'),
-    path('category/<str:category>/', views.category_view, name='category'),
-    path('buzz/', views.index_view, name='buzz'),
+    path('category/<str:category>/', views.index_view, name='category'),
+    path('raw/', views.index_view, name='raw'),
 ]
