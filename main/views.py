@@ -24,7 +24,7 @@ def index_view(request, category=None, scoring=None, days=None):
     # I can't believe this crazy sql stuff is necessary. TODO: refactor
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        pub_category_average=Cast(Left(KeyTextTransform(category, 'publication__scores'), Length(KeyTextTransform(category, 'publication__scores'))-2), IntegerField()),
+        pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
         buzz=(F('score') - Cast(F('pub_category_average'), IntegerField())),
     ).filter(
         status=Article.Status.AUTHOR_ASSOCIATED).filter(created_at__range=(start_date, end_date)
