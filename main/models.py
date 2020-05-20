@@ -44,9 +44,11 @@ class Author(models.Model):
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
     metadata = models.TextField(blank=True, default='')
     current_credibility = models.BigIntegerField()
-    total_credibility = models.BigIntegerField()
+    total_credibility = models.BigIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    average_credibility = models.BigIntegerField(default=0, db_index=True)
+    is_collective = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
         return self.name[:60] if self.name else "(%s)" %self.id
