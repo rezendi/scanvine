@@ -69,7 +69,7 @@ def json_ld_parser(soup):
     if pub and type(pub) is str:
         metadata['sv_publication'] = str(pub).replace("The ","")
 
-    if 'datePublished' in metadata:
+    if 'datePublished' in metadata and metadata['datePublished']:
         date = dateparser.parse(metadata['datePublished'])
         if date:
             metadata['sv_pub_date'] = date.isoformat()
@@ -196,7 +196,7 @@ def meta_parser(soup):
         if pub and 'content' in pub:
             metadata['sv_publication'] = str(pub['content']).replace("The ","")
 
-    if 'article:published' in metadata:
+    if 'article:published' in metadata and metadata['article:published']:
         date = dateparser.parse(metadata['article:published'])
         if date:
             metadata['sv_pub_date'] = date.isoformat()
