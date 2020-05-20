@@ -230,6 +230,19 @@ def reddit_parser(soup):
         return {'sv_author': author_tags[0]["data-author"]}
     return {}
 
+def instagram_parser(soup):
+    parts = []
+    title = soup.title
+    if title:
+        title = title.text
+    if title and title.find("on Instagram:")>0:
+        parts = title.partition("on Instagram:")
+    if title and title.find("’s Instagram profile post:")>0:
+        parts = title.partition("’s Instagram profile post:")
+    if parts:
+        return {'sv_author': parts[0], 'sv_title' : parts[2]}
+    return {}
+
 def linkedin_parser(soup):
     title = soup.title
     if title:
