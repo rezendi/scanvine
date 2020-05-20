@@ -112,8 +112,8 @@ class Article(models.Model):
     author = models.ForeignKey(Author, null=True, blank=True, on_delete = models.SET_NULL)
     language = models.CharField(max_length = 5, db_index=True)
     status = models.IntegerField(choices=Status.choices, db_index=True)
-    url = models.URLField(db_index=True, blank=True)
-    initial_url = models.URLField(null=True, blank=True)
+    url = models.URLField(db_index=True, blank=True, max_length=1023)
+    initial_url = models.URLField(null=True, blank=True, max_length=1023)
     title = models.CharField(blank=True, max_length=255)
     contents = models.TextField()
     metadata = models.TextField(blank=True, default='')
@@ -122,12 +122,16 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
     total_credibility = models.BigIntegerField(default=0, db_index=True)
     scores = JSONField(db_index=True, default=default_scores)
+    thumbnail_url = models.URLField(null=True, blank=True, max_length=1023)
 
     def __str__(self):
         return self.title[0:60] if self.title else "(%s)" %self.id
 
     def credibility(self):
         return round(self.total_credibility / 1000)
+
+    def display_date(self):
+        return self.published_at if self.published_at else self.created_at
 
 
 class Share(models.Model):
@@ -149,7 +153,7 @@ class Share(models.Model):
     source = models.IntegerField(default=0, db_index=True)
     language = models.CharField(max_length = 5, db_index=True)
     text = models.CharField(max_length=4095)
-    url = models.URLField()
+    url = models.URLField(max_length=1023)
     sentiment = models.CharField(blank = True, max_length=1023)
     net_sentiment = models.DecimalField(null = True, blank = True, decimal_places = 2, max_digits = 4, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

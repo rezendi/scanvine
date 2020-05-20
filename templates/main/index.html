@@ -1,37 +1,115 @@
-<H1><a href="/">Scanvine</a></H1>
-<p>
-    <span>scanning the grapevine</span> | 
-    <span>{% if category == 'Top' %}All{%else %}<a href="/main/">All</a>{% endif %}</span>
-    <span>{% if category == 'Buzz' %}Buzz{%else %}<a href="/main/buzz">Buzz</a>{% endif %}</span>
-    <span><a href="/main/category/health">Health</a></span>
-    <span><a href="/main/category/science">Science</a></span>
-    <span><a href="/main/category/tech">Tech</a></span>
-    <span><a href="/main/category/business">Business</a></span>
-    <span><a href="/main/category/media">Media</a></span>
-</p>
-<form>
-    <input type="search" placeholder="Search" name="search" value="{{search}}">
-    <button type="submit">Search</button>
-</form>
-<H2>{{category}} Articles</H2>
+<html>
+    <head>
+    <style>
+a {
+    text-decoration: none;
+}
 
-<table>
-    <tr>
-        <th>Score</th>
-        <th>Buzz</th>
-        <th>Article</th>
-        <th><a href="/main/authors">Author</a></th>
-        <th><a href="/main/publications">Publication</a></th>
-        <th>Date</th>
-    </tr>
-    {% for article in articles %}
-        <tr>
-            <td>{{article.credibility}}</td>
-            <td>{{article.buzz}}</td>
-            <td><a href="{{article.url}}">{{article.title}}</a></td>
-            <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
-            <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
-            <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
-        <tr>
-    {% endfor %}
-</table>
+body {
+    display:flex;
+    margin:30px;
+    justify-content:space-around;
+}
+
+#article-list {
+    padding:5px;
+    margin:5px;
+    width:66%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+.article {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-around;
+    width:800px;
+    padding:10px;
+}
+
+.article-title {
+    font-size:larger;
+    padding-bottom:5px;
+}
+
+.article-bottom {
+    display:flex;
+    display-content:space-between;
+    align-content:space-between;
+}
+.article-image {
+    display:flex;
+    align-self:flex-start;
+}
+.article-scores {
+    padding:5px;
+}
+
+.article-info {
+    padding:5px;
+    display:flex;
+    justify-content:flex-end;
+}
+
+    </style>
+    </head>
+    <body>
+        <H3><a href="/">Scanvine</a></H3>
+        
+        <div id="article-list">
+            <H2>{{category}} Articles</H2>
+            {% for article in articles %}
+            <div class="article">
+                <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:84}}</a>
+                <span class="article-bottom">
+                    {% if article.thumbnail_url %}
+                    <span class="article-image">
+                        <img src="{{article.thumbnail_url}}" height="60" width="auto"/>
+                    </span>
+                    {% endif %}
+                    <span class="article-info">
+                        <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:40}}</a>,
+                        &nbsp;
+                        <a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a>,
+                        &nbsp;
+                        <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
+                    </span>
+                    <span class="article-scores">
+                        {{article.score}}
+                    </span>
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="filter-menu">
+            <div id="filter-scoring">
+                <span class="scoring">{% if category == 'Top' %}All{%else %}<a href="/main/">All</a>{% endif %}</span>
+                <span class="scoring">{% if category == 'Buzz' %}Buzz{%else %}<a href="/main/buzz">Buzz</a>{% endif %}</span>
+            </div>
+            <div id="filter-category">
+                <span class="category"><a href="/main/category/health">Health</a></span>
+                <span class="category"><a href="/main/category/science">Science</a></span>
+                <span class="category"><a href="/main/category/tech">Tech</a></span>
+                <span class="category"><a href="/main/category/business">Business</a></span>
+                <span class="category"><a href="/main/category/media">Media</a></span>
+            </div>
+            <div id="filter-timing">
+                <span class="timing"><a href="/">Today</a></span>
+                <span class="timing"><a href="/">Last 3 days</a></span>
+                <span class="timing"><a href="/">Last week</a></span>
+                <span class="timing"><a href="/">Last month</a></span>
+                <span class="timing"><a href="/">Ever</a></span>
+            </div>
+            <div id="filter-search">
+                <form>
+                    <input type="search" placeholder="Search" name="search" value="{{search}}">
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+        
+    </body>
+</html>

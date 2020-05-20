@@ -73,6 +73,11 @@ def json_ld_parser(soup):
         if date:
             metadata['sv_pub_date'] = date.isoformat()
         
+    if 'thumbnailUrl' in metadata:
+        metadata['sv_image'] = metadata['thumbnailUrl']
+    elif 'image' in metadata and 'url' in metadata['image']:
+        metadata['sv_image'] = metadata['image']['url']
+        
     # print("0 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 0'
     return metadata
 
@@ -197,7 +202,13 @@ def meta_parser(soup):
         if time and 'datetime' in time.attrs:
             date = dateparser.parse(time.attrs['datetime'])
             metadata['sv_pub_date'] = date.isoformat()
+
+    if 'og:image' in metadata:
+        metadata['sv_image'] = metadata['og:image']
+    elif 'twitter:image' in metadata:
+        metadata['sv_image'] = metadata['twitter:image']
         
+
     # print("1 author %s" % metadata['sv_author']) if 'sv_author' in metadata else 'No 1'
     return metadata
 
@@ -368,7 +379,7 @@ def clean_author_name(name, publication = None):
     newname = newname.replace('  ',' ').strip()
     if newname.startswith("http"):
         split = newname.rpartition("/")
-        newname = split[0].rpartition("/")[2] if split[2].isnumeric() else spllit[2]
+        newname = split[0].rpartition("/")[2] if split[2].isnumeric() else split[2]
         tentative = newname.split("-")
         if len(tentative)>1 and len (tentative) <5:
             newname = " ".join(tentative)

@@ -36,19 +36,19 @@ def index_view(request):
     if not is_buzz:
         articles = articles_query.order_by("-total_credibility")[:page_size]
         for article in articles:
-            article.buzz = int(max(article.buzz, alt_buzz(article))) // 1000
+            article.score = article.total_credibility // 1000
     else:
         articles = []
         articles1 = articles_query.order_by("-buzz")[:page_size] # default list
         articles2 = articles_query.order_by("-total_credibility")[:page_size] # may have entries to insert
         for article in articles1:
-            article.buzz = article.buzz // 1000
+            article.score = article.buzz // 1000
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
-                article.buzz = max(article.buzz, alt_buzz(article)) // 1000
+                article.score = int(max(article.buzz, alt_buzz(article))) // 1000
                 articles.append(article)
-        articles.sort(key = lambda L: L.buzz, reverse=True)
+        articles.sort(key = lambda L: L.score, reverse=True)
     
     context = {
         'category': 'Buzz' if is_buzz else 'Top',

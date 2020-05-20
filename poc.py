@@ -41,12 +41,29 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
+# Launch Twitter API
+import twitter
+api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
+                  consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
+                  access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
+                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''),
+                  tweet_mode='extended')
+#                 sleep_on_rate_limit=True)
+
 from main import tasks
 
 #result = tasks.get_potential_sharers.delay()
 #output = result.wait(timeout=None, interval=0.5)
 
-tasks.assign_share_categories()
+parameters = {}
+parameters['list_id'] = 1259645776315117568
+parameters['screen_name'] = 'caterina, paulg'
+# url = '%s/application/rate_limit_status.json' % api.base_url
+url = '%s/lists/members/create_all.json' % api.base_url
+resp = api._RequestUrl(url, 'POST', data=parameters)
+print("headers %s" % resp.headers)
+data = api._ParseAndCheckTwitter(resp.content.decode('utf-8'))
+print("api data %s" % data)
 
 # result = tasks.ingest_sharers.delay()
 # output = result.wait(timeout=None, interval=0.5)

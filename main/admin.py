@@ -67,7 +67,7 @@ class ArticleAdmin(ScanvineAdmin):
     readonly_fields= ('created_at','updated_at')
     fieldsets = (
         (None, {
-            'fields': ( 'title', ('publication', 'author'), ('status', 'language'), 'url', 'total_credibility', ('created_at','updated_at','published_at') )
+            'fields': ( 'title', ('publication', 'author'), ('status', 'language'), 'url', 'thumbnail_url', 'total_credibility', ('created_at','updated_at','published_at') )
         }),
         ('Metadata', {
             'classes': ('collapse',),

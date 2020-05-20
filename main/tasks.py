@@ -208,8 +208,8 @@ def fetch_shares():
                 log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
                 continue
             sharer = sharer[0]
-            if len(str(url))>200:
-                url = str(url)[0:199]
+            if len(str(url))>=1024:
+                url = str(url)[0:1023]
             s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
                       sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
             s.save()
@@ -336,6 +336,7 @@ def parse_article_metadata(article_id):
         article.metadata = metadata if metadata else article.metadata
         article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata else article.title
         article.published_at = datetime.datetime.fromisoformat(metadata['sv_pub_date']) if 'sv_pub_date' in metadata else article.published_at
+        article.thumbnail_url = metadata['sv_image'] if 'sv_image' in metadata and len(metadata['sv_image'])<1024 else ''
         author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
