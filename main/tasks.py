@@ -251,6 +251,7 @@ def associate_article(share_id, force_refetch=False):
             log_job(job, "article exists for %s" % share.url, Job.Status.COMPLETED)
             return
     try:
+        # let's get the url, the final url, and the final final url
         url = existing[0].initial_url if existing else share.url
         log_job(job, "Fetching %s" % url)
         r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
@@ -264,6 +265,14 @@ def associate_article(share_id, force_refetch=False):
         if final_host != urllib3.util.parse_url(r.geturl()).host:
             r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
             contents = r.data.decode('utf-8')
+        if final_url.find("/amp") > 0:
+            soup = BeautifulSoup(contents, "html.parser")
+            canonical_link = soup.find("link", {"rel":"canonical"})
+            if canonical_link and 'href' in canonical_link.attrs:
+                final_url = canonical_link['href']
+                r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
+                contents = r.data.decode('utf-8')
+
         print("Accessing article, final_url %s" % final_url)
         existing = Article.objects.filter(url=final_url) if not existing else existing
         article = existing[0] if existing else Article(status=Article.Status.CREATED, language='en', url = final_url, initial_url=share.url, title='', metadata='')
