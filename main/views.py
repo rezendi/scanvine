@@ -1,7 +1,7 @@
 import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
-from django.db.models import F, Q, IntegerField
+from django.db.models import F, Q, IntegerField, Subquery
 from django.db.models.functions import Cast, Coalesce
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -171,14 +171,20 @@ def publication_view(request, publication_id):
     }
     return render(request, 'main/publication.html', context)
 
-SORT_BY={
-    'ds':'-total_credibility',
-}
-
-def authors_view(request):
+def authors_view(request, category=None, publication_id = None):
     page_size = int(request.GET.get('s', '20'))
-    sort = request.GET.get('o', 'ds')
-    authors = Author.objects.all().order_by(SORT_BY[sort])[:page_size]
+    sort = request.GET.get('o', '-average_credibility')
+    authors = Author.objects.all()
+    if publication_id:
+        pub_author_ids = Article.objects.filter(publication_id=publication_id).distinct('author_id').values('author_id')
+        authors = authors.filter(id__in=pub_author_ids)
+    if category:
+        # TODO: really we need some kind of GROUP BY aggregate here
+        category_id = CATEGORIES.index(category)
+        cat_article_ids = Share.objects.filter(status__gte=Share.Status.CREATED, category=category_id).distinct('article_id').values('article_id')
+        cat_author_ids = Article.objects.filter(id__in=cat_article_ids).distinct('author_id').values('author_id')
+        authors = authors.filter(id__in=cat_author_ids)
+    authors = authors.order_by(sort)[:page_size]
     for author in authors:
         author.total_articles = Article.objects.filter(author_id=author.id).count()
         latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
@@ -196,8 +202,8 @@ def authors_view(request):
 
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
-    sort = request.GET.get('o', 'ds')
-    publications = Publication.objects.all().order_by(SORT_BY[sort])[:page_size]
+    sort = request.GET.get('o', '-average_credibility')
+    publications = Publication.objects.all().order_by(sort)[:page_size]
     for publication in publications:
         publication.total_articles = Article.objects.filter(publication_id=publication.id).count()
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
@@ -211,6 +217,7 @@ def publications_view(request):
         'timing_links' : timing_links,
     }
     return render(request, 'main/publications.html', context)
+
 
 def search_view(request):
     query = request.GET.get('search', '').strip()

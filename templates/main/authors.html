@@ -13,7 +13,7 @@
     </tr>
     {% for author in authors %}
         <tr>
-            <td>{{author.credibility}}</td>
+            <td>{{author.average_cred}}</td>
             <td><a href="/main/author/{{author.id}}">{{author.name}}</a></td>
             <td>{{author.total_articles}}</td>
             <td><a href="{{author.latest.url}}">{{author.latest}}</a> || {{author.latest.publication}}</td>

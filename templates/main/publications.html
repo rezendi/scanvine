@@ -7,20 +7,22 @@
 <table>
     <tr>
         <th>Score</th>
-        <th>Average</th>
         <th>Name</th>
         <th>Articles</th>
         <th>Latest</th>
+        <th>Authors</th>
+        <th>Total</th>
     </tr>
     {% for publication in publications %}
         <tr>
-            <td>{{publication.total_cred}}</td>
             <td>{{publication.average_cred}}</td>
             <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
             <td>{{publication.total_articles}}</td>
             <td><a href="{{publication.latest.url}}">{{publication.latest.title}}</a> ||
                 <a href="/main/author/{{publication.latest.author_id}}">{{publication.latest.author}}</a>
             </td>
+            <td><a href="/main/authors/publication/{{publication.id}}">view</a></td>
+            <td>{{publication.total_cred}}</td>
         <tr>
     {% endfor %}
 </table>
