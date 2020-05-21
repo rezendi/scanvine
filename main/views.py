@@ -16,7 +16,7 @@ def index_view(request, category=None, scoring=None, days=None):
 
     page_size = int(request.GET.get('s', '20'))
     days = int(scoring) if scoring and not days and scoring.isnumeric() else days
-    days = int(days) if days else 3
+    days = int(days) if days else 1
     scoring = 'top' if scoring != "raw" and scoring != "odd" else scoring
     end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
@@ -82,7 +82,7 @@ def alt_buzz(article, category):
     fraction = article.score / total_pub_category_score
     return math.sqrt(fraction) * article.score
 
-def get_links(category='all', scoring='top', days=3):
+def get_links(category='all', scoring='top', days=1):
     category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
     category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
     scoring_links = [
