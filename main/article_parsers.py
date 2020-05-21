@@ -297,6 +297,25 @@ def get_author_for(metadata, publication):
     if len(names) == 0:
         return None
 
+    # if we're here, we have a collaboration on our hands
+    # if something is structurally wrong, bail
+    if len(names) > 1:
+        word_counts = [len(n.split(" ")) for n in names]
+        max_words = max(word_counts)
+        if max_words > 4: 
+            print("Too many words in author names %s" % names)
+            if len(names[0].split(" ")) < 4:
+                names=[names[0]]
+            else:
+                return None
+        if len(names)>2:
+            if max_words <= 1:
+                print("Not enough words in author names %s" % names)
+                return None
+            if len([c for c in word_counts if c==1]) > len(word_counts)/2:
+                print("Too many single-word names in author names %s" % names)
+                return None
+
     if len(names) == 1:
         name = names[0]
         existing = Author.objects.filter(name__iexact=name)
@@ -310,22 +329,6 @@ def get_author_for(metadata, publication):
                           is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
             author.save()
             return author
-
-    # if we're here, we have a collaboration on our hands
-    # if something is structurally wrong, bail
-    word_counts = [len(n.split(" ")) for n in names]
-    max_words = max(word_counts)
-    if max_words > 4: 
-        print("Too many words in author names %s" % names)
-        return None
-    if len(names)>2:
-        if max_words <= 1:
-            print("Not enough words in author names %s" % names)
-            return None
-        if len([c for c in word_counts if c==1]) > len(word_counts)/2:
-            print("Too many single-word names in author names %s" % names)
-            return None
-    max_word_count = word_counts
 
     # OK, we think these names are good
     authors = []
@@ -407,6 +410,7 @@ def clean_author_name(name, publication = None):
     words = newname.split(" ")
     if len(words) > 1:
         newname = newname.title()
+        newname = newname.replace("'S ","'s ")
 
     if newname and newname != name:        
         existing = Author.objects.filter(name=name)
