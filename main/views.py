@@ -152,7 +152,8 @@ def author_view(request, author_id):
 def authors_view(request, category=None, publication_id = None):
     page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', '-average_credibility')
-    authors = Author.objects.all()
+    min = int(request.GET.get('min', '1'))
+    authors = Author.objects.annotate(article_count=Count('article')).filter(article_count__gte=min)
     if publication_id:
         pub_author_ids = Article.objects.filter(publication_id=publication_id).distinct('author_id').values('author_id')
         authors = authors.filter(id__in=pub_author_ids)
@@ -164,7 +165,6 @@ def authors_view(request, category=None, publication_id = None):
         authors = authors.filter(id__in=cat_author_ids)
     authors = authors.order_by(sort)[:page_size]
     for author in authors:
-        author.total_articles = Article.objects.filter(author_id=author.id).count()
         latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
         author.latest = latest[0] if latest else None
 
@@ -202,8 +202,8 @@ def publication_view(request, publication_id):
 
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
-    min = int(request.GET.get('min', '1'))
     sort = request.GET.get('o', '-average_credibility')
+    min = int(request.GET.get('min', '2'))
     publications = Publication.objects.annotate(article_count=Count('article'))
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
     for publication in publications:
