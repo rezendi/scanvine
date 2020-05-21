@@ -567,6 +567,8 @@ def set_scores(date=timezone.now(), days=30):
             total_credibility = articles.aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = int(total_credibility if total_credibility else 0)
             publication.average_credibility = 0 if total_articles==0 else publication.total_credibility / total_articles
+            
+            #TODO combine these queries
             for category in ['total'] + CATEGORIES:
                 category_average_score = articles.annotate(
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())

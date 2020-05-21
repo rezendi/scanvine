@@ -33,6 +33,9 @@ def index_view(request, category=None, scoring=None, days=None):
     ).defer('contents','metadata')
 
     articles = []
+    if scoring=='latest':
+        articles = articles_query.order_by("-created_at")[:page_size]
+
     if scoring=='raw':
         articles = articles_query.order_by("-score")[:page_size]
 
@@ -138,7 +141,7 @@ def article_view(request, article_id):
     (category_links, scoring_links, timing_links) = get_links()
     context = {
         'article': article,
-        'shares': Share.objects.filter(article_id=article.id),
+        'shares': Share.objects.filter(article_id=article.id).distinct('sharer_id'),
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,
