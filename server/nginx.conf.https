@@ -47,7 +47,7 @@ http {
               }
 
               location / {
-                proxy_cache my_cache;
+                proxy_cache sv_cache;
                 proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
                 proxy_cache_min_uses 3;
                 proxy_pass http://django-app;
