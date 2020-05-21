@@ -293,7 +293,7 @@ def search_view(request):
 def shares_view(request, category):
     category_id = CATEGORIES.index(category)
     page_size = int(request.GET.get('s', '100'))
-    shares = Share.objects.filter(category=category_id).order_by("created_at")[:page_size]
+    shares = Share.objects.filter(category=category_id).order_by("-created_at")[:page_size]
     context = {
         'category' : category.title(),
         'shares' : shares,
