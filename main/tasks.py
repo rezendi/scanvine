@@ -79,7 +79,7 @@ def ingest_sharers():
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
     # TODO clean back up
     if category == 1 or category == 3:
-        category = 2
+        category += 1
     twitter_list_id = LIST_IDS[category]
     try:
         selected = Sharer.objects.filter(category=category, status=Sharer.Status.SELECTED).order_by("-twitter_id")[0:99]
