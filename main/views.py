@@ -52,19 +52,7 @@ def index_view(request, category=None, scoring=None, days=None):
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
-    category_links = [{'name':'All', 'href': 'no' if category=='total' else 'all/%s/%s' % (scoring,days)}]
-    category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
-    scoring_links = [
-        {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
-        {'name':'Raw', 'href': 'no' if scoring=='raw' else '%s/raw/%s' % (category,days)},
-        {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
-    ]
-    timing_links = [
-        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
-        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
-        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
-        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
-    ]
+    (category_links, scoring_links, timing_links) = get_links(category, scoring, days)
     
     if request.GET.get('svd','')=='true':
         for array in [category_links, scoring_links, timing_links]:
@@ -94,6 +82,22 @@ def alt_buzz(article, category):
     fraction = article.score / total_pub_category_score
     return math.sqrt(fraction) * article.score
 
+def get_links(category='all', scoring='top', days=3):
+    category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
+    category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
+    scoring_links = [
+        {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
+        {'name':'Raw', 'href': 'no' if scoring=='raw' else '%s/raw/%s' % (category,days)},
+        {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
+    ]
+    timing_links = [
+        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
+        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
+        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
+        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
+    ]
+    return (category_links, scoring_links, timing_links)
+
 
 def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))
@@ -114,22 +118,32 @@ def author_view(request, author_id):
     else:
         authors = [author]
 
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
         'collaboration' : author.is_collaboration,
         'base_author' : author,
         'authors': authors,
         'articles': articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, 'main/author.html', context)
 
+
 def article_view(request, article_id):
     article = Article.objects.get(id=article_id)
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
         'article': article,
-        'shares': Share.objects.filter(article_id=article.id)
+        'shares': Share.objects.filter(article_id=article.id),
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, 'main/article.html', context)
+
 
 def publication_view(request, publication_id):
     page_size = int(request.GET.get('s', '20'))
@@ -141,10 +155,15 @@ def publication_view(request, publication_id):
         end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
+
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
         'publication' : publication,
         'articles' : articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, 'main/publication.html', context)
 
@@ -160,10 +179,16 @@ def authors_view(request):
         author.total_articles = Article.objects.filter(author_id=author.id).count()
         latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
         author.latest = latest[0] if latest else None
+
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
         'authors': authors,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, 'main/authors.html', context)
+
 
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
@@ -173,8 +198,13 @@ def publications_view(request):
         publication.total_articles = Article.objects.filter(publication_id=publication.id).count()
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
         publication.latest = latest[0] if latest else None
+
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
         'publications': publications,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, 'main/publications.html', context)
 
@@ -226,10 +256,15 @@ def search_view(request):
                 return article_view(request, articles[0].id)
         template = 'main/index.html'
 
+    (category_links, scoring_links, timing_links) = get_links()
     context = {
+        'search' : request.GET.get('search', ''),
         'authors' : authors,
         'articles' : articles,
         'publications' : publications,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
     }
     return render(request, template, context)
 

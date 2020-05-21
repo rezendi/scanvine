@@ -113,13 +113,13 @@ article {
 <body>
     <header>
         <div id="home">
-            <img src="/static/Scanvine_S.png" height="55" width="55"/>
+            <a href="/main/"><img src="/static/Scanvine_S.png" height="55" width="55"/></a>
             <div id="nav">
-                <a href="/"><b>Scanvine</b></a>
+                <a href="/main/"><b>Scanvine</b></a>
                 <div id="aggregate-links">
                     <a href="/main/">Stories</a>&nbsp;|&nbsp;<a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
                 </div>
-                <form>
+                <form action ='/main/'>
                     <input type="search" placeholder="Search" name="search" value="{{search}}">
                     <button type="submit">Search</button>
                 </form>
