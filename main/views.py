@@ -1,6 +1,6 @@
 import datetime, math
 from django.shortcuts import render
-from django.utils.timezone import make_aware
+from django.utils import timezone
 from django.db.models import F, Q, IntegerField
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
@@ -18,8 +18,9 @@ def index_view(request, category=None, scoring=None, days=None):
     days = int(scoring) if scoring and not days and scoring.isnumeric() else days
     days = int(days) if days else 1
     scoring = 'top' if scoring != "raw" and scoring != "odd" else scoring
-    end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
+    end_date = timezone.now() + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
+    print("end_date %s" % end_date)
     category = 'total' if not category or category not in CATEGORIES else category
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
@@ -107,7 +108,7 @@ def author_view(request, author_id):
     articles = Article.objects.filter(Q(author_id=author_id) | Q(author_id__in=collaboration_ids))
     article_count = articles.count()
     if days > 0:
-        end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
+        end_date = timezone.now() + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
 
@@ -152,7 +153,7 @@ def publication_view(request, publication_id):
     articles = Article.objects.filter(publication_id=publication_id)
     article_count = articles.count()
     if days > 0:
-        end_date = make_aware(datetime.datetime.now()) + datetime.timedelta(minutes=5)
+        end_date = timezone.now() + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
 

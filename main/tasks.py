@@ -1,10 +1,10 @@
 import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from django.utils import timezone
 from django.db.models import Sum, Avg, IntegerField, Q
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
-from django.utils.timezone import make_aware
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
 from . import article_parsers
@@ -30,6 +30,7 @@ comprehend = boto3.client(service_name='comprehend',
                           region_name='us-west-2')
 
 http = urllib3.PoolManager(10, timeout=30.0)
+# are these really necessary?
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15',
@@ -76,7 +77,7 @@ LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 12596
 @shared_task(rate_limit="30/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
-    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    category = timezone.now().microsecond % len(LIST_IDS)
     # TODO clean back up
     if category == 1 or category == 3:
         category += 1
@@ -100,7 +101,7 @@ def ingest_sharers():
 @shared_task(rate_limit="30/h")
 def regurgitate_sharers():
     job = launch_job("regurgitate_sharers")
-    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    category = timezone.now().microsecond % len(LIST_IDS)
     twitter_list_id = LIST_IDS[category]
     deselected = Sharer.objects.filter(category=category).filter(status=Sharer.Status.DESELECTED, twitter_list_id__isnull=False)[0:99]
     if deselected:
@@ -116,7 +117,7 @@ def regurgitate_sharers():
 @shared_task(rate_limit="6/m")
 def refresh_sharers():
     job = launch_job("refresh_sharers")
-    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    category = timezone.now().microsecond % len(LIST_IDS)
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=4000, include_entities=False, skip_status=True)
     log_job(job, "total in category %s %s" % (category, len(listed)))
     new = [l for l in listed if len(Sharer.objects.filter(twitter_id=l.id))==0]
@@ -252,7 +253,7 @@ def associate_article(share_id, force_refetch=False):
     try:
         url = existing[0].initial_url if existing else share.url
         log_job(job, "Fetching %s" % url)
-        r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
+        r = http.request('GET', share.url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
         contents = r.data.decode('utf-8') # TODO other encodings
         final_url = clean_up_url(r.geturl(), contents)
         final_host = urllib3.util.parse_url(final_url).host
@@ -261,7 +262,7 @@ def associate_article(share_id, force_refetch=False):
             initial_host = "medium.com" if initial_host == "link.medium.com" else initial_host
             final_url = "https://%s%s" % (initial_host, final_url)
         if final_host != urllib3.util.parse_url(r.geturl()).host:
-            r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[datetime.datetime.now().microsecond % len(USER_AGENTS)]})
+            r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
             contents = r.data.decode('utf-8')
         print("Accessing article, final_url %s" % final_url)
         existing = Article.objects.filter(url=final_url) if not existing else existing
@@ -429,7 +430,7 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def allocate_credibility(date=datetime.datetime.utcnow(), days=7):
+def allocate_credibility(date=timezone.now(), days=7):
     job = launch_job("allocate_credibility")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
@@ -496,7 +497,7 @@ def do_allocate(shares, days, points):
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(date=datetime.datetime.utcnow(), days=30):
+def set_scores(date=timezone.now(), days=30):
     job = launch_job("set_scores")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)

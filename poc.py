@@ -52,34 +52,7 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 
 from main import tasks
 
-#result = tasks.get_potential_sharers.delay()
-#output = result.wait(timeout=None, interval=0.5)
+# actual code
 
-parameters = {}
-parameters['list_id'] = 1259645776315117568
-parameters['screen_name'] = 'caterina, paulg'
-# url = '%s/application/rate_limit_status.json' % api.base_url
-url = '%s/lists/members/create_all.json' % api.base_url
-resp = api._RequestUrl(url, 'POST', data=parameters)
-print("headers %s" % resp.headers)
-data = api._ParseAndCheckTwitter(resp.content.decode('utf-8'))
-print("api data %s" % data)
-
-# result = tasks.ingest_sharers.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
-# result = tasks.fetch_shares.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
-# result = tasks.associate_articles.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
-# result = tasks.parse_unparsed_articles.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
-# tasks.analyze_sentiment.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
-# result = tasks.allocate_credibility.delay()
-# output = result.wait(timeout=None, interval=0.5)
-
+from django.utils import timezone
+print("tz %s" % timezone.now().microsecond)
