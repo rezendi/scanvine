@@ -15,14 +15,14 @@ def index_view(request, category=None, scoring=None, days=None):
         return search_view(request)
 
     page_size = int(request.GET.get('s', '20'))
-    days = int(scoring) if scoring and not days and scoring.isnumeric() else days
-    days = int(days) if days else 1
+    delta = int(scoring) if scoring and not days and scoring.isnumeric() else days
+    delta = int(delta) if delta else 1
     scoring = 'top' if scoring not in ["raw","odd","latest","recent"] else scoring
     end_date = timezone.now() + datetime.timedelta(minutes=5)
-    start_date = end_date - datetime.timedelta(days=days)
+    start_date = end_date - datetime.timedelta(days=delta)
     if scoring=="recent":
-        start_date = end_date - datetime.timedelta(hours=days)
-    print("end_date %s" % end_date)
+        delta = int(days) if days else 3
+        start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
     articles_query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
@@ -58,7 +58,7 @@ def index_view(request, category=None, scoring=None, days=None):
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
-    (category_links, scoring_links, timing_links) = get_links(category, scoring, days)
+    (category_links, scoring_links, timing_links) = get_links(category, scoring, delta)
     
     if request.GET.get('svd','')=='true':
         for array in [category_links, scoring_links, timing_links]:
