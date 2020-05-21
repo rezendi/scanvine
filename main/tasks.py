@@ -429,7 +429,7 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def allocate_credibility(date=make_aware(datetime.datetime.utcnow()), days=7):
+def allocate_credibility(date=datetime.datetime.utcnow(), days=7):
     job = launch_job("allocate_credibility")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
@@ -496,7 +496,7 @@ def do_allocate(shares, days, points):
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(date=make_aware(datetime.datetime.utcnow()), days=30):
+def set_scores(date=datetime.datetime.utcnow(), days=30):
     job = launch_job("set_scores")
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
@@ -652,9 +652,3 @@ def clean_up_url(url, contents=None):
         return links[0].attrs['href'].partition("#")[0].partition("?")[0]
     return url.partition("#")[0].partition("?")[0]
 
-
-def assign_share_categories():
-    shares = Share.objects.select_related('sharer').filter(status__gte=Share.Status.CREATED)
-    for share in shares:
-        share.category = share.sharer.category
-        share.save()
