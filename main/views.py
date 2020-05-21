@@ -17,9 +17,11 @@ def index_view(request, category=None, scoring=None, days=None):
     page_size = int(request.GET.get('s', '20'))
     days = int(scoring) if scoring and not days and scoring.isnumeric() else days
     days = int(days) if days else 1
-    scoring = 'top' if scoring != "raw" and scoring != "odd" and scoring != "latest" else scoring
+    scoring = 'top' if scoring not in ["raw","odd","latest","recent"] else scoring
     end_date = timezone.now() + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
+    if scoring=="recent":
+        start_date = end_date - datetime.timedelta(hours=days)
     print("end_date %s" % end_date)
     category = 'total' if not category or category not in CATEGORIES else category
     articles_query = Article.objects.select_related('publication').annotate(
@@ -36,7 +38,7 @@ def index_view(request, category=None, scoring=None, days=None):
     if scoring=='latest':
         articles = articles_query.order_by(Coalesce(F('published_at'),F('created_at')).desc())[:page_size]
 
-    if scoring=='raw':
+    if scoring=='raw' or scoring=='recent':
         articles = articles_query.order_by("-score")[:page_size]
 
     if scoring=='odd':
