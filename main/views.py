@@ -2,7 +2,7 @@ import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import F, Q, IntegerField
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Coalesce
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -34,7 +34,7 @@ def index_view(request, category=None, scoring=None, days=None):
 
     articles = []
     if scoring=='latest':
-        articles = articles_query.order_by("-created_at")[:page_size]
+        articles = articles_query.order_by(Coalesce(F('published_at'),F('created_at')).desc())[:page_size]
 
     if scoring=='raw':
         articles = articles_query.order_by("-score")[:page_size]
