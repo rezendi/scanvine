@@ -202,12 +202,10 @@ def publication_view(request, publication_id):
 
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
+    min = int(request.GET.get('min', '1'))
     sort = request.GET.get('o', '-average_credibility')
-    all = request.GET.get('all', '')
     publications = Publication.objects.annotate(article_count=Count('article'))
-    if all!='true':
-        publications = publications.filter(article_count__gt=1)
-    publications = publications.order_by(sort)[:page_size]
+    publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
     for publication in publications:
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
         publication.latest = latest[0] if latest else None
