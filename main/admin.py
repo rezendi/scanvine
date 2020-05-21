@@ -111,7 +111,7 @@ class AuthorAdmin(ScanvineAdmin):
     search_fields = ('name',)
     readonly_fields= ('created_at','updated_at')
     fields = (
-        ('status','is_collaboration'),
+        ('status','is_collaboration', 'is_collective'),
         'name',
         'twitter_screen_name',
         'twitter_id',
@@ -145,7 +145,7 @@ class PublicationAdmin(ScanvineAdmin):
     readonly_fields= ('created_at','updated_at')
     fields = (
         ('status','name'),
-        'domain',
+        ('domain', 'is_paywalled'),
         'url_policy',
         'parser_rules',
         ('average_credibility', 'total_credibility'),

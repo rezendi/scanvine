@@ -155,7 +155,10 @@ def authors_view(request, category=None, publication_id = None):
     page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '1'))
+    all = request.GET.get('all', '')
     authors = Author.objects.annotate(article_count=Count('article')).filter(article_count__gte=min)
+    if not all:
+        authors = authors.filter(is_collective=False)
     if publication_id:
         pub_author_ids = Article.objects.filter(publication_id=publication_id).distinct('author_id').values('author_id')
         authors = authors.filter(id__in=pub_author_ids)

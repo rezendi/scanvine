@@ -38,8 +38,8 @@ class Author(models.Model):
         CREATED = 0
 
     status = models.IntegerField(db_index=True, choices=Status.choices)
-    name = models.CharField(max_length=255)
-    is_collaboration = models.BooleanField()
+    name = models.CharField(max_length=255, db_index=True)
+    is_collaboration = models.BooleanField(db_index=True)
     twitter_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
     metadata = models.TextField(blank=True, default='')
@@ -89,6 +89,7 @@ class Publication(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     scores = JSONField(db_index=True, default=default_publication_scores)
+    is_paywalled = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
         return self.name if self.name else self.domain
