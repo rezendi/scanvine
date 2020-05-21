@@ -24,30 +24,33 @@ def index_view(request, category=None, scoring=None, days=None):
         delta = int(days) if days else 3
         start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
-    articles_query = Article.objects.select_related('publication').annotate(
+    query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
         buzz=(F('score') - F('pub_category_average')),
         pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         odd=(F('score') / (F('pub_article_count')+1)),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False).filter(
-        Q(published_at__range=(start_date, end_date)) | Q(published_at__isnull=True, created_at__range=(start_date,end_date))
-    ).defer('contents','metadata')
+        our_date = Coalesce(F('published_at'),F('created_at'))
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False)
+    if scoring !="latest":
+        query = query.filter(our_date__range=(start_date,end_date))
+    query = query.defer('contents','metadata')
 
     articles = []
+
     if scoring=='latest':
-        articles = articles_query.order_by(Coalesce(F('published_at'),F('created_at')).desc())[:page_size]
+        articles = query.order_by("-our_date")[:page_size]
 
     if scoring=='raw' or scoring=='recent':
-        articles = articles_query.order_by("-score")[:page_size]
+        articles = query.order_by("-score")[:page_size]
 
     if scoring=='odd':
-        articles = articles_query.order_by("-odd")[:page_size]
+        articles = query.order_by("-odd")[:page_size]
 
     if scoring=='top':
         # we can't (easily) do the publications-with-few-articles special case handling in DB, so do it here
-        articles1 = articles_query.order_by("-buzz")[:page_size] # default list
-        articles2 = articles_query.order_by("-score")[:page_size] # may have entries to insert
+        articles1 = query.order_by("-buzz")[:page_size] # default list
+        articles2 = query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
         for article in articles1:
             article.score = article.buzz
@@ -89,18 +92,19 @@ def alt_buzz(article, category):
     return math.sqrt(fraction) * article.score
 
 def get_links(category='all', scoring='top', days=1):
-    category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
-    category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
         {'name':'Raw', 'href': 'no' if scoring=='raw' else '%s/raw/%s' % (category,days)},
         {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
+        {'name':'Recent', 'href': 'no' if scoring=='recent' else '%s/recent/%s' % (category,days)},
     ]
+    category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
+    category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
     timing_links = [
-        {'name':'Today', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
-        {'name':'3 days', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
-        {'name':'Week', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
-        {'name':'Month', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
+        {'name':'Today' if scoring!='recent' else '1 hour', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
+        {'name':'3 days' if scoring!='recent' else '3 hours', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
+        {'name':'Week' if scoring!='recent' else '7 hours', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
+        {'name':'Month' if scoring!='recent' else '30 hours', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
     ]
     return (category_links, scoring_links, timing_links)
 
