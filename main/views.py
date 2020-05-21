@@ -17,7 +17,7 @@ def index_view(request, category=None, scoring=None, days=None):
     page_size = int(request.GET.get('s', '20'))
     days = int(scoring) if scoring and not days and scoring.isnumeric() else days
     days = int(days) if days else 1
-    scoring = 'top' if scoring != "raw" and scoring != "odd" else scoring
+    scoring = 'top' if scoring != "raw" and scoring != "odd" and scoring != "latest" else scoring
     end_date = timezone.now() + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     print("end_date %s" % end_date)
