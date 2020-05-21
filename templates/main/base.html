@@ -1,9 +1,10 @@
 {% load static %}
 <html lang="en">
 <head>
-    <title>{% block title %}My amazing site{% endblock %}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="shortcut icon" href="{%  static 'Scanvine_S_gray_small.png' %}">
-    <title>Scanvine | scanning the grapevine</title>
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}" />
     <style>
 a {
     text-decoration: none;

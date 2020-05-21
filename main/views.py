@@ -15,6 +15,7 @@ def index_view(request, category=None, scoring=None, days=None):
         return search_view(request)
 
     page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
     delta = int(scoring) if scoring and not days and scoring.isnumeric() else days
     delta = int(delta) if delta else 1
     scoring = 'top' if scoring not in ["raw","odd","latest","recent"] else scoring
@@ -126,6 +127,7 @@ def article_view(request, article_id):
 
 def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
     days = int(request.GET.get('d', '0'))
     author = Author.objects.get(id=author_id)
     collaboration_ids = Collaboration.objects.filter(individual_id=author_id).values('partnership_id')
@@ -159,6 +161,7 @@ def author_view(request, author_id):
 
 def authors_view(request, category=None, publication_id = None):
     page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '1'))
     all = request.GET.get('all', '')
@@ -190,8 +193,9 @@ def authors_view(request, category=None, publication_id = None):
 
 
 def publication_view(request, publication_id):
-    days = int(request.GET.get('d', '0'))
     page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
+    days = int(request.GET.get('d', '0'))
     publication = Publication.objects.get(id=publication_id)
     articles = Article.objects.filter(publication_id=publication_id)
     article_count = articles.count()
@@ -215,6 +219,7 @@ def publication_view(request, publication_id):
 
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '2'))
     publications = Publication.objects.annotate(article_count=Count('article'))
@@ -295,8 +300,9 @@ def search_view(request):
 
 
 def shares_view(request, category):
-    category_id = CATEGORIES.index(category)
     page_size = int(request.GET.get('s', '100'))
+    page_size = 20 if page_size > 256 else page_size
+    category_id = CATEGORIES.index(category)
     shares = Share.objects.filter(category=category_id).order_by("-created_at")[:page_size]
     context = {
         'category' : category.title(),
