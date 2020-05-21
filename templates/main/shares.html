@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+{% block title %}{{article.title}} | {{publication.name}} | Scanvine{% endblock %}
+{% block main %}
+<section>
+    
+    <h3>{{category}} Shares</h3>
+    <div id="all-shares">
+        {% for share in shares %}
+        <div class="share">
+            <p><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}"><b>{{share.sharer.name}}</b></a>
+            <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/{{share.twitter_id}}">{{share.text}}</a></p>
+            <p><a href="/admin/main/share/{{share.id}}/change">{{share.share_points}}, <a href="{{share.article.url}}"><em>{{share.article.title|default:"n/a"}}</em></a>,
+            <a href="{{share.article.url}}">{{share.article.publication}}</a></p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
