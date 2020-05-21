@@ -3,9 +3,8 @@
 {% block main %}
 <section>
 <H2>{{publication}}</H2>
-Tracked articles {{ article_count }} 
-Total credibility {{publication.total_cred}}
-Average credibility {{publication.average_cred}}
+<p>Tracked articles {{ article_count }} | Authors <a href="/main/authors/publication/{{publication.id}}/">{{author_count}}</a> |
+Average credibility {{publication.average_cred}} | Total credibility {{publication.total_cred}}</p>
 <table>
     <tr>
         <th>Score</th>

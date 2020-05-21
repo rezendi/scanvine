@@ -198,9 +198,11 @@ def publication_view(request, publication_id):
         start_date = end_date - datetime.timedelta(days=days)
         articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
 
+    authors = Article.objects.filter(publication_id=publication.id).distinct('author_id')
     (category_links, scoring_links, timing_links) = get_links()
     context = {
         'publication' : publication,
+        'author_count' : authors.count(),
         'articles' : articles.order_by('-total_credibility')[:page_size],
         'article_count' : article_count,
         'category_links': category_links,
