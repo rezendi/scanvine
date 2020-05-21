@@ -53,11 +53,13 @@ def index_view(request, category=None, scoring=None, days=None):
         articles2 = query.order_by("-score")[:page_size] # may have entries to insert
         articles = []
         for article in articles1:
+            article.alt_buzz = 0
             article.score = article.buzz
             articles.append(article)
         for article in articles2:
             if not article.id in [a.id for a in articles1]:
-                article.score = int(max(article.buzz, alt_buzz(article, category)))
+                article.alt_buzz = int(alt_buzz(article, category))
+                article.score = max(article.buzz, article.alt_buzz)
                 articles.append(article)
         articles.sort(key = lambda L: L.score, reverse=True)
 
