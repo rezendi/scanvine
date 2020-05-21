@@ -17,9 +17,11 @@
         <tr>
             <td>{{publication.average_cred}}</td>
             <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
-            <td>{{publication.total_articles}}</td>
-            <td><a href="{{publication.latest.url}}">{{publication.latest.title}}</a> ||
+            <td>{{publication.article_count}}</td>
+            <td>{% if publication.latest %}
+                <a href="{{publication.latest.url}}">{{publication.latest.title}}</a> ||
                 <a href="/main/author/{{publication.latest.author_id}}">{{publication.latest.author}}</a>
+                {% endif %}
             </td>
             <td><a href="/main/authors/publication/{{publication.id}}">view</a></td>
             <td>{{publication.total_cred}}</td>

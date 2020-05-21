@@ -1,7 +1,7 @@
 import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
-from django.db.models import F, Q, IntegerField, Subquery
+from django.db.models import F, Q, IntegerField, Subquery, Count
 from django.db.models.functions import Cast, Coalesce
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -103,6 +103,19 @@ def get_links(category='all', scoring='top', days=1):
     return (category_links, scoring_links, timing_links)
 
 
+def article_view(request, article_id):
+    article = Article.objects.get(id=article_id)
+    (category_links, scoring_links, timing_links) = get_links()
+    context = {
+        'article': article,
+        'shares': Share.objects.filter(article_id=article.id).distinct('sharer_id'),
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
+    }
+    return render(request, 'main/article.html', context)
+
+
 def author_view(request, author_id):
     page_size = int(request.GET.get('s', '20'))
     days = int(request.GET.get('d', '0'))
@@ -136,41 +149,6 @@ def author_view(request, author_id):
     return render(request, 'main/author.html', context)
 
 
-def article_view(request, article_id):
-    article = Article.objects.get(id=article_id)
-    (category_links, scoring_links, timing_links) = get_links()
-    context = {
-        'article': article,
-        'shares': Share.objects.filter(article_id=article.id).distinct('sharer_id'),
-        'category_links': category_links,
-        'scoring_links' : scoring_links,
-        'timing_links' : timing_links,
-    }
-    return render(request, 'main/article.html', context)
-
-
-def publication_view(request, publication_id):
-    page_size = int(request.GET.get('s', '20'))
-    days = int(request.GET.get('d', '7'))
-    publication = Publication.objects.get(id=publication_id)
-    articles = Article.objects.filter(publication_id=publication_id)
-    article_count = articles.count()
-    if days > 0:
-        end_date = timezone.now() + datetime.timedelta(minutes=5)
-        start_date = end_date - datetime.timedelta(days=days)
-        articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
-
-    (category_links, scoring_links, timing_links) = get_links()
-    context = {
-        'publication' : publication,
-        'articles' : articles.order_by('-total_credibility')[:page_size],
-        'article_count' : article_count,
-        'category_links': category_links,
-        'scoring_links' : scoring_links,
-        'timing_links' : timing_links,
-    }
-    return render(request, 'main/publication.html', context)
-
 def authors_view(request, category=None, publication_id = None):
     page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', '-average_credibility')
@@ -200,12 +178,37 @@ def authors_view(request, category=None, publication_id = None):
     return render(request, 'main/authors.html', context)
 
 
+def publication_view(request, publication_id):
+    days = int(request.GET.get('d', '0'))
+    page_size = int(request.GET.get('s', '20'))
+    publication = Publication.objects.get(id=publication_id)
+    articles = Article.objects.filter(publication_id=publication_id)
+    article_count = articles.count()
+    if days > 0:
+        end_date = timezone.now() + datetime.timedelta(minutes=5)
+        start_date = end_date - datetime.timedelta(days=days)
+        articles = articles.filter(created_at__range=(start_date, end_date)).defer('contents','metadata')
+
+    (category_links, scoring_links, timing_links) = get_links()
+    context = {
+        'publication' : publication,
+        'articles' : articles.order_by('-total_credibility')[:page_size],
+        'article_count' : article_count,
+        'category_links': category_links,
+        'scoring_links' : scoring_links,
+        'timing_links' : timing_links,
+    }
+    return render(request, 'main/publication.html', context)
+
 def publications_view(request):
     page_size = int(request.GET.get('s', '20'))
     sort = request.GET.get('o', '-average_credibility')
-    publications = Publication.objects.all().order_by(sort)[:page_size]
+    all = request.GET.get('all', '')
+    publications = Publication.objects.annotate(article_count=Count('article'))
+    if all!='true':
+        publications = publications.filter(article_count__gt=1)
+    publications = publications.order_by(sort)[:page_size]
     for publication in publications:
-        publication.total_articles = Article.objects.filter(publication_id=publication.id).count()
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
         publication.latest = latest[0] if latest else None
 
