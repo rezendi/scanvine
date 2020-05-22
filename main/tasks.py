@@ -454,12 +454,14 @@ def allocate_credibility(date=timezone.now(), days=7):
         for share in shares:
             if share.sharer_id != current_sharer_id:
                 article_ids = set()
-                total_sharers
+                total_sharers += 1
             current_sharer_id = share.sharer_id
             existing = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
             if share.article_id in article_ids:
                 if existing:
                     existing[0].delete()
+                share.status = Share.Status.DUPLICATE_SHARE
+                share.save()
                 continue
             share_cred = cred_per_point * share.share_points()
             article_ids.add(share.article_id)
