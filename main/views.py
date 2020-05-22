@@ -47,12 +47,14 @@ def index_view(request, category=None, scoring=None, days=None):
 
     if scoring=='odd':
         articles = query.order_by("-odd")[:page_size]
-        for article in articles1:
+        for article in articles:
+            article.raw = article.score
             article.score = article.odd
 
     if scoring=='top':
         articles = query.order_by("-buzz")[:page_size]
-        for article in articles1:
+        for article in articles:
+            article.raw = article.score
             article.score = article.buzz
 
     (category_links, scoring_links, timing_links) = get_links(category, scoring, delta)
