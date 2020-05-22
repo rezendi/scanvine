@@ -480,7 +480,7 @@ def allocate_credibility(date=timezone.now(), days=7):
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
     log_job(job, "allocated %s to %s sharers" % (total_cred, total_sharers), Job.Status.COMPLETED)
-
+    set_scores.signature().apply_async()
 
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
