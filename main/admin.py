@@ -316,12 +316,13 @@ def add_sharer(arg):
     screen_name = None
     if arg.isnumeric():
         sharer_id = int(arg)
-        sharers = Sharer.objects.filter(twitter_id=sharer_id)
+        existing = Sharer.objects.filter(twitter_id=sharer_id)
     else:
         screen_name = arg
-        sharers = Sharer.objects.filter(twitter_screen_name=screen_name)
-    if sharers:
-        sharer = sharers[0]
+        existing = Sharer.objects.filter(twitter_screen_name__iexact=screen_name)
+
+    if existing:
+        sharer = existing[0]
     else:
         user = api.GetUser(user_id=sharer_id, screen_name=screen_name, include_entities=False)
         sharer = Sharer(twitter_id=user.id, name=user.name, twitter_screen_name = user.screen_name,

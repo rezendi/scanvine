@@ -20,8 +20,8 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
                   consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
                   access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
                   access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''),
-                  tweet_mode='extended')
-#                 sleep_on_rate_limit=True)
+                  tweet_mode='extended',
+                  sleep_on_rate_limit=True)
 
 import boto3
 comprehend = boto3.client(service_name='comprehend',
