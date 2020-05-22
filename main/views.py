@@ -140,7 +140,6 @@ def author_view(request, author_id):
 
     if author.is_collaboration:
         partner_ids = Collaboration.objects.filter(partnership_id=author_id).values('individual_id')
-        print("partner_ids %s" % partner_ids)
         authors = Author.objects.filter(id__in=partner_ids)
     else:
         authors = [author]
