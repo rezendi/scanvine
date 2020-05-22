@@ -45,9 +45,9 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
                 'task': 'main.tasks.set_scores',
                 'schedule': 1515.0,
             },
-            'add-every-1800-seconds': {
+            'add-every-2400-seconds': {
                 'task': 'main.tasks.refresh_sharers',
-                'schedule': 1808.0,
+                'schedule': 2424.0,
             },
             'add-every-9000-seconds': {
                 'task': 'main.tasks.clean_up_jobs',
