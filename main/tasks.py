@@ -511,9 +511,9 @@ def set_scores(date=timezone.now(), days=30):
             article_id = share['article_id']
             if not article_id in articles_dict:
                 articles_dict[article_id] = {}
-                for key in ['count','total'] + CATEGORIES:
+                for key in ['shares','total'] + CATEGORIES:
                     articles_dict[article_id][key] = 0
-            articles_dict[article_id]['count'] = articles_dict[article_id]['count'] + 1
+            articles_dict[article_id]['shares'] = articles_dict[article_id]['shares'] + 1
             articles_dict[article_id]['total'] = articles_dict[article_id]['total'] + tranche.quantity
             category = CATEGORIES[tranche.category]
             articles_dict[article_id][category] = articles_dict[article_id][category] + tranche.quantity
@@ -521,12 +521,11 @@ def set_scores(date=timezone.now(), days=30):
     
         log_job(job, "articles %s" % len(articles_dict))
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
-            count = int(articles_dict[article.id]['count'])
-            # weigh by number of sharers as well as share sentiment
-            articles_dict[article.id]['total'] = int(articles_dict[article.id]['total'] * 1.1**(count-1))
+            count = int(articles_dict[article.id]['shares'])
+            # weigh by number of sharers as well as share sentiment?
+            # articles_dict[article.id]['total'] = int(articles_dict[article.id]['total'] * 1.1**(count-1))
             amount = articles_dict[article.id]['total']
             article.total_credibility = amount
-            del articles_dict[article.id]['count']
             article.scores = articles_dict[article.id]
             article.save()
 
