@@ -565,10 +565,14 @@ def set_scores(date=timezone.now(), days=30):
             publication.scores['total_count'] = total_articles
             publication.scores['total'] = publication.average_credibility
             for category in CATEGORIES:
+                category_count = articles.annotate(
+                    category_score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
+                ).filter(**{'category_score__gt': 0}).count()
+                publication.scores["%s_count" % category] = int(category_count if category_count else 0)
                 category_total_score = articles.annotate(
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
                 ).aggregate(Sum('score'))['score__sum']
-                publication.scores[category] = int(0 if total_articles==0 else category_total_score / total_articles)
+                publication.scores[category] = int(0 if category_count==0 else category_total_score / category_count)
             publication.save()
 
         log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)

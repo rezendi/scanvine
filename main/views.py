@@ -27,7 +27,7 @@ def index_view(request, category=None, scoring=None, days=None):
     category = 'total' if not category or category not in CATEGORIES else category
     query = Article.objects.select_related('publication').annotate(
         pub_category_average = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        pub_article_count=Cast(KeyTextTransform('total_count', 'publication__scores'), IntegerField()),
+        pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         shares = Cast(KeyTextTransform('shares', 'scores'), IntegerField()),
         buzz = F('score') - F('pub_category_average'),
