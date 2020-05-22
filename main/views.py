@@ -47,22 +47,13 @@ def index_view(request, category=None, scoring=None, days=None):
 
     if scoring=='odd':
         articles = query.order_by("-odd")[:page_size]
+        for article in articles1:
+            article.score = article.odd
 
     if scoring=='top':
-        # we can't (easily) do the publications-with-few-articles special case handling in DB, so do it here
-        articles1 = query.order_by("-buzz")[:page_size] # default list
-        articles2 = query.order_by("-score")[:page_size] # may have entries to insert
-        articles = []
+        articles = query.order_by("-buzz")[:page_size]
         for article in articles1:
-            article.alt_buzz = 0
             article.score = article.buzz
-            articles.append(article)
-        for article in articles2:
-            if not article.id in [a.id for a in articles1]:
-                article.alt_buzz = int(alt_buzz(article, category))
-                article.score = max(article.buzz, article.alt_buzz)
-                articles.append(article)
-        articles.sort(key = lambda L: L.score, reverse=True)
 
     (category_links, scoring_links, timing_links) = get_links(category, scoring, delta)
     
