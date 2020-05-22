@@ -43,15 +43,15 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             },
             'add-every-2400-seconds': {
                 'task': 'main.tasks.refresh_sharers',
-                'schedule': 2424.0,
+                'schedule': 2448.0,
             },
             'add-every-9000-seconds': {
                 'task': 'main.tasks.clean_up_jobs',
-                'schedule': 9090.0,
+                'schedule': 9009.0,
             },
             'add-every-9000-seconds-2': {
                 'task': 'main.tasks.parse_unparsed_articles',
-                'schedule': 9099.0,
+                'schedule': 9199.0,
             },
             'add-every-10800-seconds': {
                 'task': 'main.tasks.ingest_sharers',
