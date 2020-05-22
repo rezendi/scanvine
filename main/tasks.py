@@ -187,6 +187,7 @@ def fetch_shares():
                 tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['full_text'], 'urls':urls}
                 tweets.append(tweet)
         log_job(job, "external link tweets %s" % len(tweets))
+        log_job(job, "since_id=%s" % since_id)
         if timeline:
             log_job(job, "max_id=%s" % timeline[0]['id'])
             log_job(job, "min_id=%s" % timeline[-1]['id'])
