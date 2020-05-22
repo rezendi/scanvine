@@ -9,9 +9,9 @@
         <div class="share">
             <p><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}"><b>{{share.sharer.name}}</b></a>
             <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.text}}</a></p>
-            <p>{{share.share_points}}, <a href="{{share.article.url}}"><em>{{share.article.title|default:"n/a"}}</em></a>,
-            <a href="{{share.article.url}}">{{share.article.publication}}</a>,
-            <a href="/admin/main/share/{{share.id}}/change">{{share.created_at|timesince}}</a></p>
+            <p>{{share.share_points}}, <a href="/admin/main/share/{{share.id}}/change">{{share.created_at|timesince}}</a>,
+            <a href="{{share.article.url}}"><em>{{share.article.title|default:"n/a"}}</em></a>,
+            <a href="{{share.article.url}}">{{share.article.url}}</a></p>
         </div>
         {% endfor %}
     </div>

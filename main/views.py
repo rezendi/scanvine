@@ -301,9 +301,15 @@ def search_view(request):
 
 def shares_view(request, category):
     page_size = int(request.GET.get('s', '100'))
-    page_size = 20 if page_size > 256 else page_size
+    sort = request.GET.get('o', '-created_at')
+    print("sort %s" % sort)
     category_id = CATEGORIES.index(category)
-    shares = Share.objects.filter(category=category_id).order_by("-created_at")[:page_size]
+    shares = Share.objects.filter(category=category_id)
+    delta = request.GET.get('delta', '')
+    if delta:
+        end_date = timezone.now() + datetime.timedelta(minutes=5)
+        start_date = end_date - datetime.timedelta(hours=int(delta))
+    shares = shares.order_by(sort)[:page_size]
     context = {
         'category' : category.title(),
         'shares' : shares,
