@@ -18,7 +18,7 @@ def index_view(request, category=None, scoring=None, days=None):
     page_size = 20 if page_size > 256 else page_size
     delta = int(scoring) if scoring and not days and scoring.isnumeric() else days
     delta = int(delta) if delta else 1
-    scoring = 'top' if scoring not in ["raw","odd","latest","recent"] else scoring
+    scoring = 'top' if scoring not in ["raw","odd","latest","recent","shares"] else scoring
     end_date = timezone.now() + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=delta)
     if scoring=="recent":
@@ -42,6 +42,9 @@ def index_view(request, category=None, scoring=None, days=None):
 
     if scoring=='latest':
         articles = query.order_by("-our_date")[:page_size]
+
+    if scoring=='shares':
+        articles = query.order_by("-shares")[:page_size]
 
     if scoring=='raw' or scoring=='recent':
         articles = query.order_by("-score")[:page_size]
