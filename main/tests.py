@@ -142,7 +142,7 @@ class ScoringTest(TestCase):
             sharer.save()
             share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = int("12345%s" % article.id),
                   sharer_id = sharer.id, article_id = article.id, category=idx%3, net_sentiment=16*idx)
-            expected = 1 if idx< 2 else 2 if idx==2 else 3
+            expected = 1 if idx<= 2 else 2
             self.assertEqual(expected, share.share_points())
             share.save()
 
@@ -163,23 +163,23 @@ class ScoringTest(TestCase):
 
         # OK, check tranches
         for idx,share in enumerate(Share.objects.all().order_by("id")[:4]):
-            expected = 1 if idx< 2 else 2 if idx==2 else 3 if idx==3 else 1
+            expected = 2 if idx==3 else 1
             tranche = Tranche.objects.get(receiver=share.id)
             self.assertIsNotNone(tranche)
             self.assertEqual(1008*expected, tranche.quantity)
         for idx,article in enumerate(Article.objects.all().order_by("id")):
-            expected = 1 if idx< 2 else 2 if idx==2 else 4 if idx==3 else 0
+            expected = 1 if idx<= 2 else 3 if idx==3 else 0
             self.assertEqual(1008*expected, article.total_credibility)
-            expected_health_buzz = 1008 if idx==0 else 4032 if idx==3 else 0
+            expected_health_buzz = 1008 if idx==0 else 3024 if idx==3 else 0
             self.assertEqual(expected_health_buzz, article.scores['health'])
-            expected_tech_buzz = 2016 if idx==2 else 0
+            expected_tech_buzz = 1008 if idx==2 else 0
             self.assertEqual(expected_tech_buzz, article.scores['tech'])
             self.assertEqual(0, article.scores['media'])
         self.assertEqual(4, Author.objects.all().count())
         self.assertEqual(2, Collaboration.objects.all().count())
         for author in Author.objects.all():
             if author.name == "Testauthor Three":
-                self.assertEqual(6048, author.total_credibility)
+                self.assertEqual(4032, author.total_credibility)
             elif author.name == "Testauthor Two":
                 self.assertEqual(504, author.total_credibility)
             elif author.name == "Testauthor One":
@@ -194,9 +194,9 @@ class ScoringTest(TestCase):
         self.assertEqual(1008, pub.average_credibility)
         pub = Publication.objects.get(domain="test2.com")
         self.assertEqual(2, pub.scores['total_count'])
-        self.assertEqual(4032, pub.scores['health'])
-        self.assertEqual(6048, pub.total_credibility)
-        self.assertEqual(3024, pub.average_credibility)
+        self.assertEqual(3024, pub.scores['health'])
+        self.assertEqual(4032, pub.total_credibility)
+        self.assertEqual(2016, pub.average_credibility)
     
 class EndToEndTest(TestCase):
     def test_share_fetch_parse(self):
