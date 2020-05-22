@@ -26,14 +26,14 @@ def index_view(request, category=None, scoring=None, days=None):
         start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
     query = Article.objects.select_related('publication').annotate(
-        pub_category_average = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        shares = Cast(KeyTextTransform('shares', 'scores'), IntegerField()),
-        buzz = F('score') - F('pub_category_average'),
-        odd = F('buzz') / (F('pub_article_count')+1),
+        average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
+        article_count = Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
+        shares = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
+        buzz = F('score') - F('average_score'),
+        odd = F('buzz') / (F('article_count')+1),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, shares__isnull=False)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
     query = query.defer('contents','metadata')
