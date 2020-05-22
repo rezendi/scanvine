@@ -349,8 +349,8 @@ def add_tweet(tweet_id):
     share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     share.url = urls[0]
     share.text = tweet.full_text
-    sharer = add_sharer(tweet.user.id_str)
-    share.sharer_id = sharer.id
+    sharer_id = add_sharer(tweet.user.id_str)
+    share.sharer_id = sharer_id
     share.save()
     associate_article(share.id, force_refetch=True)
     return share.id

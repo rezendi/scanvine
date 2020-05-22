@@ -2,7 +2,7 @@ import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import F, Q, IntegerField, Subquery, Count
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast, Coalesce, Sqrt
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -28,7 +28,7 @@ def index_view(request, category=None, scoring=None, days=None):
     query = Article.objects.select_related('publication').annotate(
         score=Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         pub_category_average=Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        buzz=(F('score') - F('pub_category_average')),
+        buzz=(Sqrt(F('score') / (F('pub_category_average')+1))),
         pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         odd=(F('score') / (F('pub_article_count')+1)),
         our_date = Coalesce(F('published_at'),F('created_at'))

@@ -187,13 +187,13 @@ class Share(models.Model):
         if self.net_sentiment is None:
             return 0
         if abs(self.net_sentiment) > 80:
-            return 5
+            return 8
         if abs(self.net_sentiment) > 60:
-            return 3
+            return 5
         if abs(self.net_sentiment) > 40:
-            return 2
+            return 3
         if abs(self.net_sentiment) > 20:
-            return 1
+            return 2
         return 1
 
     def __str__(self):
