@@ -308,6 +308,7 @@ def shares_view(request, category):
     if delta:
         end_date = timezone.now() + datetime.timedelta(minutes=5)
         start_date = end_date - datetime.timedelta(hours=int(delta))
+        shares = shares.filter(created_at__range=(start_date, end_date))
     shares = shares.order_by(sort)[:page_size]
     context = {
         'category' : category.title(),
