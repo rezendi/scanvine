@@ -521,8 +521,8 @@ def set_scores(date=timezone.now(), days=30):
     
         log_job(job, "articles %s" % len(articles_dict))
         for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
-            count = int(articles_dict[article.id]['shares'])
             # weigh by number of sharers as well as share sentiment?
+            # count = int(articles_dict[article.id]['shares'])
             # articles_dict[article.id]['total'] = int(articles_dict[article.id]['total'] * 1.1**(count-1))
             amount = articles_dict[article.id]['total']
             article.total_credibility = amount
@@ -562,7 +562,9 @@ def set_scores(date=timezone.now(), days=30):
             publication.average_credibility = 0 if total_articles==0 else publication.total_credibility / total_articles
             
             #TODO combine these queries
-            for category in ['total'] + CATEGORIES:
+            publication.scores['total_count'] = publication.total_credibility
+            publication.scores['total'] = publication.average_credibility
+            for category in CATEGORIES:
                 category_average_score = articles.annotate(
                     score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
                 ).aggregate(Avg('score'))['score__avg']

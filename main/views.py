@@ -31,7 +31,7 @@ def index_view(request, category=None, scoring=None, days=None):
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         shares = Cast(KeyTextTransform('shares', 'scores'), IntegerField()),
         buzz = F('score') - F('pub_category_average'),
-        odd= F('buzz') / (F('pub_article_count')+1),
+        odd = F('buzz') / (F('pub_article_count')+1),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
     if scoring != "latest":
