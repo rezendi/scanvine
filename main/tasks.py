@@ -511,12 +511,14 @@ def set_scores(date=timezone.now(), days=30):
             article_id = share['article_id']
             if not article_id in articles_dict:
                 articles_dict[article_id] = {}
-                for key in ['shares','total'] + CATEGORIES:
+                for key in ['total'] + CATEGORIES:
                     articles_dict[article_id][key] = 0
-            articles_dict[article_id]['shares'] = articles_dict[article_id]['shares'] + 1
+                    articles_dict[article_id]['%s_shares' % key] = 0
             articles_dict[article_id]['total'] = articles_dict[article_id]['total'] + tranche.quantity
+            articles_dict[article_id]['total_shares'] = articles_dict[article_id]['total_shares'] + 1
             category = CATEGORIES[tranche.category]
             articles_dict[article_id][category] = articles_dict[article_id][category] + tranche.quantity
+            articles_dict[article_id]['%s_shares' % category] = articles_dict[article_id]['%s_shares' % category] + 1
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
