@@ -33,7 +33,7 @@ def index_view(request, category=None, scoring=None, days=None):
         buzz = F('score') - F('average_score'),
         odd = F('buzz') / (F('article_count')+1),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, shares__isnull=False)
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, shares__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
     query = query.defer('contents','metadata')
