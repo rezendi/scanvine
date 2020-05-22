@@ -18,7 +18,7 @@
                     <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
                     <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
                     {% ifequal request.GET.svd "true" %}
-                        <a href="/admin/main/article/{{article.id}}/change/">article</a> total {{article.total_credibility}} score {{article.score}} raw {{article.raw}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}}
+                        <a href="/admin/main/article/{{article.id}}/change/">article</a> score {{article.score}} raw {{article.raw}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}} shares {{ article.shares }}
                         <a href="/admin/main/publication/{{publicationpublication.id}}/change/">publication</a> total {{article.publication.total_credibility}} average {{article.publication.average_credibility}}
                         <br/>article scores {{article.scores}}
                         <br/>publication {{article.publication.scores}}

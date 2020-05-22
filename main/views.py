@@ -1,7 +1,7 @@
 import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
-from django.db.models import F, Q, IntegerField, Subquery, Count, ExpressionWrapper
+from django.db.models import F, Q, IntegerField, Subquery, Count
 from django.db.models.functions import Cast, Coalesce, Sqrt
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -26,12 +26,14 @@ def index_view(request, category=None, scoring=None, days=None):
         start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
     query = Article.objects.select_related('publication').annotate(
+        pub_category_average = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
+        pub_article_count=Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        buzz = ExpressionWrapper(F('score') - F('publication__average_credibility'), output_field=IntegerField()),
-        pub_article_count = Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
-        odd = (F('score') / (F('pub_article_count')+1)),
-        our_date = Coalesce(F('published_at'),F('created_at'))
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, odd__isnull=False)
+        shares = Cast(KeyTextTransform('shares', 'scores'), IntegerField()),
+        buzz = F('score') - F('pub_category_average'),
+        odd= F('buzz') / (F('pub_article_count')+1),
+        our_date = Coalesce(F('published_at'), F('created_at')),
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
     query = query.defer('contents','metadata')
