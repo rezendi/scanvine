@@ -146,19 +146,19 @@ class ScoringTest(TestCase):
             self.assertEqual(expected, share.share_points())
             share.save()
 
-        # last share shouldn't have a tranche, because that sharer already shared that article
-        # UNTIL we assign to the share with the highest net sentiment, which we don't do yet
+        # first share shouldn't have a tranche, because we use share with highest net sentiment
         sharer = Share.objects.all()[:1][0]
         article = Article.objects.all()[:4][3]
-        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=16)
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=15)
         share.save()
-        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=99)
+        no_tranche_id = share.id
+        share = Share(source=0, language='en', status=Share.Status.SENTIMENT_CALCULATED, twitter_id = 12345678, category = 0, sharer_id = sharer.id, article_id = article.id, net_sentiment=16)
         share.save()
 
         # do the aallocation
         tasks.allocate_credibility()
         tasks.set_scores()
-        tranches = Tranche.objects.filter(receiver=share.id)
+        tranches = Tranche.objects.filter(receiver=no_tranche_id)
         self.assertEqual(0, len(tranches))
 
         # OK, check tranches

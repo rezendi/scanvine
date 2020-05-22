@@ -35,7 +35,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             },
             'add-every-900-seconds': {
                 'task': 'main.tasks.reparse_articles',
-                'schedule': 909.0,
+                'schedule': 919.0,
             },
             'add-every-1200-seconds': {
                 'task': 'main.tasks.allocate_credibility',
@@ -66,13 +66,6 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
 #                'schedule': 90199.0,
 #            },
         }
-else:
-    app.conf.beat_schedule = {
-        'add-every-30-seconds': {
-            'task': 'main.tasks.fetch_shares',
-            'schedule': 30.0,
-        },
-    }
     
 @app.task(bind=True)
 def debug_task(self):

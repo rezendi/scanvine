@@ -2,8 +2,8 @@ import datetime, os, traceback
 import html, json, urllib3
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from django.utils import timezone
-from django.db.models import Sum, Avg, IntegerField, Q
-from django.db.models.functions import Cast
+from django.db.models import Q, Sum, Avg, IntegerField
+from django.db.models.functions import Abs, Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from celery import shared_task, group, signature
 from bs4 import BeautifulSoup
@@ -444,63 +444,43 @@ def allocate_credibility(date=timezone.now(), days=7):
     end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days)
     log_job(job, "date range %s - %s" % (start_date, end_date))
+    cred_per_point = 1008
     try:
-        total_sharers = sharer_id = points = 0
-        shares = Share.objects.filter(status__gte=Share.Status.SENTIMENT_CALCULATED, created_at__range=(start_date, end_date)).order_by("sharer_id")
+        total_sharers = current_sharer_id = total_cred = 0
+        shares = Share.objects.annotate(abs_sentiment = Abs("net_sentiment")).filter(
+            status__gte=Share.Status.SENTIMENT_CALCULATED, created_at__range=(start_date, end_date)
+        ).order_by("sharer_id", "-abs_sentiment")
         log_job(job, "total shares analyzed %s" % len(shares))
-        to_allocate = []
         for share in shares:
-            if sharer_id and sharer_id != share.sharer_id and points > 0:
-                do_allocate(to_allocate, days, points)
-                to_allocate = []
-                points = 0
-                total_sharers += 1
-            to_allocate.append(share)
-            points += share.share_points()
-            sharer_id = share.sharer_id
-        do_allocate(to_allocate, days, points)
-        total_sharers += 1
+            if share.sharer_id != current_sharer_id:
+                article_ids = set()
+                total_sharers
+            current_sharer_id = share.sharer_id
+            existing = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
+            if share.article_id in article_ids:
+                if existing:
+                    existing[0].delete()
+                continue
+            share_cred = cred_per_point * share.share_points()
+            article_ids.add(share.article_id)
+            total_cred += share_cred
+            if existing:
+                tranche = existing[0]
+                if tranche.category != share.category or tranche.quantity != share_cred:
+                    tranche.category = share.category
+                    tranche.quantity = share_cred
+                    tranche.save()
+            else:
+                tranche = Tranche(source=0, status=0, type=0, tags='', category=share.category, sender=share.sharer_id, receiver=share.id, quantity = share_cred)
+                tranche.save()
+            share.status = Share.Status.CREDIBILITY_ALLOCATED
+            share.save()
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Allocate credibility error %s" % ex, Job.Status.ERROR)
         raise ex
-    log_job(job, "allocated to %s sharers" % total_sharers, Job.Status.COMPLETED)
+    log_job(job, "allocated %s to %s sharers" % (total_cred, total_sharers), Job.Status.COMPLETED)
 
-def do_allocate(shares, days, points):
-    if points==0 or days==0 or not shares:
-        return
-    # we don't want to super favor people who rarely share over people who regularly share, as the latter are really the heartbeat of the grapevine
-    # but we also don't want to favor people who tweet absolutely everything
-    # figure 4 article shares per day as roughly optimal
-    # optimal_shares = 4 * days
-    # delta_from_optimum = 1 + abs(len(shares) - optimal_shares)
-    # cred_per_point = 1008 * len(shares) / delta_from_optimum
-    cred_per_point = 1008
-
-    article_ids = set()
-    for share in shares:
-        # TODO: prevent self-sharing, but in a less inefficient way
-        # article = share.article
-        # author = article.author if article else None
-        # if article and author and author.name != sharer.name and author.twitter_id != sharer.twitter_id:
-        share_cred = cred_per_point * share.share_points()
-        existing = Tranche.objects.filter(sender=share.sharer_id, receiver=share.id)
-        if share.article_id in article_ids:
-            if existing:
-                existing[0].delete()
-            continue
-        article_ids.add(share.article_id)
-        if existing:
-            tranche = existing[0]
-            if tranche.category != share.category or tranche.quantity != share_cred:
-                tranche.category = share.category
-                tranche.quantity = share_cred
-                tranche.save()
-        else:
-            tranche = Tranche(source=0, status=0, type=0, tags='', category=share.category, sender=share.sharer_id, receiver=share.id, quantity = share_cred)
-            tranche.save()
-        share.status = Share.Status.CREDIBILITY_ALLOCATED
-        share.save()
 
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
