@@ -27,13 +27,15 @@ def index_view(request, category=None, scoring=None, days=None):
     category = 'total' if not category or category not in CATEGORIES else category
     query = Article.objects.select_related('publication').annotate(
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        article_count = Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
         shares = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
-        buzz = F('score') - F('average_score'),
-        odd = F('buzz') / (F('article_count')+1),
+        pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
+        pub_article_count = Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
+        buzz = F('score') - F('pub_average_score'),
+        odd = F('buzz') / (F('pub_article_count')+1),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED, shares__gt=1)
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
+    if scoring not in ["odd","latest"] and request.GET.get('single','')!="true":
+        query = query.filter(shares__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
     query = query.defer('contents','metadata')
@@ -94,7 +96,6 @@ def alt_buzz(article, category):
 def get_links(category='all', scoring='top', days=1):
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
-        {'name':'Raw', 'href': 'no' if scoring=='raw' else '%s/raw/%s' % (category,days)},
         {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
         {'name':'Recent', 'href': 'no' if scoring=='recent' else '%s/recent/%s' % (category,days)},
     ]
