@@ -26,7 +26,7 @@ def json_ld_parser(soup):
         metadata['sv_title'] = metadata['title']
 
     auth = ''
-    for word in ['creator','author','authors']:
+    for word in ['creator','author','authors', 'Creator', 'Author', 'Authors', 'CREATOR', 'AUTHOR', 'AUTHORS']:
         if word in metadata and not 'sv_author' in metadata:
             auth = metadata[word]
             auth = auth[0] if type(auth)==list and len(auth)==1 else auth
@@ -122,12 +122,10 @@ def meta_parser(soup):
     # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
-        for word in ['author', 'author-name', 'byline', 'contributor', 'authors']:
-            if byline:
-                break
-            wordline = ''
-            for sup in soup.findAll('sup'):
-                sup.replaceWith(",")
+        for sup in soup.findAll('sup'):
+            sup.replaceWith(",")
+        wordline = ''
+        for word in ['author', 'author-name', 'byline', 'contributor', 'authors', 'Author', 'Byline', 'Contributor', 'Authors']:
             candidate_tags = soup.find_all(True, {"rel" : word})
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
@@ -155,6 +153,8 @@ def meta_parser(soup):
                     if candidate:
                         wordline = "%s, %s" % (wordline, candidate) if wordline else candidate
             byline = better_name(byline, wordline)
+            if byline:
+                break
         if byline:
             print("Found byline tags")
             metadata['sv_author'] = byline
