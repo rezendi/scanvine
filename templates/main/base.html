@@ -16,18 +16,27 @@ a:hover {
 }
 
 @media only screen and (max-width: 1200px) {
+    a {
+        font-size:x-large;
+    }
+    .nav-text, #aggregate-links {
+        font-size:x-large;
+    }
+}
+
+header {
+    display:flex;
+    align-content:flex-start;
+}
+@media only screen and (max-width: 1200px) {
     header {
-        display:flex;
         justify-content:space-between;
-        align-content:flex-start;
         padding:10px;
     }
 }
 @media only screen and (min-width: 1200px) {
     header {
-        display:flex;
         justify-content:space-around;
-        align-content:flex-start;
         padding:10px 50px 10px 50px;
     }
 }
@@ -54,20 +63,19 @@ main {
     padding:0px 10px 0px 10px;
 }
 
+section {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
 @media only screen and (max-width: 1200px) {
     section {
         width:100%;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
     }
 }
 @media only screen and (min-width: 1200px) {
     section {
         width:66%;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
     }
 }
 
@@ -80,9 +88,17 @@ article {
     padding:10px;
 }
 
-.article-title {
-    font-size:larger;
-    padding-bottom:5px;
+@media only screen and (max-width: 1200px) {
+    .article-title {
+        font-size:xx-large;;
+        padding-bottom:5px;
+    }
+}
+@media only screen and (min-width: 1200px) {
+    .article-title {
+        font-size:larger;
+        padding-bottom:5px;
+    }
 }
 
 .article-image {
@@ -115,7 +131,8 @@ article {
 .share {
     border-top:1px solid lavender;
 }
-    </style>
+
+</style>
 
 <script>window.twttr = (function(d, s, id) {
   var js, fjs = d.getElementsByTagName(s)[0],
@@ -154,17 +171,17 @@ article {
         <div id="filter-menu">
             <div id="filter-scoring">
                 {% for link in scoring_links %}
-                <span class="scoring">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="scoring nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
                 {% endfor %}
             </div>
             <div id="filter-category">
                 {% for link in category_links %}
-                <span class="category">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
                 {% endfor %}
             </div>
             <div id="filter-timing">
                 {% for link in timing_links %}
-                <span class="timing">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
                 {% endfor %}
             </div>
         </div>
