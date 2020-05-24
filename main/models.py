@@ -56,7 +56,7 @@ class Author(models.Model):
     def get_absolute_url(self):
         return "/authors/%s" % self.id
 
-    def credibility(self):
+    def total_cred(self):
         return 0 if not self.total_credibility else self.total_credibility // 1000
 
     def average_cred(self):

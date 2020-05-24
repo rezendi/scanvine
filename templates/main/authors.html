@@ -10,13 +10,15 @@
         <th>Name</th>
         <th>Articles</th>
         <th>Latest</th>
+        <th>Total</th>
     </tr>
     {% for author in authors %}
         <tr>
-            <td>{{author.average_cred}}</td>
+            <td>{%if category%}{{author.average_score}}{%else%}{{author.average_cred}}{%endif%}</td>
             <td><a href="/main/author/{{author.id}}">{{author.name}}</a></td>
             <td>{{author.article_count}}</td>
             <td><a href="{{author.latest.url}}">{{author.latest}}</a> || {{author.latest.publication}}</td>
+            <td>{%if category%}{{author.category_score}}{%else%}{{author.total_cred}}{%endif%}</td>
         <tr>
     {% endfor %}
 </table>

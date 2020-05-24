@@ -24,10 +24,10 @@
             </div>
         </article>
         <p><i>URL</i>: <a href="{{article.url}}">{{article.url}}</a></p>
-        <p><i>Score</i>:  {{ article.credibility }}
+        <p><i>Score</i>:  {{ article.total_cred }}
         <p><i>Published</i>:  {{ article.published_at }}
         <p><i>Fetched</i>:  {{ article.created_at }}
-        <p><i>Author total score</i>:  {{ article.author.credibility }}
+        <p><i>Author total score</i>:  {{ article.author.total_cred }}
         <p><i>Author average score</i>:  {{ article.author.average_cred }}
         <p><i>Publication total score</i>:  {{ article.publication.total_cred }}
         <p><i>Publication average score</i>:  {{ article.publication.average_cred }}

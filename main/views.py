@@ -2,7 +2,7 @@ import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import F, Q, IntegerField, Subquery, Count, Sum
-from django.db.models.functions import Cast, Coalesce, Sqrt
+from django.db.models.functions import Cast, Coalesce, Sqrt, Greatest
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
@@ -29,9 +29,9 @@ def index_view(request, category=None, scoring=None, days=None):
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
         shares = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
         pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        pub_article_count = Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()),
+        pub_article_count = Greatest( Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()), 1),
         buzz = F('score') - F('pub_average_score'),
-        odd = F('buzz') / (F('pub_article_count')+1),
+        odd = F('buzz') / ('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
     if scoring not in ["odd","latest","recent"] and request.GET.get('single','')!="true":
@@ -175,19 +175,24 @@ def authors_view(request, category=None, publication_id = None):
         pub_author_ids = Article.objects.filter(publication_id=publication_id).distinct('author_id').values('author_id')
         authors = authors.filter(id__in=pub_author_ids)
     if category:
-        # TODO: really we need some kind of GROUP BY aggregate here
-        category_id = CATEGORIES.index(category)
-        cat_article_ids = Share.objects.filter(status__gte=Share.Status.CREATED, category=category_id).distinct('article_id').values('article_id')
-        cat_author_ids = Article.objects.filter(id__in=cat_article_ids).distinct('author_id').values('author_id')
-        authors = authors.filter(id__in=cat_author_ids)
+        sort ="-average_score"
+        authors = authors.annotate(
+            category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
+            article_count = Greatest(Count('article__pk'),1),
+            average_score = F('category_score') / F('article_count')
+        ).filter(category_score__isnull=False)
     authors = authors.order_by(sort)[:page_size]
     for author in authors:
+        if category:
+            author.category_score = author.category_score // 1000
+            author.average_score = author.average_score // 1000
         latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
         author.latest = latest[0] if latest else None
 
     (category_links, scoring_links, timing_links) = get_links()
     context = {
         'authors': authors,
+        'category': category,
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,
@@ -220,6 +225,7 @@ def publication_view(request, publication_id):
     }
     return render(request, 'main/publication.html', context)
 
+
 def publications_view(request, category=None):
     page_size = int(request.GET.get('s', '20'))
     page_size = 20 if page_size > 256 else page_size
@@ -230,7 +236,7 @@ def publications_view(request, category=None):
         sort ="-average_score"
         publications = publications.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
-            article_count = Count('article__pk'),
+            article_count = Greatest(Count('article__pk'),1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
