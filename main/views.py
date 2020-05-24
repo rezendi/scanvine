@@ -107,7 +107,7 @@ def get_links(category='all', scoring='top', days=1):
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
         {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
-        {'name':'New', 'href': 'no' if scoring=='recent' else '%s/recent/%s' % (category,days)},
+        {'name':'New', 'href': 'no' if scoring=='new' else '%s/new/%s' % (category,days)},
     ]
     category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
     category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
