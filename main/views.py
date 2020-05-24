@@ -34,7 +34,7 @@ def index_view(request, category=None, scoring=None, days=None):
         odd = F('buzz') / (F('pub_article_count')+1),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
-    if scoring not in ["odd","latest"] and request.GET.get('single','')!="true":
+    if scoring not in ["odd","latest","recent"] and request.GET.get('single','')!="true":
         query = query.filter(shares__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
