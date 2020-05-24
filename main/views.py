@@ -229,11 +229,15 @@ def publications_view(request, category=None):
     if category:
         sort ="-category_score"
         publications = publications.annotate(
-            category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField()))
+            category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
+            article_count = Count('article__pk'),
+            average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
     for publication in publications:
-        publication.category_score = publication.category_score // 1000 if publication.category_score else 0
+        if category:
+            publication.category_score = publication.category_score // 1000
+            publication.average_score = publication.average_score // 1000
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
         publication.latest = latest[0] if latest else None
 
