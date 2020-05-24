@@ -439,8 +439,8 @@ def analyze_sentiment():
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def allocate_credibility(date=datetime.datetime.utcnow(), days=7):
     job = launch_job("allocate_credibility")
-    end_date = date + datetime.timedelta(minutes=5) # in case DB time off from server time
-    start_date = end_date - datetime.timedelta(days=days)
+    end_date = date + datetime.timedelta(days=1) # in case DB time off from server time
+    start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     cred_per_point = 1008
     try:
@@ -488,8 +488,8 @@ CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def set_scores(date=datetime.datetime.utcnow(), days=30):
     job = launch_job("set_scores")
-    end_date = date + datetime.timedelta(days=5) # in case DB time off from server time
-    start_date = end_date - datetime.timedelta(days=days)
+    end_date = date + datetime.timedelta(days=1) # in case DB time off from server time
+    start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     articles_dict = {}
     authors_dict = {}
