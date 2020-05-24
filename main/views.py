@@ -1,7 +1,7 @@
 import datetime, math
 from django.shortcuts import render
 from django.utils import timezone
-from django.db.models import F, Q, IntegerField, Subquery, Count
+from django.db.models import F, Q, IntegerField, Subquery, Count, Sum
 from django.db.models.functions import Cast, Coalesce, Sqrt
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -220,19 +220,26 @@ def publication_view(request, publication_id):
     }
     return render(request, 'main/publication.html', context)
 
-def publications_view(request):
+def publications_view(request, category=None):
     page_size = int(request.GET.get('s', '20'))
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '2'))
     publications = Publication.objects.annotate(article_count=Count('article'))
+    if category:
+        sort ="-category_score"
+        publications = publications.annotate(
+            category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField()))
+        ).filter(category_score__isnull=False)
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
     for publication in publications:
+        publication.category_score = publication.category_score // 1000 if publication.category_score else 0
         latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
         publication.latest = latest[0] if latest else None
 
     (category_links, scoring_links, timing_links) = get_links()
     context = {
+        'category': category,
         'publications': publications,
         'category_links': category_links,
         'scoring_links' : scoring_links,

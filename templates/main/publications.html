@@ -15,7 +15,7 @@
     </tr>
     {% for publication in publications %}
         <tr>
-            <td>{{publication.average_cred}}</td>
+            <td>{%if category%}{{publication.category_score}}{%else%}{{publication.average_cred}}{%endif%}</td>
             <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
             <td>{{publication.article_count}}</td>
             <td>{% if publication.latest %}
