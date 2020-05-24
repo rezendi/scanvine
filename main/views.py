@@ -227,7 +227,7 @@ def publications_view(request, category=None):
     min = int(request.GET.get('min', '2'))
     publications = Publication.objects.annotate(article_count=Count('article'))
     if category:
-        sort ="-category_score"
+        sort ="-average_score"
         publications = publications.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
             article_count = Count('article__pk'),
