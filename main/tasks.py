@@ -181,7 +181,7 @@ def fetch_shares():
             urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
             if urls:
                 user = t['user']
-                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'text':t['full_text'], 'urls':urls}
+                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'full_text':t['full_text'], 'urls':urls}
                 tweets.append(tweet)
         log_job(job, "external link tweets %s" % len(tweets))
         log_job(job, "since_id=%s" % since_id)
@@ -210,7 +210,7 @@ def fetch_shares():
             if len(str(url))>=1024:
                 url = str(url)[0:1023]
             s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
-                      sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['text'], url=url)
+                      sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['full_text'], url=url)
             s.save()
             count += 1
     

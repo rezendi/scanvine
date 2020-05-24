@@ -4,14 +4,30 @@
 <section>
     
     <h3>{{category}} Shares</h3>
-    <div id="all-shares">
+    <div class="article-list">
         {% for share in shares %}
+            {% if share.article %}
+                <article>
+                <a class="article-title" href="{{article.url}}">{{share.article.title|truncatechars:94}}</a>
+                <div class="article-bottom">
+                    {% if share.article.thumbnail_url %}
+                        <div class="article-image"
+                            <a href="{{share.article.url}}"><img src="{{share.article.thumbnail_url}}" height="60" width="auto"/></a>
+                        </div>
+                    {% endif %}
+                    <span class="article-info">
+                        <a href="/main/author/{{share.article.author_id}}">{{share.article.author|truncatechars:80}}</a>
+                        <em><a href="/main/publication/{{share.article.publication_id}}">{{share.article.publication|truncatechars:40}}</a></em>
+                        <a href="/main/article/{{share.article.id}}">{{share.article.display_date|timesince}} ago</a>
+                    </span>
+                </div>
+            </article>
+            {% endif %}
         <div class="share">
-            <p><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}"><b>{{share.sharer.name}}</b></a>
-            <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.text}}</a></p>
-            <p>{{share.share_points}}, <a href="/admin/main/share/{{share.id}}/change">{{share.created_at|timesince}}</a>,
-            <a href="{{share.article.url}}"><em>{{share.article.title|default:"n/a"}}</em></a></p>
-            <p><a href="{{share.article.url}}">{{share.article.url}}</a></p>
+            <p>{%ifequal category "All"%}{{share.category}}, {%endifequal%}<a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.share_points}}</a>,
+            <a href="/admin/main/share/{{share.id}}/change">{{share.created_at|timesince}}</a>,
+            <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}"><b>{{share.sharer.name}}</b></a>
+            <em>{{share.text}}</em></p>
         </div>
         {% endfor %}
     </div>

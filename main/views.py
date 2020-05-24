@@ -63,14 +63,20 @@ def index_view(request, category=None, scoring=None, days=None):
             article.raw = article.score
             article.score = article.buzz
 
+    category = 'all' if category=='total' else category
     (category_links, scoring_links, timing_links) = get_links(category, scoring, delta)
+    category = '' if category=='all' else category
     
-    if request.GET.get('svd','')=='true':
+    if request.GET.get('svd','')=='t':
         for array in [category_links, scoring_links, timing_links]:
             for vals in array:
-                vals['href'] = vals['href'] + "?svd=true" if vals['href']!='no' else vals['href']
+                vals['href'] = vals['href'] + "?svd=t" if vals['href']!='no' else vals['href']
 
-    category = '' if category=='total' else category
+    if request.GET.get('v','')=='t':
+        suffix = '&v=t' if request.GET.get('svd','')=='t' else '?v=t'
+        for array in [category_links, scoring_links, timing_links]:
+            for vals in array:
+                vals['href'] = vals['href'] + suffix if vals['href']!='no' else vals['href']
     
     context = {
         'category': category.title(),
@@ -299,9 +305,10 @@ def search_view(request):
 def shares_view(request, category):
     page_size = int(request.GET.get('s', '100'))
     sort = request.GET.get('o', '-created_at')
-    print("sort %s" % sort)
-    category_id = CATEGORIES.index(category)
-    shares = Share.objects.filter(category=category_id)
+    shares = Share.objects.all()
+    if category !='all':
+        category_id = CATEGORIES.index(category)
+        shares = shares.filter(category=category_id)
     delta = request.GET.get('delta', '')
     if delta:
         end_date = timezone.now() + datetime.timedelta(minutes=5)
