@@ -3,6 +3,7 @@ from django.urls import path
 from django.shortcuts import redirect
 from celery import Celery
 from .tasks import *
+from .metatasks import *
 from .models import *
 
 admin.site.site_header = admin.site.site_title = "Scanvine"

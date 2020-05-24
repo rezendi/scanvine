@@ -40,37 +40,6 @@ USER_AGENTS = [
 ]
 
 
-# Get a tranche of verified users, add them to the DB if not there
-# https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/user-object
-@shared_task(rate_limit="30/h")
-def get_potential_sharers():
-    job = launch_job("get_potential_sharers")
-    verified_cursor = -1
-    log_job(job, "-1", Job.Status.COMPLETED) # remove when we want to do this again
-    return # remove when we want to do this again
-    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="get_potential_sharers").order_by("-created_at")
-    if previous_jobs:
-        previous_actions = previous_jobs[0].actions
-        verified_cursor_string = previous_actions.partition("\n")[0]
-        verified_cursor = int (verified_cursor_string)
-    if verified_cursor == 0:
-        log_job(job, "Cursor at end", Job.Status.COMPLETED)
-        return
-    try:
-        (verified_cursor, previous_cursor, users) = api.GetFriendsPaged(screen_name='verified', cursor = verified_cursor, skip_status = True)
-        log_job(job, "Potential new sharers: %s" % len(users))
-        new = [u for u in users if not Sharer.objects.filter(twitter_id=u.id)]
-        log_job(job, "New sharers: %s" % len(new))
-        for n in new:
-            s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name.replace('\x00',''),
-                       name=n.name.replace('\x00',''), profile=n.description.replace('\x00',''), category=0, verified=True)
-            s.save()
-        log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
-        log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
-    except Exception as ex:
-        log_job(job, "Potential sharer fetch error %s" % ex, Job.Status.ERROR)
-
-
 LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 1259645804853080064, 1259645832619372544]
 
 # Take users from the DB, add them to our Twitter list if not there already
@@ -583,15 +552,6 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
         log_job(job, traceback.format_exc())
         log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
         raise ex
-
-@shared_task(rate_limit="1/m")
-def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
-    job = launch_job("clean_up_jobs")
-    cutoff = date - datetime.timedelta(days=days)
-    to_delete = Job.objects.filter(created_at__lte=cutoff)
-    log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_delete.count()))
-    to_delete.delete()
-    log_job(job, "cleanup complete", Job.Status.COMPLETED)
 
 
 # Main article parser
