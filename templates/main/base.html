@@ -22,6 +22,10 @@ a:hover {
     .nav-text, #aggregate-links {
         font-size:x-large;
     }
+    #logo {
+        width:30px;
+        height:30px;
+    }
 }
 
 header {
@@ -59,6 +63,18 @@ header {
 #aggregate-links {
     display:flex;
     justify-content:flex-start;
+}
+
+#filter-category-short {
+    display:none;
+}
+@media only screen and (max-width: 1200px) {
+    #filter-category {
+        display:none;
+    }
+    #filter-category-short {
+        display:block;
+    }
 }
 
 main {
@@ -180,6 +196,11 @@ article {
             </div>
             <div id="filter-category" class="filter">
                 {% for link in category_links %}
+                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                {% endfor %}
+            </div>
+            <div id="filter-category-short" class="filter">
+                {% for link in short_links %}
                 <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
                 {% endfor %}
             </div>

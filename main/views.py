@@ -18,10 +18,10 @@ def index_view(request, category=None, scoring=None, days=None):
     page_size = 20 if page_size > 256 else page_size
     delta = int(scoring) if scoring and not days and scoring.isnumeric() else days
     delta = int(delta) if delta else 1
-    scoring = 'top' if scoring not in ["raw","odd","latest","recent","shares"] else scoring
+    scoring = 'top' if scoring not in ["raw","odd","latest","new","shares"] else scoring
     end_date = timezone.now() + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=delta)
-    if scoring=="recent":
+    if scoring=="new":
         delta = int(days) if days else 3
         start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
@@ -34,7 +34,7 @@ def index_view(request, category=None, scoring=None, days=None):
         odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
-    if scoring not in ["odd","latest","recent"] and request.GET.get('single','')!="true":
+    if scoring not in ["odd","latest","new"] and request.GET.get('single','')!="true":
         query = query.filter(shares__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
@@ -48,7 +48,7 @@ def index_view(request, category=None, scoring=None, days=None):
     if scoring=='shares':
         articles = query.order_by("-shares")[:page_size]
 
-    if scoring=='raw' or scoring=='recent':
+    if scoring=='raw' or scoring=='new':
         articles = query.order_by("-score")[:page_size]
 
     if scoring=='odd':
@@ -78,6 +78,9 @@ def index_view(request, category=None, scoring=None, days=None):
             for vals in array:
                 vals['href'] = vals['href'] + suffix if vals['href']!='no' else vals['href']
     
+    short = {"Science":"Sci", "Business": "Biz"}
+    short_links = [dict(c, **{"name":short[c['name']]}) if c['name'] in short else c for c in category_links]
+
     context = {
         'category': category.title(),
         'scoring' : scoring.title(),
@@ -85,6 +88,7 @@ def index_view(request, category=None, scoring=None, days=None):
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,
+        'short_links': short_links,
         'articles': articles,
     }
     return render(request, 'main/index.html', context)
@@ -103,15 +107,15 @@ def get_links(category='all', scoring='top', days=1):
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else '%s/top/%s' % (category,days)},
         {'name':'Odd', 'href': 'no' if scoring=='odd' else '%s/odd/%s' % (category,days)},
-        {'name':'Recent', 'href': 'no' if scoring=='recent' else '%s/recent/%s' % (category,days)},
+        {'name':'New', 'href': 'no' if scoring=='recent' else '%s/recent/%s' % (category,days)},
     ]
     category_links = [{'name':'All', 'href': 'no' if category in ['all','total'] else 'all/%s/%s' % (scoring,days)}]
     category_links+= [{'name':c.title(), 'href': 'no' if category==c else '%s/%s/%s' % (c,scoring,days)} for c in CATEGORIES]
     timing_links = [
-        {'name':'Today' if scoring!='recent' else '1 hour', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
-        {'name':'3 days' if scoring!='recent' else '3 hours', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
-        {'name':'Week' if scoring!='recent' else '7 hours', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
-        {'name':'Month' if scoring!='recent' else '30 hours', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
+        {'name':'Today' if scoring!='new' else '1 hour', 'href': 'no' if days==1 else '%s/%s/1' % (category,scoring)},
+        {'name':'3 days' if scoring!='new' else '3 hours', 'href': 'no' if days==3 else '%s/%s/3' % (category,scoring)},
+        {'name':'Week' if scoring!='new' else '7 hours', 'href': 'no' if days==7 else '%s/%s/7' % (category,scoring)},
+        {'name':'Month' if scoring!='new' else '30 hours', 'href': 'no' if days==30 else '%s/%s/30' % (category,scoring)},
     ]
     return (category_links, scoring_links, timing_links)
 
