@@ -31,7 +31,7 @@ def index_view(request, category=None, scoring=None, days=None):
         pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
         pub_article_count = Greatest( Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()), 1),
         buzz = F('score') - F('pub_average_score'),
-        odd = F('buzz') / ('pub_article_count'),
+        odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status=Article.Status.AUTHOR_ASSOCIATED)
     if scoring not in ["odd","latest","recent"] and request.GET.get('single','')!="true":
