@@ -123,9 +123,11 @@ def get_links(category='all', scoring='top', days=1):
 def article_view(request, article_id):
     article = Article.objects.get(id=article_id)
     (category_links, scoring_links, timing_links) = get_links()
+    shares = list(Share.objects.filter(article_id=article.id).distinct('sharer_id'))
+    shares.sort(key=lambda s:s.category)
     context = {
         'article': article,
-        'shares': Share.objects.filter(article_id=article.id).distinct('sharer_id'),
+        'shares': shares,
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,

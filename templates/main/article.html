@@ -55,7 +55,7 @@
     <h3>Shared by</h3>
     <div id="article-sharers">
         {% for share in shares %}
-        <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
+        <a title="{{share.category}}" href="https://twitter.com/{{share.sharer.twitter_screen_name}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
         {% endfor %}
     </div>
     

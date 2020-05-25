@@ -24,7 +24,8 @@
             </article>
             {% endif %}
         <div class="share">
-            <p>{%ifequal category "All"%}{{share.category}}, {%endifequal%}<a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.share_points}}</a>,
+            <p>{%ifequal category "All"%}{{share.category}}, {%endifequal%}
+            <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.share_points}}</a>,
             <a href="/admin/main/share/{{share.id}}/change">{{share.created_at|timesince}}</a>,
             <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}"><b>{{share.sharer.name}}</b></a>
             <em>{{share.text}}</em></p>
