@@ -169,7 +169,7 @@ def author_view(request, author_id):
 
 
 def authors_view(request, category=None, publication_id = None):
-    page_size = int(request.GET.get('s', '20'))
+    page_size = int(request.GET.get('s', '100'))
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-total_credibility')
     min = int(request.GET.get('min', '1'))
@@ -233,7 +233,7 @@ def publication_view(request, publication_id):
 
 
 def publications_view(request, category=None):
-    page_size = int(request.GET.get('s', '20'))
+    page_size = int(request.GET.get('s', '100'))
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '2'))
