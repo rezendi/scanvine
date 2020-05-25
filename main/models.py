@@ -239,6 +239,6 @@ class Job(models.Model):
 class List(models.Model):
     status = models.IntegerField(db_index=True)
     twitter_id = models.BigIntegerField(db_index=True)
-    metadata = JSONField(emptydict)
+    metadata = JSONField(default=emptydict)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)

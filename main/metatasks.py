@@ -44,36 +44,39 @@ def get_potential_sharers():
         log_job(job, "Potential sharer fetch error %s" % ex, Job.Status.ERROR)
 
 
-@shared_task(rate_limit="2/m")
+@shared_task(rate_limit="1/m")
 def get_lists():
     job = launch_job("get_lists")
-    category = timezone.now().microsecond % len(LIST_IDS)
-    sharer = Sharer.objects.filter(status=Sharer.Status.LISTED).filter(metadata__has_key='lists_processed')[:1]
-    if not sharer:
+    category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    sharers = Sharer.objects.filter(status=Sharer.Status.LISTED).exclude(metadata__has_key='lists_processed')[:1]
+    if not sharers:
         log_job(job, "all done", Job.Status.COMPLETED)
         return
-    #TODO maybe: get more than 1K?
-    lists = api.GetMemberships(user_id=next_listed.twitter_id, count=1000)
+    sharer = sharers[0]
+    tlists = api.GetMemberships(user_id=sharer.twitter_id, count=1000) #TODO maybe more than 1K?
     external_lists = []
-    for list in lists:
-        existing = List.objects.filter(twitter_id = list['id'])
-        list = existing[0] if existing else List(status = 0, twitter_id=list['id'])
+    for tlist in tlists:
+        existing = List.objects.filter(twitter_id = tlist.id)
+        list = existing[0] if existing else List(status = 0, twitter_id=tlist.id)
         key = "cat_%s" % category
         list.metadata[key] = list.metadata[key] + 1 if key in list.metadata else 1
         list.save()
-        external_lists.append(list['id'])
+        external_lists.append(tlist.id)
     sharer.metadata['external_lists'] = external_lists
     sharer.metadata['lists_processed'] = "true"
     sharer.save()
-    log_job(job, "got %s lists" % len(lists), Job.Status.COMPLETED)
+    log_job(job, "got %s lists" % len(tlists), Job.Status.COMPLETED)
 
 
-@shared_task(rate_limit="6/m")
+@shared_task(rate_limit="1/m")
 def get_list_members():
     job = launch_job("get_list_members")
-    list = List.objects.filter(status=0)[:1]
-    #TODO maybe: get more than 5K?
-    (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities = False)
+    lists = List.objects.filter(status=0)[:1]
+    if not lists:
+        log_job(job, "all done", Job.Status.COMPLETED)
+        return
+    list = lists[0]
+    (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities=False) # TODO maybe more than 5K?
     for l in listed:
         existing = Sharer.objects.filter(twitter_id=l.id)
         if existing:
@@ -81,7 +84,7 @@ def get_list_members():
             if not 'external_lists' in sharer.metadata:
                 sharer.metadata['external_lists'] = []
             if not list.twitter_id in sharer.metadata['external_lists']:
-                sharer.external_lists.append(list.twitter_id)
+                sharer.metadata['external_lists'].append(list.twitter_id)
         else:
             sharer = Sharer(status=Sharer.Status.SUGGESTED, twitter_id=l.id, twitter_screen_name=l.screen_name, category=Sharer.Category.NONE,
                             name=l.name, profile=l.description, verified=l.verified, metadata = {"external_lists":[list.twitter_id]})

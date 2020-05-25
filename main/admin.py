@@ -3,9 +3,9 @@ from django.urls import path
 from django.shortcuts import redirect
 from django.db.models import Count
 from celery import Celery
+from .models import *
 from .tasks import *
 from .metatasks import *
-from .models import *
 
 admin.site.site_header = admin.site.site_title = "Scanvine"
 admin.site.index_title = "Administration"
@@ -30,7 +30,8 @@ class SharerAdmin(ScanvineAdmin):
         'name',
         'profile',
         ('twitter_id','twitter_list_id','verified'),
-        ('created_at','updated_at')
+        ('created_at','updated_at'),
+        'metadata'
     )
 
     def deselect(modeladmin, request, queryset):
@@ -255,6 +256,8 @@ class JobAdmin(ScanvineAdmin):
             path('set_scores/',             self.set_scores),
             path('reparse_articles/',       self.reparse_articles),
             path('clean_up_jobs/',          self.clean_up_jobs),
+            path('get_lists/',              self.get_lists),
+            path('get_list_members/',       self.get_list_members),
         ]
         return my_urls + urls
     
@@ -306,6 +309,16 @@ class JobAdmin(ScanvineAdmin):
     def clean_up_jobs(self, request):
         if request.user.is_superuser:
             clean_up_jobs.delay()
+            return redirect('/admin/main/job/')
+
+    def get_lists(self, request):
+        if request.user.is_superuser:
+            get_lists.delay()
+            return redirect('/admin/main/job/')
+
+    def get_list_members(self, request):
+        if request.user.is_superuser:
+            get_list_members.delay()
             return redirect('/admin/main/job/')
 
 
