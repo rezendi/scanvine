@@ -18,7 +18,7 @@
             <td>{%if category%}{{publication.average_score}}{%else%}{{publication.average_cred}}{%endif%}</td>
             <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
             <td>{{publication.article_count}}</td>
-            <td>{% if publication.latest %}
+            <td>{% if publication.top %}
                 <a href="{{publication.top.url}}">{{publication.top.title}}</a> ||
                 <a href="/main/author/{{publication.top.author_id}}">{{publication.top.author}}</a>
                 {% endif %}
