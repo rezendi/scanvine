@@ -175,7 +175,7 @@ def authors_view(request, category=None, publication_id = None):
     min = int(request.GET.get('min', '1'))
     all = request.GET.get('all', '')
     authors = Author.objects.annotate(
-        article_count=Count('article'),
+        article_count=Count('article__pk', distinct=True),
         collaboration_count = Count('collaborations__pk', distinct=True),
         total_count = F('article_count') + F('collaboration_count'),
     )
@@ -245,12 +245,12 @@ def publications_view(request, category=None):
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-average_credibility')
     min = int(request.GET.get('min', '2'))
-    publications = Publication.objects.annotate(article_count=Count('article'))
+    publications = Publication.objects.annotate(article_count=Count('article', distinct=True))
     if category:
         sort ="-average_score"
         publications = publications.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
-            article_count = Greatest(Count('article'),1),
+            article_count = Greatest(article_count,1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
