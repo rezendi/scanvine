@@ -192,7 +192,7 @@ def authors_view(request, category=None, publication_id = None):
         if category:
             author.category_score = author.category_score // 1000
             author.average_score = author.average_score // 1000
-        latest = Article.objects.filter(author_id=author.id).order_by("-created_at")[:1]
+        latest = Article.objects.filter(author_id=author.id).order_by("-total_credibility")[:1]
         author.latest = latest[0] if latest else None
 
     (category_links, scoring_links, timing_links) = get_links()
@@ -250,7 +250,7 @@ def publications_view(request, category=None):
         if category:
             publication.category_score = publication.category_score // 1000
             publication.average_score = publication.average_score // 1000
-        latest = Article.objects.filter(publication_id=publication.id).order_by('-created_at')[:1]
+        latest = Article.objects.filter(publication_id=publication.id).order_by('-total_credibility')[:1]
         publication.latest = latest[0] if latest else None
 
     (category_links, scoring_links, timing_links) = get_links()
