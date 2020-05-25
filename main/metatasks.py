@@ -48,32 +48,48 @@ def get_potential_sharers():
 def get_lists():
     job = launch_job("get_lists")
     category = timezone.now().microsecond % len(LIST_IDS)
-    listed = Membership.objects.all().distinct('sharer_id').values('sharer_id')
-    sharer = Sharer.objects.filter(id__notin=listed)[:1]
+    sharer = Sharer.objects.filter(status=Sharer.Status.LISTED).filter(metadata__has_key='lists_processed')[:1]
     if not sharer:
         log_job(job, "all done", Job.Status.COMPLETED)
         return
     #TODO maybe: get more than 1K?
     lists = api.GetMemberships(user_id=next_listed.twitter_id, count=1000)
+    external_lists = []
     for list in lists:
-        # store many to many
         existing = List.objects.filter(twitter_id = list['id'])
-        list = existing[0] if existing else List(twitter_id=list['id'], category_counts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0})
-        list.category_counts[category] = list.category_counts[category] +1
+        list = existing[0] if existing else List(status = 0, twitter_id=list['id'])
+        key = "cat_%s" % category
+        list.metadata[key] = list.metadata[key] + 1 if key in list.metadata else 1
         list.save()
-        membership = Membership(list_id=listlid, twitter_id=sharer.twitter_id, sharer_id=sharer_id)
-        membership.save()
+        external_lists.append(list['id'])
+    sharer.metadata['external_lists'] = external_lists
+    sharer.metadata['lists_processed'] = "true"
+    sharer.save()
     log_job(job, "got %s lists" % len(lists), Job.Status.COMPLETED)
+
 
 @shared_task(rate_limit="6/m")
 def get_list_members():
     job = launch_job("get_list_members")
+    list = List.objects.filter(status=0)[:1]
     #TODO maybe: get more than 5K?
-    (next, prev, listed) = api.GetListMembersPaged(list_id=list_id, count=5000, skip_status=True, include_entities = False)
+    (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities = False)
     for l in listed:
-        membership = Membership(list_id=listlid, twitter_id=sharer.twitter_id)
-        membership.save()
+        existing = Sharer.objects.filter(twitter_id=l.id)
+        if existing:
+            sharer = existing[0]
+            if not 'external_lists' in sharer.metadata:
+                sharer.metadata['external_lists'] = []
+            if not list.twitter_id in sharer.metadata['external_lists']:
+                sharer.external_lists.append(list.twitter_id)
+        else:
+            sharer = Sharer(status=Sharer.Status.SUGGESTED, twitter_id=l.id, twitter_screen_name=l.screen_name, category=Sharer.Category.NONE,
+                            name=l.name, profile=l.description, verified=l.verified, metadata = {"external_lists":[list.twitter_id]})
+        sharer.save()
+    list.status = 1
+    list.save()
     log_job(job, "got %s members" % len(listed), Job.Status.COMPLETED)
+
 
 @shared_task(rate_limit="1/m")
 def recommend_members():

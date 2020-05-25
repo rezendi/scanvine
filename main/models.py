@@ -3,6 +3,9 @@ from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
 
+def emptydict():
+    return {}
+
 class Sharer(models.Model):
     class Status(models.IntegerChoices):
         LISTED = 2
@@ -10,6 +13,8 @@ class Sharer(models.Model):
         CREATED = 0
         DESELECTED = -1
         DISABLED = -2
+        SUGGESTED = -3
+        RECOMMENDED = -4
     
     class Category(models.IntegerChoices):
         NONE = -1
@@ -29,6 +34,7 @@ class Sharer(models.Model):
     profile = models.CharField(max_length=1023)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    metadata = JSONField(default=emptydict)
 
     def __str__(self):
         return "%s (%s)" % (self.twitter_screen_name, self.id)
@@ -39,7 +45,7 @@ class Author(models.Model):
         CREATED = 0
 
     status = models.IntegerField(db_index=True, choices=Status.choices)
-    name = models.CharField(max_length=255, db_index=True)
+    name = models.CharField(max_length=511, db_index=True)
     is_collaboration = models.BooleanField(db_index=True)
     twitter_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     twitter_screen_name = models.CharField(max_length=63, blank=True, default='')
@@ -228,3 +234,11 @@ class Job(models.Model):
 
     def __str__(self):
         return "%s %s" % (self.name, self.id)
+
+
+class List(models.Model):
+    status = models.IntegerField(db_index=True)
+    twitter_id = models.BigIntegerField(db_index=True)
+    metadata = JSONField(emptydict)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
