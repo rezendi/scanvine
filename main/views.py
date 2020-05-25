@@ -201,7 +201,11 @@ def authors_view(request, category=None, publication_id = None):
             author.category_score = author.category_score // 1000
             author.average_score = author.average_score // 1000
         top = Article.objects.filter(author_id=author.id).order_by("-total_credibility")[:1]
-        author.top = top[0] if top else None
+        if not top:
+            collab_ids = Collaboration.objects.filter(individual=author.id).values('partnership')
+            top = Article.objects.filter(author_id__in=collab_ids).order_by("-total_credibility")[:1]
+        if top:
+            author.top = top[0]
 
     (category_links, scoring_links, timing_links) = get_links()
     context = {
