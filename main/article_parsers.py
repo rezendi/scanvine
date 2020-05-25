@@ -74,7 +74,7 @@ def get_author_for(metadata, publication):
             author.save()
             authors.append(author)
 
-    byline = ",".join(names)
+    byline = ",".join([author.name for author in authors])
     if len(byline) > 255:
         byline = "%s%s" % (byline[0:252], "...")
     existing = Author.objects.filter(name__iexact=byline)
