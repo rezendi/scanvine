@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect
+from django.db.models import Count
 from celery import Celery
 from .tasks import *
 from .metatasks import *
@@ -108,7 +109,7 @@ class ArticleAdmin(ScanvineAdmin):
 @admin.register(Author)
 class AuthorAdmin(ScanvineAdmin):
     change_form_template = "admin/author_change_form.html"
-    list_display = ('id', 'name', 'created_at',)
+    list_display = ('id', 'name', 'twitter_screen_name', 'created_at',)
     search_fields = ('name',)
     readonly_fields= ('created_at','updated_at')
     fields = (
@@ -125,13 +126,11 @@ class AuthorAdmin(ScanvineAdmin):
         if search_term == "empty":
             empty_ids = []
             still_empty = []
-            for author in Author.objects.all():
-                if not Article.objects.filter(author_id=author.id)[:1]:
-                    empty_ids.append(author.id)
-            for id in empty_ids:
-                if not Collaboration.objects.filter(individual=id)[:1]:
-                    still_empty.append(id)
-            return (Author.objects.filter(id__in=still_empty), True)
+            query = Author.objects.annotate(
+                articles=Count('article__pk'),
+                collabs=Count('collaborations'),
+            ).filter(articles=0, collabs=0)
+            return (query, True)
         return super().get_search_results(request, queryset, search_term)
 
 

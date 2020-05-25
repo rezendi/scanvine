@@ -272,6 +272,7 @@ def youtube_parser(soup):
             text = text.replace('\\"','').replace(":",'')
     return {'sv_author': text}
 
+
 # Constructor methods
 
 def get_author_for(metadata, publication):
