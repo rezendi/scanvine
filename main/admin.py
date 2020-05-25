@@ -128,7 +128,7 @@ class AuthorAdmin(ScanvineAdmin):
             still_empty = []
             query = Author.objects.annotate(
                 articles=Count('article__pk'),
-                collabs=Count('collaborations'),
+                collabs=Count('collaborations__partnership'),
             ).filter(articles=0, collabs=0)
             return (query, True)
         return super().get_search_results(request, queryset, search_term)
