@@ -139,7 +139,7 @@ def clean_author_name(name, publication = None):
 
     words = newname.split(" ")
     if len(words) > 1:
-        newname = newname.title()
+        newname = newname.title() if newname.islower() or newname.isupper() else newname
         newname = newname.replace("'S ","'s ")
 
     if newname and newname.lower() != name.lower():

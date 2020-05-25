@@ -123,7 +123,7 @@ class AuthorTests(TestCase):
         article.save()
         tasks.parse_article_metadata(article.id)
         article.refresh_from_db()
-        self.assertEqual(article.author.name, 'L.A. Mcdermott')
+        self.assertEqual(article.author.name, 'L.A. McDermott')
 
 
 class ScoringTest(TestCase):
