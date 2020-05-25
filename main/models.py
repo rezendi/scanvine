@@ -12,6 +12,7 @@ class Sharer(models.Model):
         DISABLED = -2
     
     class Category(models.IntegerChoices):
+        NONE = -1
         HEALTH = 0
         SCIENCE = 1
         TECH = 2

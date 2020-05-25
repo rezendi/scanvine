@@ -53,6 +53,6 @@ api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
 from main import tasks
 
 # actual code
-
-from django.utils import timezone
-print("tz %s" % timezone.now().microsecond)
+from django.db import connection
+with connection.cursor() as cursor:
+    cursor.execute("UPDATE main_sharer SET category=-1 WHERE category=0 AND status=0")
