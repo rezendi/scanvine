@@ -142,7 +142,7 @@ def clean_author_name(name, publication = None):
         newname = newname.title()
         newname = newname.replace("'S ","'s ")
 
-    if newname and newname != name:        
+    if newname and newname.lower() != name.lower():
         existing = Author.objects.filter(name=name)
         if existing:
             existing[0].name = newname
