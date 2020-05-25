@@ -164,12 +164,16 @@ def better_name(oldval, newval):
         return names[0] if len(names)==1 else ','.join(names)
     if type(newval) is dict:
         newval = newval['name'] if 'name' in newval else None
+    if type(oldval) is dict:
+        oldval = oldval['name'] if 'name' in oldval else None
     if not oldval:
         return newval
     if not newval:
         return oldval
     if newval and (newval.startswith("[") or newval.startswith("{")):
         return oldval
+    if oldval and (oldval.startswith("[") or oldval.startswith("{")):
+        return newval
     new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
     old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
     if new_words == 1 and old_words > 1:
@@ -455,4 +459,8 @@ def youtube_parser(soup):
             text = text.replace('\\"','').replace(":",'')
     return {'sv_author': text}
 
-
+def nyt_parser(soup):
+    base = json_ld_parser(soup)
+    if type(base['sv_author']) == dict and '@id' in base['sv_author'] and base['sv_author']['@id'] == "https://www.nytimes.com/#publisher":
+        base.update({'sv_author': 'New York Times'})
+    return base
