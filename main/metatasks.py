@@ -36,7 +36,7 @@ def get_potential_sharers():
         log_job(job, "New sharers: %s" % len(new))
         for n in new:
             s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name.replace('\x00',''),
-                       name=n.name.replace('\x00',''), profile=n.description.replace('\x00',''), category=0, verified=True)
+                       name=n.name.replace('\x00',''), profile=n.description.replace('\x00',''), category=-1, verified=True)
             s.save()
         log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
         log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
