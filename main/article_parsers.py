@@ -346,12 +346,12 @@ def get_author_for(metadata, publication):
             authors.append(author)
 
     byline = ",".join(names)
+    if len(byline) > 255:
+        byline = "%s%s" % (byline[0:252], "...")
     existing = Author.objects.filter(name__iexact=byline)
     if existing:
         return existing[0]
     new_byline = Author(status=Author.Status.CREATED, name=byline, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
-    if len(new_byline.name) > 255:
-        new_byline.name = "%s%s" % (new_byline.name[0:252], "...")
     new_byline.save()
     for author in authors:
         collaboration = Collaboration(partnership = new_byline, individual = author)
