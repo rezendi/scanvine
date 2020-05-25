@@ -2,6 +2,189 @@ import json, re
 import dateparser
 from .models import *
 
+# Constructor methods
+
+def get_author_for(metadata, publication):
+    if not 'sv_author' in metadata:
+        return None
+    twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
+    twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
+    if twitter_id and not twitter_id.isnumeric():
+        twitter_name = twitter_id if not twitter_name else twitter_name
+        twitter_id = None
+    author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
+
+    names = clean_author_string(author_string, publication).split(",")
+    pubname = publication.name.lower().strip()
+    if pubname and len(pubname) > 2:
+        names = [n for n in names if not n.lower().startswith(pubname) and not pubname.startswith(n.lower())]
+    names = [n.strip() for n in names]
+    names = [ii for n,ii in enumerate(names) if ii not in names[:n]] # remove duplicates
+    names = [clean_author_name(n, publication) for n in names]
+    names = [n for n in names if len(n)>3]
+
+
+    if len(names) == 0:
+        return None
+
+    # if multiple names, we have a collaboration on our hands
+    # if something is structurally wrong, bail
+    if len(names) > 1:
+        word_counts = [len(n.split(" ")) for n in names]
+        max_words = max(word_counts)
+        if max_words > 4: 
+            print("Too many words in author names %s" % names)
+            if len(names[0].split(" ")) < 4:
+                names=[names[0]]
+            else:
+                return None
+        if len(names)>2:
+            if max_words <= 1:
+                print("Not enough words in author names %s" % names)
+                return None
+            if len([c for c in word_counts if c==1]) > len(word_counts)/2:
+                print("Too many single-word names in author names %s" % names)
+                return None
+
+    if len(names) == 1:
+        name = names[0]
+        existing = Author.objects.filter(name__iexact=name)
+        if len(existing) > 1 and twitter_name:
+            print("Filtering by twitter_name %s" % twitter_name)
+            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
+        if existing:
+            return existing[0] # TODO handle multiple matches
+        else:
+            author=Author(status=Author.Status.CREATED, name=name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
+                          is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+            author.save()
+            return author
+
+    # OK, we think these names are good
+    authors = []
+    for name in names:
+        existing = Author.objects.filter(name__iexact=name)
+        if len(existing) > 1 and twitter_name:
+            print("Filtering by twitter_name %s" % twitter_name)
+            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
+        if existing:
+            authors.append(existing[0]) # TODO handle multiple matches
+        else:
+            author=Author(status=Author.Status.CREATED, name=name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
+            author.save()
+            authors.append(author)
+
+    byline = ",".join(names)
+    if len(byline) > 255:
+        byline = "%s%s" % (byline[0:252], "...")
+    existing = Author.objects.filter(name__iexact=byline)
+    if existing:
+        return existing[0]
+    new_byline = Author(status=Author.Status.CREATED, name=byline, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
+    new_byline.save()
+    for author in authors:
+        collaboration = Collaboration(partnership = new_byline, individual = author)
+        collaboration.save()
+    return new_byline
+
+def clean_author_string(string, publication = None):
+    exclusions = []
+    if publication:
+        exclusions+= [publication.domain]
+        if publication.name:
+            exclusions+= [publication.name, "%s%s" % (publication.domain, ".com"), "%s%s" % (publication.domain, ".org"), "%s%s" % (publication.domain, ".co")]
+        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "opinion", "M.D.", "MD", "DPhil", "MA", "Inc."]
+    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "contact", "byline", "author", "posted", "abstract", "on", "get"]
+    exclusions+= ["authors", "et al"]
+    exclusions+= ["reuters", "AP", "AFP", "|", "&", "and"]
+    newstring = string.replace("&amp;","&") if string else ''
+    for exclusion in exclusions:
+        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
+            newstring = newstring.replace(' %s ' % variant,', ')
+            newstring = newstring.replace(' %s,' % variant,' ,')
+            newstring = newstring.replace(',%s ' % variant,', ')
+            newstring = newstring.replace('%s ' % variant, ' ') if newstring.startswith(variant) else newstring
+            newstring = newstring.replace(' %s' % variant, ' ') if newstring.endswith(variant) else newstring
+            newstring = newstring.replace('  ',' ')
+    return newstring.replace('  ',' ').strip()
+
+def clean_author_name(name, publication = None):
+    exclusions = []
+    if publication:
+        exclusions+= [publication.domain]
+        exclusions+= [publication.name] if publication.name else []
+        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
+    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
+    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "opinion", "M.D.", "MD", "DPhil", "MA", "Inc."]
+    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "the", "author", "byline", "contact", "posted", "abstract", "on", "get"]
+    exclusions+= ["authors", "et al"]
+    exclusions+= ["reuters", "AP", "AFP", "|"]
+    newname = name.replace("&amp;","&") if name else ''
+    newname = re.sub(r'<[^>]*>', "", newname)
+    for exclusion in exclusions:
+        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
+            newname = newname.replace(' %s ' % variant, ' ')
+            newname = newname.replace('%s ' % variant, ' ') if newname.startswith(variant) else newname
+            newname = newname.replace(' %s' % variant, ' ') if newname.endswith(variant) else newname
+            newname = newname.replace('  ',' ')
+    newname = newname.replace('  ',' ').strip()
+    if newname.startswith("http"):
+        split = newname.rpartition("/")
+        newname = split[0].rpartition("/")[2] if split[2].isnumeric() else split[2]
+        tentative = newname.split("-")
+        if len(tentative)>1 and len (tentative) <5:
+            newname = " ".join(tentative)
+
+    words = newname.split(" ")
+    if len(words) > 1:
+        newname = newname.title()
+        newname = newname.replace("'S ","'s ")
+
+    if newname and newname != name:        
+        existing = Author.objects.filter(name=name)
+        if existing:
+            existing[0].name = newname
+            existing[0].save()
+
+    return newname
+    
+def get_author_from(existing, metadata):
+    oldval = existing['sv_author'] if 'sv_author' in existing else None
+    newval = metadata['sv_author'] if 'sv_author' in metadata else None
+    return better_name(oldval, newval)
+
+def better_name(oldval, newval):
+    # print("comparing %s to %s" % (oldval, newval))
+    if not newval:
+        return oldval
+    if type(newval) is list:
+        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
+        return names[0] if len(names)==1 else ','.join(names)
+    if type(newval) is dict:
+        newval = newval['name'] if 'name' in newval else None
+    if not oldval:
+        return newval
+    if not newval:
+        return oldval
+    if newval and (newval.startswith("[") or newval.startswith("{")):
+        return oldval
+    new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
+    old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
+    if new_words == 1 and old_words > 1:
+        return oldval
+    if new_words < 4 and old_words > 8:
+        return newval
+    if old_words < 4 and new_words > 8:
+        return oldval
+    if new_words - old_words > 8:
+        return oldval
+    if new_words - old_words > 2 and newval.find(",")==-1:
+        return oldval
+    return newval
+
+
 # Parser methods
 
 def json_ld_parser(soup):
@@ -272,186 +455,4 @@ def youtube_parser(soup):
             text = text.replace('\\"','').replace(":",'')
     return {'sv_author': text}
 
-
-# Constructor methods
-
-def get_author_for(metadata, publication):
-    if not 'sv_author' in metadata:
-        return None
-    twitter_id = metadata['twitter:creator:id'] if 'twitter:creator:id' in metadata else None
-    twitter_name = metadata['twitter:creator'] if 'twitter:creator' in metadata else ''
-    if twitter_id and not twitter_id.isnumeric():
-        twitter_name = twitter_id if not twitter_name else twitter_name
-        twitter_id = None
-    author_string = str(metadata['sv_author']) if 'sv_author' in metadata else ''
-
-    names = clean_author_string(author_string, publication).split(",")
-    pubname = publication.name
-    if pubname and len(pubname.strip()) > 2 and (author_string.startswith(pubname) or author_string.startswith(pubname.title())):
-        names = [pubname]
-    else:
-        names = [n.strip() for n in names]
-        names = [ii for n,ii in enumerate(names) if ii not in names[:n]] # remove duplicates
-        names = [clean_author_name(n, publication) for n in names]
-        names = [n for n in names if len(n)>3]
-
-    if len(names) == 0:
-        return None
-
-    # if we're here, we have a collaboration on our hands
-    # if something is structurally wrong, bail
-    if len(names) > 1:
-        word_counts = [len(n.split(" ")) for n in names]
-        max_words = max(word_counts)
-        if max_words > 4: 
-            print("Too many words in author names %s" % names)
-            if len(names[0].split(" ")) < 4:
-                names=[names[0]]
-            else:
-                return None
-        if len(names)>2:
-            if max_words <= 1:
-                print("Not enough words in author names %s" % names)
-                return None
-            if len([c for c in word_counts if c==1]) > len(word_counts)/2:
-                print("Too many single-word names in author names %s" % names)
-                return None
-
-    if len(names) == 1:
-        name = names[0]
-        existing = Author.objects.filter(name__iexact=name)
-        if len(existing) > 1 and twitter_name:
-            print("Filtering by twitter_name %s" % twitter_name)
-            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
-        if existing:
-            return existing[0] # TODO handle multiple matches
-        else:
-            author=Author(status=Author.Status.CREATED, name=name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
-                          is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-            author.save()
-            return author
-
-    # OK, we think these names are good
-    authors = []
-    for name in names:
-        existing = Author.objects.filter(name__iexact=name)
-        if len(existing) > 1 and twitter_name:
-            print("Filtering by twitter_name %s" % twitter_name)
-            existing = existing.filter(twitter_screen_name__iexact=twitter_name)
-        if existing:
-            authors.append(existing[0]) # TODO handle multiple matches
-        else:
-            author=Author(status=Author.Status.CREATED, name=name, is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
-            author.save()
-            authors.append(author)
-
-    byline = ",".join(names)
-    if len(byline) > 255:
-        byline = "%s%s" % (byline[0:252], "...")
-    existing = Author.objects.filter(name__iexact=byline)
-    if existing:
-        return existing[0]
-    new_byline = Author(status=Author.Status.CREATED, name=byline, is_collaboration=True, metadata='{}', current_credibility=0, total_credibility=0)
-    new_byline.save()
-    for author in authors:
-        collaboration = Collaboration(partnership = new_byline, individual = author)
-        collaboration.save()
-    return new_byline
-
-def clean_author_string(string, publication = None):
-    exclusions = []
-    if publication:
-        exclusions+= [publication.domain]
-        if publication.name:
-            exclusions+= [publication.name, "%s%s" % (publication.domain, ".com"), "%s%s" % (publication.domain, ".org"), "%s%s" % (publication.domain, ".co")]
-        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "opinion", "M.D.", "MD", "DPhil", "MA", "Inc."]
-    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "contact", "byline", "author", "posted", "abstract", "on", "get"]
-    exclusions+= ["authors", "et al"]
-    exclusions+= ["reuters", "AP", "AFP", "|", "&", "and"]
-    newstring = string.replace("&amp;","&") if string else ''
-    for exclusion in exclusions:
-        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
-            newstring = newstring.replace(' %s ' % variant,', ')
-            newstring = newstring.replace(' %s,' % variant,' ,')
-            newstring = newstring.replace(',%s ' % variant,', ')
-            newstring = newstring.replace('%s ' % variant, ' ') if newstring.startswith(variant) else newstring
-            newstring = newstring.replace(' %s' % variant, ' ') if newstring.endswith(variant) else newstring
-            newstring = newstring.replace('  ',' ')
-    return newstring.replace('  ',' ').strip()
-
-def clean_author_name(name, publication = None):
-    exclusions = []
-    if publication:
-        exclusions+= [publication.domain]
-        exclusions+= [publication.name] if publication.name else []
-        exclusions+= [publication.domain.partition(".")[2]] if publication.domain.count(".") > 1 else []
-    exclusions+= ["associated press", "health correspondent", "opinion columnist", "opinion contributor", "commissioning editor", "special correspondent"]
-    exclusions+= ["correspondent", "contributor", "columnist", "editor," "editor-at-large", "opinion", "M.D.", "MD", "DPhil", "MA", "Inc."]
-    exclusions+= ["business", "news", "with", "written," "|by", "by", "about", "the", "author", "byline", "contact", "posted", "abstract", "on", "get"]
-    exclusions+= ["authors", "et al"]
-    exclusions+= ["reuters", "AP", "AFP", "|"]
-    newname = name.replace("&amp;","&") if name else ''
-    newname = re.sub(r'<[^>]*>', "", newname)
-    for exclusion in exclusions:
-        for variant in [exclusion, exclusion.title(), exclusion.lower(), exclusion.upper()]:
-            newname = newname.replace(' %s ' % variant, ' ')
-            newname = newname.replace('%s ' % variant, ' ') if newname.startswith(variant) else newname
-            newname = newname.replace(' %s' % variant, ' ') if newname.endswith(variant) else newname
-            newname = newname.replace('  ',' ')
-    newname = newname.replace('  ',' ').strip()
-    if newname.startswith("http"):
-        split = newname.rpartition("/")
-        newname = split[0].rpartition("/")[2] if split[2].isnumeric() else split[2]
-        tentative = newname.split("-")
-        if len(tentative)>1 and len (tentative) <5:
-            newname = " ".join(tentative)
-
-    words = newname.split(" ")
-    if len(words) > 1:
-        newname = newname.title()
-        newname = newname.replace("'S ","'s ")
-
-    if newname and newname != name:        
-        existing = Author.objects.filter(name=name)
-        if existing:
-            existing[0].name = newname
-            existing[0].save()
-
-    return newname
-    
-def get_author_from(existing, metadata):
-    oldval = existing['sv_author'] if 'sv_author' in existing else None
-    newval = metadata['sv_author'] if 'sv_author' in metadata else None
-    return better_name(oldval, newval)
-
-def better_name(oldval, newval):
-    # print("comparing %s to %s" % (oldval, newval))
-    if not newval:
-        return oldval
-    if type(newval) is list:
-        names = [x['name'] if type(x) is dict and 'name' in x else x for x in newval]
-        return names[0] if len(names)==1 else ','.join(names)
-    if type(newval) is dict:
-        newval = newval['name'] if 'name' in newval else None
-    if not oldval:
-        return newval
-    if not newval:
-        return oldval
-    if newval and (newval.startswith("[") or newval.startswith("{")):
-        return oldval
-    new_words = len(newval.split(" ")) if newval and type(newval) == str else 0
-    old_words = len(oldval.split(" ")) if oldval and type(oldval) == str else 0
-    if new_words == 1 and old_words > 1:
-        return oldval
-    if new_words < 4 and old_words > 8:
-        return newval
-    if old_words < 4 and new_words > 8:
-        return oldval
-    if new_words - old_words > 8:
-        return oldval
-    if new_words - old_words > 2 and newval.find(",")==-1:
-        return oldval
-    return newval
 

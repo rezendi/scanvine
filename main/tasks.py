@@ -296,7 +296,7 @@ def reparse_articles():
     if len(articles) < page_size:
         new_last_id='0'
     log_job(job, "%s" % new_last_id, Job.Status.COMPLETED)
-        
+
 
 @shared_task()
 def reparse_publication_articles(publication_id):
