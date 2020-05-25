@@ -176,7 +176,7 @@ def authors_view(request, category=None, publication_id = None):
     all = request.GET.get('all', '')
     authors = Author.objects.annotate(
         article_count=Count('article'),
-        collaboration_count = Count('collaborations'),
+        collaboration_count = Count('collaborations__pk', distinct=True),
         total_count = F('article_count') + F('collaboration_count'),
     )
     if not all:
@@ -196,6 +196,7 @@ def authors_view(request, category=None, publication_id = None):
         
     authors=authors.filter(total_count__gte=min).order_by(sort)[:page_size]
     for author in authors:
+        print("collab count %s" % author.collaboration_count)
         if category:
             author.category_score = author.category_score // 1000
             author.average_score = author.average_score // 1000
