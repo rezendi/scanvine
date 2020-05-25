@@ -184,7 +184,7 @@ def authors_view(request, category=None, publication_id = None):
         sort ="-category_score"
         authors = authors.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
-            article_count = Greatest(Count('article__pk'),1),
+            article_count = Greatest(Count('article'),1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     authors = authors.order_by(sort)[:page_size]
@@ -242,7 +242,7 @@ def publications_view(request, category=None):
         sort ="-average_score"
         publications = publications.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
-            article_count = Greatest(Count('article__pk'),1),
+            article_count = Greatest(Count('article'),1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
