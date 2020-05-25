@@ -185,6 +185,7 @@ def authors_view(request, category=None, publication_id = None):
         authors = authors.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
             article_count = Greatest(Count('article'),1),
+            collaboration_count = Greatest(Count('collaboration'),1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
     authors = authors.order_by(sort)[:page_size]
