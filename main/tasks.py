@@ -564,9 +564,9 @@ def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
                         counts[category] = counts[category] + 1
             for category in CATEGORIES:
                 category_count = counts[category] if category in counts else 0
-                publication.scores["%s_count" % category] = category_count
+                publication.scores["%s_count" % category] = int(category_count)
                 category_count = 1 if category_count == 0 else category_count
-                publication.scores[category] = 0 if not category in totals else totals[category] / category_count
+                publication.scores[category] = int(0 if not category in totals else totals[category] / category_count)
             publication.save()
         log_job(job, "Allocated to %s publications" % len(publications), Job.Status.COMPLETED)
 
