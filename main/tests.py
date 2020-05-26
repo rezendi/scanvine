@@ -158,6 +158,7 @@ class ScoringTest(TestCase):
         # do the aallocation
         tasks.allocate_credibility()
         tasks.set_scores()
+        tasks.do_publication_aggregates()
         tranches = Tranche.objects.filter(receiver=no_tranche_id)
         self.assertEqual(0, len(tranches))
 
@@ -212,6 +213,6 @@ class EndToEndTest(TestCase):
         tasks.analyze_sentiment()
         share.refresh_from_db()
         self.assertEqual(Share.Status.SENTIMENT_CALCULATED, share.status)
-        tasks.allocate_credibility()
+        tasks.allocate_credibility.delay()
         self.assertTrue(len(Tranche.objects.all())>0)
 

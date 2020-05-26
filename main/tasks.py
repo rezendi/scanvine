@@ -463,7 +463,6 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
     log_job(job, "date range %s - %s" % (start_date, end_date))
     articles_dict = {}
     authors_dict = {}
-    publications_dict = {}
     total_quantity = 0
     total_tranches = 0
     try:
@@ -492,10 +491,9 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
-        for article in Article.objects.filter(id__in=articles_dict.keys(), author_id__isnull=False).defer('url','initial_url','title','contents','metadata'):
-            # weigh by number of sharers as well as share sentiment?
-            # count = int(articles_dict[article.id]['shares'])
-            # articles_dict[article.id]['total'] = int(articles_dict[article.id]['total'] * 1.1**(count-1))
+        for article in Article.objects.filter(author_id__isnull=False).defer('url','initial_url','title','contents','metadata','thumbnail_url'):
+            if not article.id in articles_dict:
+                continue
             amount = articles_dict[article.id]['total']
             article.total_credibility = amount
             article.scores = articles_dict[article.id]
@@ -524,8 +522,23 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
             author.average_credibility = 0 if total_articles==0 else author.total_credibility / total_articles
             author.save()
 
-        # TODO split this out into its own job, probably
-        log_job(job, "publications %s" % Publication.objects.count())
+        log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
+
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
+        raise ex
+    do_publication_aggregates.signature().apply_async()
+
+
+@shared_task(rate_limit="1/m", soft_time_limit=1800)
+def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
+    print("in dpa")
+    job = launch_job("do_publication_aggregates")
+    end_date = date + datetime.timedelta(days=1) # in case DB time off from server time
+    start_date = end_date - datetime.timedelta(days=days+1)
+    log_job(job, "date range %s - %s" % (start_date, end_date))
+    try:
         for publication in Publication.objects.all():
             articles = Article.objects.filter(publication_id=publication.id)
             total_articles = articles.count()
@@ -547,11 +560,9 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
                 publication.scores[category] = int(0 if category_count==0 else category_total_score / category_count)
             publication.save()
 
-        log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
-
     except Exception as ex:
         log_job(job, traceback.format_exc())
-        log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
+        log_job(job, "Publication aggregates error %s" % ex, Job.Status.ERROR)
         raise ex
 
 
