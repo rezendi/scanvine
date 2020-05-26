@@ -33,7 +33,7 @@ def index_view(request, category=None, scoring=None, days=None):
         buzz = F('score') - F('pub_average_score'),
         odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status__gte=Article.Status.PUBLISHER_ASSOCIATED)
+    ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND])
     if scoring not in ["odd","latest","new"] and request.GET.get('single','')!="true":
         query = query.filter(shares__gt=1)
     if scoring != "latest":
