@@ -538,7 +538,8 @@ def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
     start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
-        for publication in Publication.objects.all():
+        publications = Publication.objects.all()
+        for publication in publications:
             articles = Article.objects.filter(publication_id=publication.id).values('total_credibility','scores')
             total_articles = articles.count()
             total_credibility = articles.aggregate(Sum('total_credibility'))['total_credibility__sum']
@@ -567,6 +568,7 @@ def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
                 category_count = 1 if category_count == 0 else category_count
                 publication.scores[category] = 0 if not category in totals else totals[category] / category_count
             publication.save()
+        log_job(job, "Allocated to %s publications" % len(publications), Job.Status.COMPLETED)
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
