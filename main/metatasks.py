@@ -48,50 +48,60 @@ def get_potential_sharers():
 def get_lists():
     job = launch_job("get_lists")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
-    sharers = Sharer.objects.filter(status=Sharer.Status.LISTED).exclude(metadata__has_key='lists_processed')[:1]
-    if not sharers:
-        log_job(job, "all done", Job.Status.COMPLETED)
-        return
-    sharer = sharers[0]
-    tlists = api.GetMemberships(user_id=sharer.twitter_id, count=1000) #TODO maybe more than 1K?
-    external_lists = []
-    for tlist in tlists:
-        existing = List.objects.filter(twitter_id = tlist.id)
-        list = existing[0] if existing else List(status = 0, twitter_id=tlist.id)
-        key = "cat_%s" % category
-        list.metadata[key] = list.metadata[key] + 1 if key in list.metadata else 1
-        list.save()
-        external_lists.append(tlist.id)
-    sharer.metadata['external_lists'] = external_lists
-    sharer.metadata['lists_processed'] = "true"
-    sharer.save()
-    log_job(job, "got %s lists for %s" % (len(tlists), sharer.twitter_screen_name), Job.Status.COMPLETED)
+    try:
+        sharers = Sharer.objects.filter(status=Sharer.Status.LISTED).exclude(metadata__has_key='lists_processed')[:1]
+        if not sharers:
+            log_job(job, "all done", Job.Status.COMPLETED)
+            return
+        sharer = sharers[0]
+        tlists = api.GetMemberships(user_id=sharer.twitter_id, count=1000) #TODO maybe more than 1K?
+        external_lists = []
+        for tlist in tlists:
+            existing = List.objects.filter(twitter_id = tlist.id)
+            list = existing[0] if existing else List(status = 0, twitter_id=tlist.id)
+            key = "cat_%s" % category
+            list.metadata[key] = list.metadata[key] + 1 if key in list.metadata else 1
+            list.save()
+            external_lists.append(tlist.id)
+        sharer.metadata['external_lists'] = external_lists
+        sharer.metadata['lists_processed'] = "true"
+        sharer.save()
+        log_job(job, "got %s lists for %s" % (len(tlists), sharer.twitter_screen_name), Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Get lists error %s" % ex, Job.Status.ERROR)
+        raise ex
 
 
 @shared_task(rate_limit="1/m")
 def get_list_members():
     job = launch_job("get_list_members")
-    lists = List.objects.filter(status=0)[:1]
-    if not lists:
-        log_job(job, "all done", Job.Status.COMPLETED)
-        return
-    list = lists[0]
-    (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities=False) # TODO maybe more than 5K?
-    for l in listed:
-        existing = Sharer.objects.filter(twitter_id=l.id)
-        if existing:
-            sharer = existing[0]
-            if not 'external_lists' in sharer.metadata:
-                sharer.metadata['external_lists'] = []
-            if not list.twitter_id in sharer.metadata['external_lists']:
-                sharer.metadata['external_lists'].append(list.twitter_id)
-        else:
-            sharer = Sharer(status=Sharer.Status.SUGGESTED, twitter_id=l.id, twitter_screen_name=l.screen_name, category=Sharer.Category.NONE,
-                            name=l.name, profile=l.description, verified=l.verified, metadata = {"external_lists":[list.twitter_id]})
-        sharer.save()
-    list.status = 1
-    list.save()
-    log_job(job, "got %s members for list %" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
+    try:
+        lists = List.objects.filter(status=0)[:1]
+        if not lists:
+            log_job(job, "all done", Job.Status.COMPLETED)
+            return
+        list = lists[0]
+        (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities=False) # TODO maybe more than 5K?
+        for l in listed:
+            existing = Sharer.objects.filter(twitter_id=l.id)
+            if existing:
+                sharer = existing[0]
+                if not 'external_lists' in sharer.metadata:
+                    sharer.metadata['external_lists'] = []
+                if not list.twitter_id in sharer.metadata['external_lists']:
+                    sharer.metadata['external_lists'].append(list.twitter_id)
+            else:
+                sharer = Sharer(status=Sharer.Status.SUGGESTED, twitter_id=l.id, twitter_screen_name=l.screen_name, category=Sharer.Category.NONE,
+                                name=l.name, profile=l.description, verified=l.verified, metadata = {"external_lists":[list.twitter_id]})
+            sharer.save()
+        list.status = 1
+        list.save()
+        log_job(job, "got %s members for list %" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Get list members error %s" % ex, Job.Status.ERROR)
+        raise ex
 
 
 @shared_task(rate_limit="1/m")
