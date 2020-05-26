@@ -65,7 +65,7 @@ def get_lists():
     sharer.metadata['external_lists'] = external_lists
     sharer.metadata['lists_processed'] = "true"
     sharer.save()
-    log_job(job, "got %s lists" % len(tlists), Job.Status.COMPLETED)
+    log_job(job, "got %s lists for %s" % (len(tlists), sharer.twitter_screen_name), Job.Status.COMPLETED)
 
 
 @shared_task(rate_limit="1/m")
@@ -91,7 +91,7 @@ def get_list_members():
         sharer.save()
     list.status = 1
     list.save()
-    log_job(job, "got %s members" % len(listed), Job.Status.COMPLETED)
+    log_job(job, "got %s members for list %" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
 
 
 @shared_task(rate_limit="1/m")
