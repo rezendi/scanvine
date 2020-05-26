@@ -523,24 +523,23 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
             author.save()
 
         log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
+        do_publication_aggregates.signature().apply_async()
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Set scores error %s" % ex, Job.Status.ERROR)
         raise ex
-    do_publication_aggregates.signature().apply_async()
 
 
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
-    print("in dpa")
     job = launch_job("do_publication_aggregates")
     end_date = date + datetime.timedelta(days=1) # in case DB time off from server time
     start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
         for publication in Publication.objects.all():
-            articles = Article.objects.filter(publication_id=publication.id)
+            articles = Article.objects.filter(publication_id=publication.id).values('total_credibility','scores')
             total_articles = articles.count()
             total_credibility = articles.aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = int(total_credibility if total_credibility else 0)
@@ -550,14 +549,23 @@ def do_publication_aggregates(date=datetime.datetime.utcnow(), days=30):
             publication.scores['total_count'] = total_articles
             publication.scores['total'] = publication.average_credibility
             for category in CATEGORIES:
-                category_count = articles.annotate(
-                    category_score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
-                ).filter(**{'category_score__gt': 0}).count()
-                publication.scores["%s_count" % category] = int(category_count if category_count else 0)
-                category_total_score = articles.annotate(
-                    score=Cast(KeyTextTransform(category, 'scores'), IntegerField())
-                ).aggregate(Sum('score'))['score__sum']
-                publication.scores[category] = int(0 if category_count==0 else category_total_score / category_count)
+                articles = articles.annotate( **{ '%s_score' % category : Cast(KeyTextTransform(category, 'scores'), IntegerField()) } )
+            totals = {}
+            counts = {}
+            for category in CATEGORIES:
+                totals[category] = 0
+                counts[category] = 0
+            for article in articles:
+                for category in CATEGORIES:
+                    score = article['%s_score' % category]
+                    totals[category] = totals[category] + score
+                    if score > 0:
+                        counts[category] = counts[category] + 1
+            for category in CATEGORIES:
+                category_count = counts[category] if category in counts else 0
+                publication.scores["%s_count" % category] = category_count
+                category_count = 1 if category_count == 0 else category_count
+                publication.scores[category] = 0 if not category in totals else totals[category] / category_count
             publication.save()
 
     except Exception as ex:
