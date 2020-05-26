@@ -97,7 +97,7 @@ def get_list_members():
             sharer.save()
         list.status = 1
         list.save()
-        log_job(job, "got %s members for list %" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
+        log_job(job, "got %s members for list %s" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Get list members error %s" % ex, Job.Status.ERROR)
