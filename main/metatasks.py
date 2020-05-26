@@ -76,12 +76,12 @@ def get_lists():
 @shared_task(rate_limit="1/m")
 def get_list_members():
     job = launch_job("get_list_members")
+    lists = List.objects.filter(status=0)[:1]
+    if not lists:
+        log_job(job, "all done", Job.Status.COMPLETED)
+        return
+    list = lists[0]
     try:
-        lists = List.objects.filter(status=0)[:1]
-        if not lists:
-            log_job(job, "all done", Job.Status.COMPLETED)
-            return
-        list = lists[0]
         (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities=False) # TODO maybe more than 5K?
         for l in listed:
             existing = Sharer.objects.filter(twitter_id=l.id)
@@ -99,6 +99,8 @@ def get_list_members():
         list.save()
         log_job(job, "got %s members for list %s" % (len(listed), list.twitter_id), Job.Status.COMPLETED)
     except Exception as ex:
+        list.status = -1
+        list.save()
         log_job(job, traceback.format_exc())
         log_job(job, "Get list members error %s" % ex, Job.Status.ERROR)
         raise ex
