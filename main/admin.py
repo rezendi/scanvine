@@ -322,6 +322,11 @@ class JobAdmin(ScanvineAdmin):
             return redirect('/admin/main/job/')
 
 
+@admin.register(List)
+class ListAdmin(ScanvineAdmin):
+    list_display = ('id', 'twitter_id', 'metadata')
+
+
 # Utility methods
 
 def add_sharer(arg):
