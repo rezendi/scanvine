@@ -1,5 +1,5 @@
 import datetime, math
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.db.models import F, Q, IntegerField, Subquery, Count, Sum
 from django.db.models.functions import Cast, Coalesce, Sqrt, Greatest
@@ -356,10 +356,15 @@ def shares_view(request, category):
     return render(request, 'main/shares.html', context)
 
 
-def my_view(request):
+def my_view(request, screen_name = None):
     social = request.user.social_auth.get(provider='twitter')
+    if not social:
+        return redirect('/main/')
+    print("ed %s" % social.extra_data)
+    if not screen_name:
+        return redirect('/main/my/%s/' % social.extra_data['access_token']['screen_name'])
+
     context = {
-        'request' : request,
         'social' : social,
     }
     return render(request, 'main/my.html', context)
