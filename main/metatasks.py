@@ -48,12 +48,12 @@ def get_potential_sharers():
 def get_lists():
     job = launch_job("get_lists")
     category = datetime.datetime.now().microsecond % len(LIST_IDS)
+    sharers = Sharer.objects.filter(status=Sharer.Status.LISTED).exclude(metadata__has_key='lists_processed')[:1]
+    if not sharers:
+        log_job(job, "all done", Job.Status.COMPLETED)
+        return
+    sharer = sharers[0]
     try:
-        sharers = Sharer.objects.filter(status=Sharer.Status.LISTED).exclude(metadata__has_key='lists_processed')[:1]
-        if not sharers:
-            log_job(job, "all done", Job.Status.COMPLETED)
-            return
-        sharer = sharers[0]
         tlists = api.GetMemberships(user_id=sharer.twitter_id, count=1000) #TODO maybe more than 1K?
         external_lists = []
         for tlist in tlists:
@@ -68,6 +68,8 @@ def get_lists():
         sharer.save()
         log_job(job, "got %s lists for %s" % (len(tlists), sharer.twitter_screen_name), Job.Status.COMPLETED)
     except Exception as ex:
+        sharer.metadata['lists_processed'] = "true"
+        sharer.save()
         log_job(job, traceback.format_exc())
         log_job(job, "Get lists error %s" % ex, Job.Status.ERROR)
         raise ex

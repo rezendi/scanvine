@@ -236,7 +236,7 @@ def associate_article(share_id, force_refetch=False):
             soup = BeautifulSoup(contents, "html.parser")
             canonical_link = soup.find("link", {"rel":"canonical"})
             if canonical_link and 'href' in canonical_link.attrs:
-                final_url = canonical_link['href']
+                final_url = clean_up_url(canonical_link['href'])
                 r = http.request('GET', final_url, headers={'User-Agent': USER_AGENTS[timezone.now().microsecond % len(USER_AGENTS)]})
                 contents = r.data.decode('utf-8')
 
