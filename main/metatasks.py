@@ -113,6 +113,7 @@ def recommend_members():
     job = launch_job("recommend_members")
 
 
+
 @shared_task(rate_limit="1/m")
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
     job = launch_job("clean_up_jobs")

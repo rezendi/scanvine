@@ -213,6 +213,6 @@ class EndToEndTest(TestCase):
         tasks.analyze_sentiment()
         share.refresh_from_db()
         self.assertEqual(Share.Status.SENTIMENT_CALCULATED, share.status)
-        tasks.allocate_credibility.delay()
+        tasks.allocate_credibility()
         self.assertTrue(len(Tranche.objects.all())>0)
 

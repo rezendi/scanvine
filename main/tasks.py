@@ -166,18 +166,23 @@ def fetch_shares():
             # TODO: handle multiple viable URLs by picking best one
             url = clean_up_url(tweet['urls'][0])
         
-            # get existing share, if any, for idempotency
-            existing = Share.objects.filter(twitter_id=tweet['id'])
-            if existing:
-                log_job(job, "Share already found %s" % tweet['id'])
-                continue
+            # get corresponding listed sharer, or bail if there is none
             sharer = Sharer.objects.filter(twitter_id=tweet['user_id'], status=Sharer.Status.LISTED)
             if not sharer:
                 log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
                 continue
             sharer = sharer[0]
-            if len(str(url))>=1024:
-                url = str(url)[0:1023]
+
+            # get existing share, if any, for idempotency
+            existing = Share.objects.filter(twitter_id=tweet['id'])
+            if existing:
+                log_job(job, "Share already found %s" % tweet['id'])
+                old_share = existing[0]
+                if old_share.source==1:
+                    old_share.source=0
+                    old_share.category = sharer.category
+                    old_share.save()
+                continue
             s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
                       sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['full_text'], url=url)
             s.save()
@@ -197,7 +202,7 @@ def fetch_shares():
 @shared_task
 def associate_articles():
     job = launch_job("associate_articles")
-    shares = Share.objects.filter(status=Share.Status.CREATED)
+    shares = Share.objects.filter(source=0, status=Share.Status.CREATED)
     for share in shares:
         s = associate_article.signature((share.id,))
         s.apply_async()
@@ -377,7 +382,7 @@ def analyze_sentiment():
     try:
         job = launch_job("analyze_sentiment")
         sentiments = []
-        shares = Share.objects.filter(status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
+        shares = Share.objects.filter(source=0, status = Share.Status.ARTICLE_ASSOCIATED).filter(language='en')[0:25]
         if not shares:
             log_job(job, "No new shares to analyze", Job.Status.COMPLETED)
             return
@@ -466,8 +471,10 @@ def set_scores(date=datetime.datetime.utcnow(), days=30):
     total_quantity = 0
     total_tranches = 0
     try:
-        #TODO do this as a big three-table join
-        shares = Share.objects.filter(status=Share.Status.CREDIBILITY_ALLOCATED).filter(created_at__range=(start_date, end_date)).values('id','sharer_id','article_id')
+        #TODO do this as a big three-table join?
+        shares = Share.objects.filter(
+            source=0, status=Share.Status.CREDIBILITY_ALLOCATED, created_at__range=(start_date, end_date)
+        ).values('id','sharer_id','article_id')
         log_job(job, "shares %s" % len(shares))
         for share in shares:
             tranches = Tranche.objects.filter(sender=share['sharer_id'], receiver=share['id'])
@@ -625,6 +632,10 @@ def log_job(job, action, status = None):
     job.save();
 
 def clean_up_url(url, contents=None):
+    cleaned = do_clean_url(url, contents)
+    return url[0:1023] if len(url)>=1024 else url
+
+def do_clean_url(url, contents=None):
     # TODO: filter out url cruft more elegantly, depending on site
     if url.find("youtube.com") >= 0:
         return url.partition("#")[0].partition("&")[0]

@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
@@ -17,6 +18,7 @@ class Sharer(models.Model):
         RECOMMENDED = -4
     
     class Category(models.IntegerChoices):
+        PERSONAL = -2
         NONE = -1
         HEALTH = 0
         SCIENCE = 1
@@ -207,6 +209,12 @@ class Share(models.Model):
         return "%s (%s)" % (self.text[0:60], self.id)
 
 
+class FeedShare(models.Model):
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    share = models.ForeignKey(Share, on_delete = models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Tranche(models.Model):
     source = models.IntegerField()
     status = models.IntegerField()
@@ -242,3 +250,5 @@ class List(models.Model):
     metadata = JSONField(default=emptydict)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
