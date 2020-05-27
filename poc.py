@@ -10,7 +10,12 @@ if not 'DJANGO_SECRET_KEY' in os.environ:
 if not settings.configured:
     settings.configure(DEBUG=True)
     settings.BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    settings.INSTALLED_APPS = [ 'main.apps.MainConfig']
+    settings.INSTALLED_APPS = [
+        'main.apps.MainConfig',
+        'social_django',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+    ]
     if 'SCANVINE_ENV' in os.environ:
         print('environ %s' % os.environ['SCANVINE_ENV'])
         if os.environ['SCANVINE_ENV']=='production':
@@ -41,18 +46,6 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
-# Launch Twitter API
-import twitter
-api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
-                  consumer_secret=os.getenv('TWITTER_API_SECRET', ''),
-                  access_token_key=os.getenv('TWITTER_TOKEN_KEY', ''),
-                  access_token_secret=os.getenv('TWITTER_TOKEN_SECRET', ''),
-                  tweet_mode='extended')
-#                 sleep_on_rate_limit=True)
-
-from main import tasks
-
-# actual code
-from django.db import connection
-with connection.cursor() as cursor:
-    cursor.execute("UPDATE main_sharer SET category=-1 WHERE category=0 AND status=0")
+from django.contrib.auth.models import User
+from main.my_tasks import *
+fetch_my_back_shares(2)

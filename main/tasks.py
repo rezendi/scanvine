@@ -632,7 +632,7 @@ def log_job(job, action, status = None):
     job.save();
 
 def clean_up_url(url, contents=None):
-    cleaned = do_clean_url(url, contents)
+    cleaned = do_clean_url(str(url), contents)
     return url[0:1023] if len(url)>=1024 else url
 
 def do_clean_url(url, contents=None):
