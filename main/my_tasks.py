@@ -36,7 +36,7 @@ def fetch_my_back_shares(user_id):
             urls += t.quoted_status.urls if t.quoted_status else []
             urls += t.retweeted_status.urls if t.retweeted_status else []
             urls = [u.expanded_url for u in urls]
-            urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
+            urls = [cleaan_up_url(u) for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
             if urls:
                 t.urls = urls
                 tweets.append(t)
@@ -83,9 +83,7 @@ def fetch_my_back_shares(user_id):
 def associate_feed_articles(user_id):
     job = launch_job("associate_articles")
     shares = Share.objects.prefetch_related('feed_shares').filter(source=1, status=Share.Status.CREATED, feed_shares__user_id=user_id)
-    print("shares %s" % shares)
     for share in shares:
-        print("associating")
         associate_article.signature((share.id,)).apply_async()
     log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
 

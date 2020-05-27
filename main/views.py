@@ -357,14 +357,22 @@ def shares_view(request, category):
 
 
 def my_view(request, screen_name = None):
-    social = request.user.social_auth.get(provider='twitter')
-    if not social:
+    instance = request.user.social_auth.get(provider='twitter')
+    if not instance:
         return redirect('/main/')
-    print("ed %s" % social.extra_data)
+    print("ed %s" % instance.extra_data)
     if not screen_name:
-        return redirect('/main/my/%s/' % social.extra_data['access_token']['screen_name'])
+        return redirect('/main/my/%s/' % instance.extra_data['access_token']['screen_name'])
+
+    page_size = int(request.GET.get('s', '20'))
+    page_size = 20 if page_size > 256 else page_size
+    shares = Share.objects.prefetch_related('feed_shares').filter(
+        source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
+    ).distinct('article_id').values('article_id')[:page_size]
+    articles = Article.objects.filter(id__in=shares)[:page_size]
 
     context = {
-        'social' : social,
+        'user' : instance,
+        'articles' : articles,
     }
     return render(request, 'main/my.html', context)
