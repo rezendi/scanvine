@@ -210,8 +210,8 @@ class Share(models.Model):
 
 
 class FeedShare(models.Model):
-    user = models.ForeignKey(User, on_delete = models.CASCADE)
-    share = models.ForeignKey(Share, on_delete = models.CASCADE)
+    user = models.ForeignKey(User, on_delete = models.CASCADE, related_name='feed_shares')
+    share = models.ForeignKey(Share, on_delete = models.CASCADE, related_name='feed_shares')
     created_at = models.DateTimeField(auto_now_add=True)
 
 

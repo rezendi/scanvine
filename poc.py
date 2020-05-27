@@ -48,4 +48,4 @@ if not settings.configured:
 
 from django.contrib.auth.models import User
 from main.my_tasks import *
-fetch_my_back_shares(2)
+associate_feed_articles(2)

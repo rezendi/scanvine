@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from social_django.models import UserSocialAuth
 from celery import shared_task, group, signature
 from .models import *
-from .tasks import launch_job, log_job, clean_up_url
+from .tasks import *
 
 
 def get_api(oauth_token, oauth_secret):
@@ -23,10 +23,10 @@ def fetch_my_back_shares(user_id):
         if not instances:
             return log_job(job, "User %s extra data not found" % user_id, Job.Status.ERROR)
         instance = instances[0]
-        print("extra %s" % instance.extra_data)
         access = instance.extra_data['access_token']
         api = get_api(access['oauth_token'], access['oauth_token_secret'])
         max_id = instance.extra_data['back_max_id'] if 'back_max_id' in instance.extra_data else None
+        print("max_id %s" % max_id)
         
         # fetch the timeline, log its values
         timeline = api.GetHomeTimeline(count = 200, max_id = max_id, include_entities=True)
@@ -42,6 +42,7 @@ def fetch_my_back_shares(user_id):
                 tweets.append(t)
         log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
         instance.extra_data['back_max_id'] = timeline[-1].id if len(timeline) > 0 else None
+        print("new_max_id %s" % instance.extra_data['back_max_id'])
         instance.save()
     
         # Store new shares to DB
@@ -70,10 +71,22 @@ def fetch_my_back_shares(user_id):
         
         # Launch follow-up job to fetch associated articles
         if count > 0:
-            associate_feed_articles.signature(user_id).apply_async()
+            associate_feed_articles.signature((user_id,)).apply_async()
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Fetch my back shares error %s" % ex, Job.Status.ERROR)
         raise ex
+
+
+@shared_task
+def associate_feed_articles(user_id):
+    job = launch_job("associate_articles")
+    shares = Share.objects.prefetch_related('feed_shares').filter(source=1, status=Share.Status.CREATED, feed_shares__user_id=user_id)
+    print("shares %s" % shares)
+    for share in shares:
+        print("associating")
+        associate_article.signature((share.id,)).apply_async()
+    log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
+
 
