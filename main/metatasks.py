@@ -71,7 +71,7 @@ def get_lists():
         sharer.metadata['lists_processed'] = "true"
         sharer.save()
         log_job(job, traceback.format_exc())
-        log_job(job, "Get lists error %s" % ex, Job.Status.ERROR)
+        log_job(job, "Get lists error % for %s" % (ex, sharer.twitter_screen_name), Job.Status.ERROR)
         raise ex
 
 
@@ -83,7 +83,6 @@ def get_list_members():
         log_job(job, "all done", Job.Status.COMPLETED)
         return
     list = lists[0]
-    log_job(job, "list id %s" % list.twitter_id)
     try:
         (next, prev, listed) = api.GetListMembersPaged(list_id=list.twitter_id, count=5000, skip_status=True, include_entities=False) # TODO maybe more than 5K?
         for l in listed:
@@ -105,7 +104,7 @@ def get_list_members():
         list.status = -1
         list.save()
         log_job(job, traceback.format_exc())
-        log_job(job, "Get list members error %s" % ex, Job.Status.ERROR)
+        log_job(job, "Get list members error %s for %s" % (ex, list.twitter_id), Job.Status.ERROR)
         raise ex
 
 
