@@ -15,6 +15,7 @@ services:
     depends_on:
       - django
       - certbot
+      - flower
 
   django:
     build: .
