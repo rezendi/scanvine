@@ -24,4 +24,5 @@ urlpatterns = [
     path('', RedirectView.as_view(url="/main/")),
     path('main/', include('main.urls')),
     path('admin/', admin.site.urls),
+    path('social/', include('social_django.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

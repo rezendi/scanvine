@@ -354,3 +354,12 @@ def shares_view(request, category):
         'shares' : shares,
     }
     return render(request, 'main/shares.html', context)
+
+
+def my_view(request):
+    social = request.user.social_auth.get(provider='twitter')
+    context = {
+        'request' : request,
+        'social' : social,
+    }
+    return render(request, 'main/my.html', context)
