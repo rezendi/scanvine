@@ -104,6 +104,11 @@ class ArticleAdmin(ScanvineAdmin):
                 if not share.article_id in singles:
                     singles[share.article_id] = True
             return (Article.objects.filter(id__in=multis.keys()), True)
+        if search_term == "empty":
+            query = Article.objects.annotate(
+                shares=Count('share__pk', distinct=True),
+            ).filter(shares=0)
+            return (query, True)
         return super().get_search_results(request, queryset, search_term)
 
 
@@ -125,8 +130,6 @@ class AuthorAdmin(ScanvineAdmin):
 
     def get_search_results(self, request, queryset, search_term):
         if search_term == "empty":
-            empty_ids = []
-            still_empty = []
             query = Author.objects.annotate(
                 articles=Count('article__pk', distinct=True),
                 collabs=Count('collaborations__partnership', distinct=True),
