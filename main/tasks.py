@@ -202,9 +202,12 @@ def fetch_shares():
 @shared_task
 def associate_articles():
     job = launch_job("associate_articles")
-    shares = Share.objects.filter(source=0, status=Share.Status.CREATED)
+    end_date = datetime.datetime.utcnow()
+    start_date = end_date - datetime.timedelta(hours=12)
+    log_job(job, "date range %s - %s" % (start_date, end_date))
+    shares = Share.objects.filter(source=0, created_at__range=(start_date, end_date))
     for share in shares:
-        s = associate_article.signature((share.id,))
+        s = associate_article.signature((share.id,True))
         s.apply_async()
     log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
 
