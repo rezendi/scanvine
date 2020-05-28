@@ -68,6 +68,10 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
 #        },
 else:
     app.conf.beat_schedule = {
+        'add-every-30-seconds': {
+            'task': 'main.my_tasks.launch_fetch_my_shares',
+            'schedule': 33.0,
+        },
     }
 
 @app.task(bind=True)

@@ -1,7 +1,9 @@
-import datetime, os, traceback
+import datetime, os, time, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from django.db.models import Count
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
+from django.db.models.functions import Cast, Coalesce
 from social_django.models import UserSocialAuth
 from celery import shared_task, group, signature
 from .models import *
@@ -15,37 +17,37 @@ def get_api(oauth_token, oauth_secret):
                        access_token_secret=oauth_secret,
                        tweet_mode='extended')
 
-MAX_PERSONAL_SHARES=96
+MAX_PERSONAL_SHARES=255
 
 # Get list statuses, filter those with external links
 @shared_task(rate_limit="1/s")
 def fetch_my_back_shares(user_id):
     job = launch_job("fetch_my_back_shares")
     try:
-        instances = UserSocialAuth.objects.filter(provider='twitter', user_id=user_id)
-        if not instances:
+        auths = UserSocialAuth.objects.filter(provider='twitter', user_id=user_id)
+        if not auths:
             return log_job(job, "User %s extra data not found" % user_id, Job.Status.ERROR)
-        instance = instances[0]
+        auth = auths[0]
 
         existing_shares = FeedShare.objects.filter(user_id=user_id).count()
         if existing_shares >= MAX_PERSONAL_SHARES:
-            log_job(job, "personal shares quota for %s" % instance['screen_name'], Job.Status.COMPLETED)
-            if not 'back_filled' in instance.extra_data:
-                instance.extra_data['back_filled'] = True
-                instance.save()
+            log_job(job, "personal shares quota for %s" % auth['screen_name'], Job.Status.COMPLETED)
+            if not 'back_filled' in auth.extra_data:
+                auth.extra_data['back_filled'] = True
+                auth.save()
             return
 
-        access = instance.extra_data['access_token']
+        access = auth.extra_data['access_token']
         api = get_api(access['oauth_token'], access['oauth_token_secret'])
-        max_id = instance.extra_data['back_max_id'] if 'back_max_id' in instance.extra_data else None
+        max_id = auth.extra_data['back_max_id'] if 'back_max_id' in auth.extra_data else None
         
         # fetch the timeline, log its values
         timeline = api.GetHomeTimeline(count = 20, max_id = max_id, include_entities=True)
         tweets = timeline_to_tweets(timeline)
         log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
-        instance.extra_data['back_max_id'] = timeline[-1].id if timeline else None
-        instance.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in instance.extra_data else instance.extra_data['since_id']
-        instance.save()
+        auth.extra_data['back_max_id'] = timeline[-1].id if timeline else None
+        auth.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in auth.extra_data else auth.extra_data['since_id']
+        auth.save()
     
         # Store new shares to DB
         count = 0
@@ -82,25 +84,38 @@ def fetch_my_back_shares(user_id):
         raise ex
 
 
+@shared_task(rate_limit="1/m")
+def launch_fetch_my_shares():
+    job = launch_job("launch_fetch_my_shares")
+    now = int(time.time())
+    auths = UserSocialAuth.objects.annotate(
+        last_fetch = Coalesce( Cast(KeyTextTransform('last_fetch', 'extra_data'), IntegerField()), 0)
+    ).filter(last_fetch__gt=0, last_fetch__lt=now-15*60)
+    for auth in auths:
+        fetch_my_shares.signature((auth.user_id,)).apply_async()
+    log_job(job, "fetching shares for %s users" % len(auths), Job.Status.COMPLETED)
+
+
 # Get list statuses, filter those with external links
 @shared_task(rate_limit="1/s")
 def fetch_my_shares(user_id):
     job = launch_job("fetch_my_shares")
     try:
-        instances = UserSocialAuth.objects.filter(provider='twitter', user_id=user_id)
-        if not instances:
+        auths = UserSocialAuth.objects.filter(provider='twitter', user_id=user_id)
+        if not auths:
             return log_job(job, "User %s extra data not found" % user_id, Job.Status.ERROR)
-        instance = instances[0]
-        access = instance.extra_data['access_token']
+        auth = auths[0]
+        access = auth.extra_data['access_token']
         api = get_api(access['oauth_token'], access['oauth_token_secret'])
-        since_id = instance.extra_data['since_id'] if 'since_id' in instance.extra_data else None
+        since_id = auth.extra_data['since_id'] if 'since_id' in auth.extra_data else None
         
         # fetch the timeline, log its values
         timeline = api.GetHomeTimeline(count = 200, since_id = since_id, include_entities=True)
         tweets = timeline_to_tweets(timeline)
         log_job(job, "tweets %s external links %s since_id %s for %s" % (len(timeline), len(tweets), since_id, access['screen_name']) )
-        instance.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in instance.extra_data else instance.extra_data['since_id']
-        instance.save()
+        auth.extra_data['since_id'] = timeline[0].id if timeline else auth.extra_data['since_id'] if 'since_id' in auth.extra_data else None
+        auth.extra_data['last_fetch'] = time.time()
+        auth.save()
     
         # Store new shares to DB
         count = 0
