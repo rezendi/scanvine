@@ -4,8 +4,8 @@
 <section>
     hi
     <p>
-    {{social.extra_data.id}}
-    {{social.extra_data.access_token.screen_name}}
+    {{user.extra_data.id}}
+    {{user.extra_data.access_token.screen_name}}
     <p/>
     {% for article in articles %}
     <a href="{{article.url}}">{% if article.title %}{{article.title}}{% else %}n/a{% endif %}</a>

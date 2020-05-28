@@ -357,6 +357,8 @@ def shares_view(request, category):
 
 
 def my_view(request, screen_name = None):
+    if request.user.is_anonymous:
+        return redirect('/social/login/twitter')
     instance = request.user.social_auth.get(provider='twitter')
     if not instance:
         return redirect('/main/')
