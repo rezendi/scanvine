@@ -633,7 +633,7 @@ def log_job(job, action, status = None):
 
 def clean_up_url(url, contents=None):
     cleaned = do_clean_url(str(url), contents)
-    return url[0:1023] if len(url)>=1024 else url
+    return cleaned[0:1023] if len(cleaned)>=1024 else cleaned
 
 def do_clean_url(url, contents=None):
     # TODO: filter out url cruft more elegantly, depending on site
