@@ -78,7 +78,7 @@ def get_lists():
 @shared_task(rate_limit="1/m")
 def get_list_members():
     job = launch_job("get_list_members")
-    lists = List.objects.filter(status=0)[:1]
+    lists = List.objects.filter(status=0).order_by("-id")[:1]
     if not lists:
         log_job(job, "all done", Job.Status.COMPLETED)
         return
