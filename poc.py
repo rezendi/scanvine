@@ -46,6 +46,3 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
-from django.contrib.auth.models import User
-from main.my_tasks import *
-associate_feed_articles(2)
