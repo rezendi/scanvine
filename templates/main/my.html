@@ -6,6 +6,8 @@
     <p>
     {{user.extra_data.id}}
     {{user.extra_data.access_token.screen_name}}
+    filling {{user.extra_data.back_filling}}
+    filled {{user.extra_data.back_filled}}
     <p/>
     {% for article in articles %}
     <a href="{{article.url}}">{% if article.title %}{{article.title}}{% else %}n/a{% endif %}</a>

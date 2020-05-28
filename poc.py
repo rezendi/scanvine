@@ -37,7 +37,7 @@ if not settings.configured:
                     'ENGINE':   'django.db.backends.postgresql_psycopg2',
                     'NAME':     'postgres',
                     'USER':     'postgres',
-                    'PASSWORD': 'mysecretpassword',
+                    'PASSWORD': 'grapevine',
                     'HOST':     'localhost',
                     'PORT':     '5432',
                 }
@@ -46,3 +46,5 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
+from main.my_tasks import *
+fetch_my_shares(2)

@@ -6,6 +6,7 @@ from django.db.models.functions import Cast, Coalesce, Sqrt, Greatest
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
 from .tasks import clean_up_url
+from .my_tasks import fetch_my_back_shares
 
 CATEGORIES = ['health','science','tech','business','media']
 
@@ -372,6 +373,12 @@ def my_view(request, screen_name = None):
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
     ).distinct('article_id').values('article_id')[:page_size]
     articles = Article.objects.filter(id__in=shares)[:page_size]
+    
+    if not 'back_filling' in instance.extra_data:
+        instance.extra_data['back_filling'] = True
+        instance.save()
+        fetch_my_back_shares.signature((request.user.id,)).apply_async()
+        
 
     context = {
         'user' : instance,

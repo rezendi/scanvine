@@ -1,5 +1,6 @@
 import datetime, os, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from django.db.models import Count
 from django.contrib.auth.models import User
 from social_django.models import UserSocialAuth
 from celery import shared_task, group, signature
@@ -14,7 +15,7 @@ def get_api(oauth_token, oauth_secret):
                        access_token_secret=oauth_secret,
                        tweet_mode='extended')
 
-MAX_PERSONAL_SHARES=256
+MAX_PERSONAL_SHARES=96
 
 # Get list statuses, filter those with external links
 @shared_task(rate_limit="1/s")
@@ -39,7 +40,7 @@ def fetch_my_back_shares(user_id):
         max_id = instance.extra_data['back_max_id'] if 'back_max_id' in instance.extra_data else None
         
         # fetch the timeline, log its values
-        timeline = api.GetHomeTimeline(count = 200, max_id = max_id, include_entities=True)
+        timeline = api.GetHomeTimeline(count = 20, max_id = max_id, include_entities=True)
         tweets = timeline_to_tweets(timeline)
         log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
         instance.extra_data['back_max_id'] = timeline[-1].id if timeline else None
@@ -73,7 +74,7 @@ def fetch_my_back_shares(user_id):
         if count > 0:
             associate_feed_articles.signature((user_id,)).apply_async()
         # Get more back links, but let some articles get associated first
-        fetch_my_back_shares.signature((user_id,)).apply_async(countdown=5)
+        fetch_my_back_shares.signature((user_id,)).apply_async(countdown=3)
 
     except Exception as ex:
         log_job(job, traceback.format_exc())
@@ -97,8 +98,8 @@ def fetch_my_shares(user_id):
         # fetch the timeline, log its values
         timeline = api.GetHomeTimeline(count = 200, since_id = since_id, include_entities=True)
         tweets = timeline_to_tweets(timeline)
-        log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
-        instance.extra_data['since_id'] = timeline[0].id if timeline else None
+        log_job(job, "tweets %s external links %s since_id %s for %s" % (len(timeline), len(tweets), since_id, access['screen_name']) )
+        instance.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in instance.extra_data else instance.extra_data['since_id']
         instance.save()
     
         # Store new shares to DB
@@ -120,8 +121,7 @@ def fetch_my_shares(user_id):
             share.save()
             FeedShare(user_id=user_id, share_id=share.id).save()
             count += 1
-        log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
-        
+
         # Launch follow-up job to fetch associated articles if any
         if count > 0:
             associate_feed_articles.signature((user_id,)).apply_async()
@@ -129,14 +129,21 @@ def fetch_my_shares(user_id):
         # Clear up old personal shares and sharers.
         # TODO start keeping all this data instead...
         existing_shares = FeedShare.objects.filter(user_id=user_id).count()
+        log_job(job, "existing shares %s" % existing_shares)
         if existing_shares > MAX_PERSONAL_SHARES:
-            last = FeedShare.objects.filter(user_id=user_id).order_by('-created_at')[MAX_PERSONAL_SHARES:MAX_PERSONAL_SHARES]
-            share_ids_to_delete = FeedShare.objects.filter(user_id=user_id, created_at__gt=last.created_at).values('share_id')
+            last = FeedShare.objects.filter(user_id=user_id).order_by('-created_at')[MAX_PERSONAL_SHARES:MAX_PERSONAL_SHARES+1][0]
+            share_ids_to_delete = FeedShare.objects.filter(user_id=user_id, created_at__lt=last.created_at).values('share_id')
             shares_to_delete = Share.objects.filter(category=Sharer.Category.PERSONAL, id__in=share_ids_to_delete)
+            log_job(job, "deleting %s shares" % shares_to_delete.count())
             sharer_ids = shares_to_delete.values('sharer_id')
             shares_to_delete.delete()
-            sharers_to_delete = Sharer.objects.aggregate(share_count=Count('share__pk')).filter(category=Sharer.Category.PERSONAL, id__in=sharer_ids, share_count=0)
+            sharers_to_delete = Sharer.objects.annotate(share_count=Count('share__pk'))
+            sharers_to_delete = sharers_to_delete.filter(category=Sharer.Category.PERSONAL, id__in=sharer_ids, share_count=0)
+            log_job(job, "deleting %s sharers" % sharers_to_delete.count())
             sharers_to_delete.delete()
+
+        log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
+        
             
     except Exception as ex:
         log_job(job, traceback.format_exc())
