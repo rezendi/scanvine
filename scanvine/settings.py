@@ -95,7 +95,7 @@ else:
             'ENGINE':   'django.db.backends.postgresql_psycopg2',
             'NAME':     'postgres',
             'USER':     'postgres',
-            'PASSWORD': 'mysecretpassword',
+            'PASSWORD': 'grapevine',
             'HOST':     'localhost',
             'PORT':     '5432',
         }

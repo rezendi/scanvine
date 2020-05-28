@@ -137,22 +137,9 @@ def fetch_shares():
                     since_id = int(action.partition("=")[2])
     
         # fetch the timeline, log its values
-        timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, include_entities = True, return_json=True)
-        log_job(job, "Got %s unfiltered tweets from list %s" % (len(timeline), LIST_IDS.index(list_id)))
-        tweets = []
-        for t in timeline:
-            urls = t['entities']['urls']
-            if 'quoted_status' in t:
-                urls += t['quoted_status']['entities']['urls']
-            if 'retweeted_status' in t:
-                urls += t['retweeted_status']['entities']['urls']
-            urls = [u['expanded_url'] for u in urls]
-            urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
-            if urls:
-                user = t['user']
-                tweet = {'id':t['id'], 'user_id':user['id'], 'screen_name':user['screen_name'], 'full_text':t['full_text'], 'urls':urls}
-                tweets.append(tweet)
-        log_job(job, "external link tweets %s" % len(tweets))
+        timeline = api.GetListTimeline(list_id=list_id, count = 200, since_id = since_id, include_rts=True, include_entities = True)
+        tweets = timeline_to_tweets(timeline)
+        log_job(job, "Got %s tweets, %s links from list %s" % (len(timeline), len(tweets), LIST_IDS.index(list_id)))
         log_job(job, "since_id=%s" % since_id)
         if timeline:
             log_job(job, "min_id=%s" % timeline[-1]['id'])
@@ -164,27 +151,27 @@ def fetch_shares():
         count = 0
         for tweet in tweets:
             # TODO: handle multiple viable URLs by picking best one
-            url = clean_up_url(tweet['urls'][0])
+            url = tweet.urls[0]
         
             # get corresponding listed sharer, or bail if there is none
-            sharer = Sharer.objects.filter(twitter_id=tweet['user_id'], status=Sharer.Status.LISTED)
+            sharer = Sharer.objects.filter(twitter_id=tweet.user.id, status=Sharer.Status.LISTED)
             if not sharer:
-                log_job(job, "Sharer not found %s %s" % (tweet['user_id'], tweet['screen_name']))
+                log_job(job, "Sharer not found %s %s" % (tweet.user.id, tweet.screen_name))
                 continue
             sharer = sharer[0]
 
             # get existing share, if any, for idempotency
-            existing = Share.objects.filter(twitter_id=tweet['id'])
+            existing = Share.objects.filter(twitter_id=tweet.id)
             if existing:
-                log_job(job, "Share already found %s" % tweet['id'])
+                log_job(job, "Share already found %s" % tweet.id)
                 old_share = existing[0]
-                if old_share.source==1:
-                    old_share.source=0
+                if old_share.source == 1:
+                    old_share.source = 0
                     old_share.category = sharer.category
                     old_share.save()
                 continue
             s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
-                      sharer_id = sharer.id, twitter_id = tweet['id'], text=tweet['full_text'], url=url)
+                      sharer_id=sharer.id, twitter_id=tweet.id, text=tweet.full_text, url=url)
             s.save()
             count += 1
     
@@ -630,6 +617,19 @@ def log_job(job, action, status = None):
         job.status = status
     job.actions = action + " \n" + job.actions
     job.save();
+
+def timeline_to_tweets(timeline):
+    tweets = []
+    for t in timeline:
+        urls = t.urls
+        urls += t.quoted_status.urls if t.quoted_status else []
+        urls += t.retweeted_status.urls if t.retweeted_status else []
+        urls = [u.expanded_url for u in urls]
+        urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
+        if urls:
+            t.urls = urls
+            tweets.append(t)
+    return tweets
 
 def clean_up_url(url, contents=None):
     cleaned = do_clean_url(str(url), contents)
