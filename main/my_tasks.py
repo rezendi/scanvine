@@ -91,7 +91,7 @@ def launch_fetch_my_shares():
     now = int(time.time())
     auths = UserSocialAuth.objects.annotate(
         last_fetch = Coalesce( Cast(KeyTextTransform('last_fetch', 'extra_data'), IntegerField()), 0)
-    ).filter(last_fetch__lt=now-15*60)
+    ).filter(last_fetch__gt=0, last_fetch__lt=now-15*60)
     for auth in auths:
         fetch_my_shares.signature((auth.user_id,)).apply_async()
     if len(auths) > 0:
