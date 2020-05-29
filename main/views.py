@@ -381,7 +381,7 @@ def my_view(request, screen_name = None):
         article.shares = [s for s in shares if s.article_id==article.id]
 
     if not 'back_filling' in auth.extra_data:
-        auth.extra_data['back_filling'] = True
+        auth.extra_data['back_filling'] = 'active'
         auth.save()
         fetch_my_back_shares.signature((request.user.id,)).apply_async()
 

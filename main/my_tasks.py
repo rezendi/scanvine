@@ -1,6 +1,6 @@
 import datetime, os, time, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
-from django.db.models import Count
+from django.db.models import Count, IntegerField
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
@@ -32,8 +32,8 @@ def fetch_my_back_shares(user_id):
         existing_shares = FeedShare.objects.filter(user_id=user_id).count()
         if existing_shares >= MAX_PERSONAL_SHARES:
             log_job(job, "personal shares quota for %s" % auth['screen_name'], Job.Status.COMPLETED)
-            if not 'back_filled' in auth.extra_data:
-                auth.extra_data['back_filled'] = True
+            if not 'back_filling' in auth.extra_data or auth.extra_data['back_filling'] != 'done':
+                auth.extra_data['back_filling'] = 'done'
                 auth.save()
             return
 
@@ -47,6 +47,7 @@ def fetch_my_back_shares(user_id):
         log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
         auth.extra_data['back_max_id'] = timeline[-1].id if timeline else None
         auth.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in auth.extra_data else auth.extra_data['since_id']
+        auth.extra_data['last_fetch'] = time.time()
         auth.save()
     
         # Store new shares to DB
@@ -90,7 +91,7 @@ def launch_fetch_my_shares():
     now = int(time.time())
     auths = UserSocialAuth.objects.annotate(
         last_fetch = Coalesce( Cast(KeyTextTransform('last_fetch', 'extra_data'), IntegerField()), 0)
-    ).filter(last_fetch__gt=0, last_fetch__lt=now-15*60)
+    ).filter(last_fetch__lt=now-15*60)
     for auth in auths:
         fetch_my_shares.signature((auth.user_id,)).apply_async()
     if len(auths) > 0:
