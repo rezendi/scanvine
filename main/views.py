@@ -370,26 +370,24 @@ def my_view(request, screen_name = None):
     page_size = 20 if page_size > 256 else page_size
     shares = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
-    ).distinct('article_id').values('article_id','sharer_id')[:page_size]
-    article_ids = []
-    sharer_ids = []
+    ).values('article_id','sharer_id').order_by("-created_at")[:page_size]
+    articles = {}
+    article_sharers = {}
     for share in shares:
-        article_ids.append(share['article_id'])
-        sharer_ids.append(share['sharer_id'])
-    articles = Article.objects.filter(id__in=article_ids)
-    sharers = {}
-    for s in Sharer.objects.filter(id__in=sharer_ids):
-        sharers[s.id] = s
+        article_sharers[share['article_id']] = share['sharer_id']
+    sharers = Sharer.objects.filter(id__in=article_sharers.values())
+    articles = Article.objects.filter(id__in=article_sharers.keys())
     
+    entries = []
+    for article in articles:
+        sharer_id = article_sharers[article.id]
+        sharer = [s for s in sharers if s.id==sharer_id][0]
+        entries.append({'article':article, 'sharer':sharer})
+
     if not 'back_filling' in instance.extra_data:
         instance.extra_data['back_filling'] = True
         instance.save()
         fetch_my_back_shares.signature((request.user.id,)).apply_async()
-
-    entries = []
-    for idx, article in enumerate(articles):
-        sharer = sharers[sharer_ids[idx]]
-        entries.append({'article':article, 'sharer':sharer})
 
     context = {
         'user' : instance,
