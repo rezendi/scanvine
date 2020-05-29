@@ -3,7 +3,7 @@ from django.test import TestCase
 from .models import *
 from . import tasks, admin
 
-TEST_TWEET_ID = 1258151068892094468
+TEST_TWEET_ID = 1266451538295189504
 
 class MetadataParserTest(TestCase):
     def test_basic_parsing(self):

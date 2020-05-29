@@ -401,7 +401,7 @@ def analyze_sentiment():
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
 def allocate_credibility(when=time.time(), days=7):
     job = launch_job("allocate_credibility")
-    end_date = datetime.datetime.utcfromtimestamp(when)
+    end_date = datetime.datetime.utcfromtimestamp(when) + datetime.timedelta(minutes=5)
     start_date = end_date - datetime.timedelta(days=days)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     cred_per_point = 1008
