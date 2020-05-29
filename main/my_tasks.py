@@ -93,7 +93,8 @@ def launch_fetch_my_shares():
     ).filter(last_fetch__gt=0, last_fetch__lt=now-15*60)
     for auth in auths:
         fetch_my_shares.signature((auth.user_id,)).apply_async()
-    log_job(job, "fetching shares for %s users" % len(auths), Job.Status.COMPLETED)
+    if len(auths) > 0:
+        log_job(job, "launched fetches for %s users" % len(auths), Job.Status.COMPLETED)
 
 
 # Get list statuses, filter those with external links
