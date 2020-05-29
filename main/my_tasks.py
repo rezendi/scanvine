@@ -53,10 +53,15 @@ def fetch_my_back_shares(user_id):
         # Store new shares to DB
         count = 0
         for t in tweets:
-            existing = Share.objects.filter(twitter_id=t.id)
-            if existing:
-                log_job(job, "Share already found %s" % t.id)
+            existing_shares = Share.objects.filter(twitter_id=t.id)
+            if existing_shares.id:
+                existing_feeds = FeedShare.objects.filter(user_id=user_id, share_id=existing_shares[0].id)
+                if existing_feeds:
+                    log_job(job, "Share already found and mapped %s" % t.id)
+                    continue
+                FeedShare(user_id=user_id, share_id=existing_shares[0].id).save()
                 continue
+
             sharers = Sharer.objects.filter(twitter_id=t.user.id)
             if sharers:
                 sharer = sharers[0]
@@ -122,7 +127,7 @@ def fetch_my_shares(user_id):
         # Store new shares to DB
         count = 0
         for t in tweets:
-            existing = Share.objects.filter(twitter_id=t.id)
+            existing = Share.objects.filter(twitter_id=t.id, category=Sharer.Category.PERSONAL)
             if existing:
                 log_job(job, "Share already found %s" % t.id)
                 continue
@@ -158,6 +163,7 @@ def fetch_my_shares(user_id):
             sharers_to_delete = sharers_to_delete.filter(category=Sharer.Category.PERSONAL, id__in=sharer_ids, share_count=0)
             log_job(job, "deleting %s sharers" % sharers_to_delete.count())
             sharers_to_delete.delete()
+            FeedShare.objects.filter(user_id=user_id, created_at__lt=last.created_at).delete()
 
         log_job(job, "new shares %s" % count, Job.Status.COMPLETED)
         
