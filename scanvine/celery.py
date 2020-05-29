@@ -33,6 +33,10 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'task': 'main.tasks.analyze_sentiment',
             'schedule': 151.0,
         },
+        'add-every-180-seconds': {
+            'task': 'main.my_tasks.launch_fetch_my_shares',
+            'schedule': 187.0,
+        },
         'add-every-300-seconds': {
             'task': 'main.tasks.associate_articles',
             'schedule': 303.0,
