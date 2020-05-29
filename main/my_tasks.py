@@ -20,7 +20,7 @@ def get_api(oauth_token, oauth_secret):
 MAX_PERSONAL_SHARES=255
 
 # Get list statuses, filter those with external links
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="20/m")
 def fetch_my_back_shares(user_id):
     job = launch_job("fetch_my_back_shares")
     try:
@@ -97,7 +97,7 @@ def launch_fetch_my_shares():
 
 
 # Get list statuses, filter those with external links
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="20/m")
 def fetch_my_shares(user_id):
     job = launch_job("fetch_my_shares")
     try:

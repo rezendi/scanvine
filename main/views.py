@@ -360,15 +360,17 @@ def shares_view(request, category):
 def my_view(request, screen_name = None):
     if request.user.is_anonymous:
         return redirect('/social/login/twitter')
-    instances = request.user.social_auth.filter(provider='twitter')
-    if not instances:
+    auths = request.user.social_auth.filter(provider='twitter')
+    if not auths:
         return redirect('/social/login/twitter')
-    instance = instances[0]
+    auth = auth[0]
     if not screen_name:
-        return redirect('/main/my/%s/' % instance.extra_data['access_token']['screen_name'])
+        if not 'access_token' in screen_name or not 'screen_name' in auth.extra_data['access_token'] or not auth.extra_data['access_token']['screen_name']:
+            return redirect('/main/')
+        return redirect('/main/my/%s/' % auth.extra_data['access_token']['screen_name'])
 
-    page_size = int(request.GET.get('s', '20'))
-    page_size = 20 if page_size > 256 else page_size
+    page_size = int(request.GET.get('s', '40'))
+    page_size = 40 if page_size > 256 else page_size
     shares = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
     ).values('twitter_id','article_id','sharer_id').order_by("-created_at")[:page_size]
@@ -388,13 +390,13 @@ def my_view(request, screen_name = None):
         twitter_id = article_shares[article.id]
         entries.append({'article':article, 'sharer':sharer, 'share':{'twitter_id':twitter_id}})
 
-    if not 'back_filling' in instance.extra_data:
-        instance.extra_data['back_filling'] = True
-        instance.save()
+    if not 'back_filling' in auth.extra_data:
+        auth.extra_data['back_filling'] = True
+        auth.save()
         fetch_my_back_shares.signature((request.user.id,)).apply_async()
 
     context = {
-        'user' : instance,
+        'user' : auth,
         'entries' : entries,
     }
     return render(request, 'main/my.html', context)
