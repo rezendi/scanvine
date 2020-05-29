@@ -156,7 +156,7 @@ def fetch_shares():
             # get corresponding listed sharer, or bail if there is none
             sharer = Sharer.objects.filter(twitter_id=tweet.user.id, status=Sharer.Status.LISTED)
             if not sharer:
-                log_job(job, "Sharer not found %s %s" % (tweet.user.id, tweet.screen_name))
+                log_job(job, "Sharer not found %s %s" % (tweet.user.id, tweet.user.screen_name))
                 continue
             sharer = sharer[0]
 
