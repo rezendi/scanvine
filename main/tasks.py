@@ -142,8 +142,8 @@ def fetch_shares():
         log_job(job, "Got %s tweets, %s links from list %s" % (len(timeline), len(tweets), LIST_IDS.index(list_id)))
         log_job(job, "since_id=%s" % since_id)
         if timeline:
-            log_job(job, "min_id=%s" % timeline[-1]['id'])
-            log_job(job, "max_id=%s" % timeline[0]['id'])
+            log_job(job, "min_id=%s" % timeline[-1].id)
+            log_job(job, "max_id=%s" % timeline[0].id)
         elif since_id:
             log_job(job, "max_id=%s" % since_id)
     
