@@ -370,10 +370,12 @@ def my_view(request, screen_name = None):
     page_size = 20 if page_size > 256 else page_size
     shares = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
-    ).values('article_id','sharer_id').order_by("-created_at")[:page_size]
+    ).values('twitter_id','article_id','sharer_id').order_by("-created_at")[:page_size]
     articles = {}
+    article_shares = {}
     article_sharers = {}
     for share in shares:
+        article_shares[share['article_id']] = share['twitter_id']
         article_sharers[share['article_id']] = share['sharer_id']
     sharers = Sharer.objects.filter(id__in=article_sharers.values())
     articles = Article.objects.filter(id__in=article_sharers.keys())
@@ -382,7 +384,8 @@ def my_view(request, screen_name = None):
     for article in articles:
         sharer_id = article_sharers[article.id]
         sharer = [s for s in sharers if s.id==sharer_id][0]
-        entries.append({'article':article, 'sharer':sharer})
+        twitter_id = article_shares[article.id]
+        entries.append({'article':article, 'sharer':sharer, 'share':{'twitter_id':twitter_id}})
 
     if not 'back_filling' in instance.extra_data:
         instance.extra_data['back_filling'] = True
