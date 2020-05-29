@@ -47,7 +47,7 @@ def fetch_my_back_shares(user_id):
         log_job(job, "tweets %s external links %s max_id %s for %s" % (len(timeline), len(tweets), max_id, access['screen_name']) )
         auth.extra_data['back_max_id'] = timeline[-1].id if timeline else None
         auth.extra_data['since_id'] = timeline[0].id if timeline and not 'since_id' in auth.extra_data else auth.extra_data['since_id']
-        auth.extra_data['last_fetch'] = time.time()
+        auth.extra_data['last_fetch'] = int(time.time())
         auth.save()
     
         # Store new shares to DB
@@ -121,7 +121,7 @@ def fetch_my_shares(user_id):
         tweets = timeline_to_tweets(timeline)
         log_job(job, "tweets %s external links %s since_id %s for %s" % (len(timeline), len(tweets), since_id, access['screen_name']) )
         auth.extra_data['since_id'] = timeline[0].id if timeline else auth.extra_data['since_id'] if 'since_id' in auth.extra_data else None
-        auth.extra_data['last_fetch'] = time.time()
+        auth.extra_data['last_fetch'] = int(time.time())
         auth.save()
     
         # Store new shares to DB

@@ -121,6 +121,7 @@ def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
     to_delete = Job.objects.filter(created_at__lte=cutoff)
     log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_delete.count()))
     to_delete.delete()
+    # TODO maybe Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
     log_job(job, "cleanup complete", Job.Status.COMPLETED)
 
 
