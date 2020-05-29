@@ -363,10 +363,10 @@ def my_view(request, screen_name = None):
     instances = request.user.social_auth.filter(provider='twitter')
     if not instances:
         return redirect('/social/login/twitter')
+    instance = instances[0]
     if not screen_name:
         return redirect('/main/my/%s/' % instance.extra_data['access_token']['screen_name'])
 
-    instance = instances[0]
     page_size = int(request.GET.get('s', '20'))
     page_size = 20 if page_size > 256 else page_size
     shares = Share.objects.prefetch_related('feed_shares').filter(
