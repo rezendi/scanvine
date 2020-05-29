@@ -28,7 +28,7 @@ def index_view(request, category=None, scoring=None, days=None):
     category = 'total' if not category or category not in CATEGORIES else category
     query = Article.objects.select_related('publication').annotate(
         score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        shares = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
+        share_count = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
         pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
         pub_article_count = Greatest( Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()), 1),
         buzz = F('score') - F('pub_average_score'),
@@ -36,7 +36,7 @@ def index_view(request, category=None, scoring=None, days=None):
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND])
     if scoring not in ["odd","latest","new"] and request.GET.get('single','')!="true":
-        query = query.filter(shares__gt=1)
+        query = query.filter(share_count__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
     query = query.defer('contents','metadata')
@@ -47,7 +47,7 @@ def index_view(request, category=None, scoring=None, days=None):
         articles = query.order_by("-our_date")[:page_size]
 
     if scoring=='shares':
-        articles = query.order_by("-shares")[:page_size]
+        articles = query.order_by("-share_count")[:page_size]
 
     if scoring=='raw' or scoring=='new':
         articles = query.order_by("-score")[:page_size]
@@ -363,32 +363,22 @@ def my_view(request, screen_name = None):
     auths = request.user.social_auth.filter(provider='twitter')
     if not auths:
         return redirect('/social/login/twitter')
-    auth = auth[0]
+    auth = auths[0]
     if not screen_name:
-        if not 'access_token' in screen_name or not 'screen_name' in auth.extra_data['access_token'] or not auth.extra_data['access_token']['screen_name']:
+        ed = auth.extra_data
+        if not 'access_token' in ed or not 'screen_name' in ed['access_token'] or not ed['access_token']['screen_name']:
             return redirect('/main/')
-        return redirect('/main/my/%s/' % auth.extra_data['access_token']['screen_name'])
+        return redirect('/main/my/%s/' % ed['access_token']['screen_name'])
 
     page_size = int(request.GET.get('s', '40'))
     page_size = 40 if page_size > 256 else page_size
-    shares = Share.objects.prefetch_related('feed_shares').filter(
+    ids = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
-    ).values('twitter_id','article_id','sharer_id').order_by("-created_at")[:page_size]
-    articles = {}
-    article_shares = {}
-    article_sharers = {}
-    for share in shares:
-        article_shares[share['article_id']] = share['twitter_id']
-        article_sharers[share['article_id']] = share['sharer_id']
-    sharers = Sharer.objects.filter(id__in=article_sharers.values())
-    articles = Article.objects.filter(id__in=article_sharers.keys())
-    
-    entries = []
+    ).values('id','article_id').order_by("-created_at")[:page_size]
+    articles = Article.objects.filter(id__in=[v['article_id'] for v in ids])
+    shares = Share.objects.filter(id__in=[v['id'] for v in ids])
     for article in articles:
-        sharer_id = article_sharers[article.id]
-        sharer = [s for s in sharers if s.id==sharer_id][0]
-        twitter_id = article_shares[article.id]
-        entries.append({'article':article, 'sharer':sharer, 'share':{'twitter_id':twitter_id}})
+        article.shares = [s for s in shares if s.article_id==article.id]
 
     if not 'back_filling' in auth.extra_data:
         auth.extra_data['back_filling'] = True
@@ -397,6 +387,6 @@ def my_view(request, screen_name = None):
 
     context = {
         'user' : auth,
-        'entries' : entries,
+        'articles' : articles,
     }
     return render(request, 'main/my.html', context)

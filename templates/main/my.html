@@ -9,8 +9,8 @@
     filling {{user.extra_data.back_filling}}
     filled {{user.extra_data.back_filled}}
     <p/>
-    {% for entry in entries %}
-        {% include "main/article-entry.html" with article=entry.article sharer=entry.sharer share=entry.share %}
+    {% for article in articles %}
+        {% include "main/article-entry.html" with article=article %}
     {% endfor %}
 </section>
 {% endblock %}

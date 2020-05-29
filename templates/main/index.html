@@ -5,7 +5,7 @@
     <H2>{{scoring}} {{category}} Stories</H2>
     <div class="article-list">
         {% for article in articles %}
-            {% include "article-entry.html" with article=article %}
+            {% include "main/article-entry.html" with article=article %}
         {% endfor %}
     </div>
 </section>
