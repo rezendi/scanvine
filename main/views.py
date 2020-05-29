@@ -363,7 +363,6 @@ def my_view(request, screen_name = None):
     instance = request.user.social_auth.get(provider='twitter')
     if not instance:
         return redirect('/main/')
-    print("ed %s" % instance.extra_data)
     if not screen_name:
         return redirect('/main/my/%s/' % instance.extra_data['access_token']['screen_name'])
 
@@ -371,17 +370,29 @@ def my_view(request, screen_name = None):
     page_size = 20 if page_size > 256 else page_size
     shares = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
-    ).distinct('article_id').values('article_id')[:page_size]
-    articles = Article.objects.filter(id__in=shares)[:page_size]
+    ).distinct('article_id').values('article_id','sharer_id')[:page_size]
+    article_ids = []
+    sharer_ids = []
+    for share in shares:
+        article_ids.append(share['article_id'])
+        sharer_ids.append(share['sharer_id'])
+    articles = Article.objects.filter(id__in=article_ids)
+    sharers = {}
+    for s in Sharer.objects.filter(id__in=sharer_ids):
+        sharers[s.id] = s
     
     if not 'back_filling' in instance.extra_data:
         instance.extra_data['back_filling'] = True
         instance.save()
         fetch_my_back_shares.signature((request.user.id,)).apply_async()
-        
+
+    entries = []
+    for idx, article in enumerate(articles):
+        sharer = sharers[sharer_ids[idx]]
+        entries.append({'article':article, 'sharer':sharer})
 
     context = {
         'user' : instance,
-        'articles' : articles,
+        'entries' : entries,
     }
     return render(request, 'main/my.html', context)

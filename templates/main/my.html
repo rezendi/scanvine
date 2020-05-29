@@ -9,9 +9,8 @@
     filling {{user.extra_data.back_filling}}
     filled {{user.extra_data.back_filled}}
     <p/>
-    {% for article in articles %}
-    <a href="{{article.url}}">{% if article.title %}{{article.title}}{% else %}n/a{% endif %}</a>
-    <br/>
+    {% for entry in entries %}
+        {% include "main/article-entry.html" with article=entry.article sharer=entry.sharer %}
     {% endfor %}
 </section>
 {% endblock %}

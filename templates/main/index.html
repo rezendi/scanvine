@@ -5,29 +5,7 @@
     <H2>{{scoring}} {{category}} Stories</H2>
     <div class="article-list">
         {% for article in articles %}
-        <article>
-            <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:120}}</a>
-            <div class="article-bottom">
-                {% if article.thumbnail_url %}
-                    <div class="article-image" title="{{article.score}}">
-                        <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
-                    </div>
-                {% endif %}
-                <span class="article-info">
-                    <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
-                    <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
-                    <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago
-                    {% ifequal request.GET.v "t" %}| {{article.score}}, {{article.shares}}{% endifequal %}
-                    </a>
-                    {% ifequal request.GET.svd "t" %}
-                        <a href="/admin/main/article/{{article.id}}/change/">article</a> score {{article.score}} raw {{article.raw}} buzz {{article.buzz}} odd {{article.odd}} total {{article.total_credibility}} shares {{ article.shares }}
-                        <a href="/admin/main/publication/{{publicationpublication.id}}/change/">publication</a> total {{article.publication.total_credibility}} average {{article.publication.average_credibility}}
-                        <br/>article scores {{article.scores}}
-                        <br/>publication {{article.publication.scores}}
-                    {% endifequal %}
-                </span>
-            </div>
-        </article>
+            {% include "article-entry.html" with article=article %}
         {% endfor %}
     </div>
 </section>
