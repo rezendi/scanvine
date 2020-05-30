@@ -1,7 +1,7 @@
 import datetime, math
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from django.db.models import F, Q, IntegerField, Subquery, Count, Sum
+from django.db.models import F, Q, IntegerField, Subquery, Count, Sum, Case, When
 from django.db.models.functions import Cast, Coalesce, Sqrt, Greatest
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from .models import *
@@ -375,7 +375,9 @@ def my_view(request, screen_name = None):
     ids = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
     ).values('id','article_id').order_by("-feed_shares__created_at")[:page_size]
-    articles = Article.objects.filter(id__in=[v['article_id'] for v in ids])
+    article_ids = [v['article_id'] for v in ids]
+    preserved = Case(*[When(pk=pk, then=pos) for pos, pk in enumerate(article_ids)])
+    articles = Article.objects.filter(id__in=article_ids).order_by(preserved)
     shares = Share.objects.filter(id__in=[v['id'] for v in ids])
     for article in articles:
         article.shares = [s for s in shares if s.article_id==article.id]
