@@ -16,8 +16,7 @@
                 <span><em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
                 <a href="/main/article/{{article.id}}">{{article.display_date}}</a></span>
                 {% for share in article.shares %}
-                    <span><a href="https://twitter.com/{{share.sharer.twitter_screen_name}}">@{{share.sharer.twitter_screen_name}}</a>
-                    <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.created_at|timesince}} ago</a></span>
+                    <a href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">@{{share.sharer.twitter_screen_name}}</a>
                 {% endfor %}
             {% endif %}
             {% ifequal request.GET.svd "t" %}
