@@ -374,7 +374,7 @@ def my_view(request, screen_name = None):
     page_size = 40 if page_size > 256 else page_size
     ids = Share.objects.prefetch_related('feed_shares').filter(
         source=1, status=Share.Status.ARTICLE_ASSOCIATED, feed_shares__user_id=request.user.id
-    ).values('id','article_id').order_by("-created_at")[:page_size]
+    ).values('id','article_id').order_by("-feed_shares__created_at")[:page_size]
     articles = Article.objects.filter(id__in=[v['article_id'] for v in ids])
     shares = Share.objects.filter(id__in=[v['id'] for v in ids])
     for article in articles:
