@@ -93,10 +93,10 @@ def fetch_my_back_shares(user_id):
 @shared_task(rate_limit="1/m")
 def launch_fetch_my_shares():
     job = launch_job("launch_fetch_my_shares")
-    now = int(time.time())
+    cutoff = int(time.time()) - (15 * 60)
     auths = UserSocialAuth.objects.annotate(
         last_fetch = Coalesce( Cast(KeyTextTransform('last_fetch', 'extra_data'), IntegerField()), 0)
-    ).exclude(last_fetch=0).filter(last_fetch__lt=now-15*60)
+    ).exclude(last_fetch=0).filter(last_fetch__lt=cutoff)
     for auth in auths:
         fetch_my_shares.signature((auth.user_id,)).apply_async()
     if len(auths) > 0:
