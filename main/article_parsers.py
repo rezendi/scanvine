@@ -312,7 +312,7 @@ def meta_parser(soup):
         for sup in soup.findAll('sup'):
             sup.replaceWith(",")
         wordline = ''
-        for word in ['author', 'author-name', 'byline', 'contributor', 'authors', 'Author', 'Byline', 'Contributor', 'Authors']:
+        for word in ['author', 'author-name', 'author-link', 'author-meta', 'byline', 'contributor', 'authors', 'Author', 'Byline', 'Contributor', 'Authors']:
             candidate_tags = soup.find_all(True, {"rel" : word})
             if not candidate_tags:
                 candidate_tags = soup.find_all(True, {"class" : word})
