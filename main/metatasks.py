@@ -151,9 +151,9 @@ import csv
 def dump_profiles_and_lists():
     with open('sharers.csv', 'w') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
-        fetcher = lazy_bulk_fetch(10000, Sharer.objects.count(), lambda: Sharer.objects.all().values('profile','metadata'))
+        fetcher = lazy_bulk_fetch(10000, Sharer.objects.count(), lambda: Sharer.objects.all().values('profile','metadata','category'))
         for batch in fetcher:
             for sharer in batch:
                 lists = sharer['metadata']['external_lists'] if 'external_lists' in sharer['metadata'] else []
-                writer.writerow([sharer['profile'], lists])
+                writer.writerow([sharer['profile'], lists, sharer['category']])
             
