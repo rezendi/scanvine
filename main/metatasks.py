@@ -157,3 +157,14 @@ def dump_profiles_and_lists():
                 lists = sharer['metadata']['external_lists'] if 'external_lists' in sharer['metadata'] else []
                 writer.writerow([sharer['profile'], lists, sharer['category']])
             
+
+def dump_training_data():
+  with open('sharers.csv') as infile:
+        with open('sharers-categorized.csv', 'w') as outfile:
+            writer = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
+            reader = csv.reader(infile)
+            for row in reader:
+                category = int(row[2])
+                if category > 0:
+                    writer.writerow(row)
+ 

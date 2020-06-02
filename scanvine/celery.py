@@ -25,10 +25,6 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'task': 'main.tasks.fetch_shares',
             'schedule': 30.0,
         },
-        'add-every-60-seconds': {
-            'task': 'main.metatasks.get_list_members',
-            'schedule': 61.0,
-        },
         'add-every-150-seconds': {
             'task': 'main.tasks.analyze_sentiment',
             'schedule': 151.0,

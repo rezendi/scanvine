@@ -47,4 +47,4 @@ if not settings.configured:
     celery = Celery('scanvine', backend='rpc://')
 
 from main.metatasks import *
-dump_profiles_and_lists()
+dump_training_data()
