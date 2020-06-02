@@ -46,5 +46,5 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
-from main.my_tasks import *
-fetch_my_shares(2)
+from main.metatasks import *
+dump_profiles_and_lists()

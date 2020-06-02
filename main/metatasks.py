@@ -137,3 +137,23 @@ def log_job(job, action, status = None):
     job.actions = action + " \n" + job.actions
     job.save()
 
+def lazy_bulk_fetch(max_obj, max_count, fetch_func, start=0):
+    counter = start
+    while counter < max_count:
+        yield fetch_func()[counter:counter + max_obj]
+        counter += max_obj
+
+
+# Data dump functions
+
+import csv
+
+def dump_profiles_and_lists():
+    with open('sharers.csv', 'w') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+        fetcher = lazy_bulk_fetch(10000, Sharer.objects.count(), lambda: Sharer.objects.all().values('profile','metadata'))
+        for batch in fetcher:
+            for sharer in batch:
+                lists = sharer['metadata']['external_lists'] if 'external_lists' in sharer['metadata'] else []
+                writer.writerow([sharer['profile'], lists])
+            
