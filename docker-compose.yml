@@ -28,6 +28,7 @@ services:
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
     depends_on:
       - rabbitmq
 
@@ -40,6 +41,7 @@ services:
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
     depends_on:
       - rabbitmq
 
@@ -52,6 +54,7 @@ services:
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
     depends_on:
       - rabbitmq
 
@@ -69,6 +72,9 @@ services:
     restart: unless-stopped
     ports:
       - "5672:5672"
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
 
   certbot:
     image: certbot/certbot
