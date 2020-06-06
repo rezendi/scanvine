@@ -47,4 +47,4 @@ if not settings.configured:
     celery = Celery('scanvine', backend='rpc://')
 
 from main.metatasks import *
-weight_sharer_lists()
+weight_sharers()

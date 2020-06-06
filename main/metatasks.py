@@ -156,13 +156,34 @@ from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
-def weight_sharer_lists():
+def weight_sharers():
+    category_lists = {}
     for category in range(0,5):
+        category_lists[category] = {}
         key = 'cat_%s' % category
         weighted_lists = List.objects.annotate(
             weight = Cast(KeyTextTransform(key, 'metadata'), IntegerField()),
         ).filter(weight__gt=3)
-        print ("category %s count %s" % (key, weighted_lists.count()))
+        for list in weighted_lists:
+            category_lists[category][list.twitter_id] = list.weight
+
+    fetcher = lazy_bulk_fetch(1000, Sharer.objects.count(), lambda: Sharer.objects.all())
+    for batch in fetcher:
+        for sharer in batch:
+            if not 'external_lists' in sharer.metadata:
+                continue
+            weighted = False
+            list_weights = {0:0,1:0,2:0,3:0,4:0}
+            sharer_list_ids = sharer.metadata['external_lists']
+            for list_id in sharer_list_ids:
+                for category in range(0,5):
+                    if list_id in category_lists[category]:
+                        list_weights[category] = list_weights[category] + category_lists[category][list_id]
+                        weighted = True
+            if weighted:
+                sharer.metadata['list_weights'] = list_weights
+                sharer.save()
+        
 
 # Data dump functions
 
