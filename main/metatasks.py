@@ -167,6 +167,7 @@ def weight_sharers():
         for list in weighted_lists:
             category_lists[category][list.twitter_id] = list.weight
 
+    print("category_lists %s" % category_lists)
     fetcher = lazy_bulk_fetch(1000, Sharer.objects.count(), lambda: Sharer.objects.all())
     for batch in fetcher:
         for sharer in batch:

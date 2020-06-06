@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect
-from django.db.models import Count
+from django.db.models import Count, IntegerField
+from django.db.models.functions import Cast
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from celery import Celery
 from .models import *
 from .tasks import *
@@ -49,6 +51,15 @@ class SharerAdmin(ScanvineAdmin):
             twitter_id = search_term.rpartition(":")[2].rpartition("/")[2]
             sharer_id = add_sharer(twitter_id)
             return (Sharer.objects.filter(id=sharer_id), False)
+        if (search_term.startswith("weighted")):
+            category = search_term.rpartition(":")[2]
+            print("category %s" % category)
+            queryset = Sharer.objects.annotate(
+                list_weights = KeyTextTransform('list_weights', 'metadata')
+            ).annotate(
+                weight = KeyTextTransform(category, 'list_weights')
+            ).filter(weight__gt=0).order_by("-weight")
+            return (queryset, False)
         return super().get_search_results(request, queryset, search_term)
 
     def get_actions(self, request):
