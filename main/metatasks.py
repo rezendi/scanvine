@@ -108,11 +108,6 @@ def get_list_members():
         raise ex
 
 
-@shared_task(rate_limit="1/m")
-def recommend_members():
-    job = launch_job("recommend_members")
-
-
 
 @shared_task(rate_limit="1/m")
 def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
@@ -167,7 +162,6 @@ def weight_sharers():
         for list in weighted_lists:
             category_lists[category][list.twitter_id] = list.weight
 
-    print("category_lists %s" % category_lists)
     fetcher = lazy_bulk_fetch(1000, Sharer.objects.count(), lambda: Sharer.objects.all())
     for batch in fetcher:
         for sharer in batch:
@@ -183,6 +177,8 @@ def weight_sharers():
                         weighted = True
             if weighted:
                 sharer.metadata['list_weights'] = list_weights
+                if sharer.status == Sharer.Status.SUGGESTED:
+                    sharer.status = Sharer.Status.RECOMMENDED
                 sharer.save()
         
 
