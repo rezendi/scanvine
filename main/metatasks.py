@@ -144,6 +144,26 @@ def lazy_bulk_fetch(max_obj, max_count, fetch_func, start=0):
         counter += max_obj
 
 
+# Sharer identification functions
+
+# For each category, get the lists with the largest number of existing sharers from that category.
+# Number of existing sharers is that list's weight
+# For each potential sharer, total the weights of such lists they're members of, add to metadata
+# (Use this instead of total list memberships as input with profile to neural net; if future iterations, store and use list size, too)
+# Add search to get sharers with min weight, ordered by weight
+
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
+
+def weight_sharer_lists():
+    for category in range(0,5):
+        key = 'cat_%s' % category
+        weighted_lists = List.objects.annotate(
+            weight = Cast(KeyTextTransform(key, 'metadata'), IntegerField()),
+        ).filter(weight__gt=3)
+        print ("category %s count %s" % (key, weighted_lists.count()))
+
 # Data dump functions
 
 import csv
@@ -158,7 +178,7 @@ def dump_profiles_and_lists():
                 writer.writerow([sharer['profile'], lists, sharer['category']])
             
 
-def dump_training_data():
+def dump_caategorized_profiles_and_lists():
   with open('sharers.csv') as infile:
         with open('sharers-categorized.csv', 'w') as outfile:
             writer = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)

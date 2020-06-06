@@ -47,4 +47,4 @@ if not settings.configured:
     celery = Celery('scanvine', backend='rpc://')
 
 from main.metatasks import *
-dump_training_data()
+weight_sharer_lists()
