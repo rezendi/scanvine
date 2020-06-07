@@ -24,7 +24,7 @@ class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     list_filter = ('status', 'category', 'created_at', 'updated_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
-    actions = ['deselect','list','select','health','science','tech','business','media']
+    actions = ['deselect','select','health','science','tech','business','four']
     readonly_fields= ('created_at','updated_at')
     fields = (
         ('status','category'),
@@ -39,11 +39,6 @@ class SharerAdmin(ScanvineAdmin):
     def deselect(modeladmin, request, queryset):
         for obj in queryset:
             obj.status = Sharer.Status.DESELECTED
-            obj.save()
-
-    def list(modeladmin, request, queryset):
-        for obj in queryset:
-            obj.status = Sharer.Status.LISTED
             obj.save()
 
     def select(modeladmin, request, queryset):
@@ -71,7 +66,7 @@ class SharerAdmin(ScanvineAdmin):
             obj.category = Sharer.Category.BUSINESS
             obj.save()
 
-    def media(modeladmin, request, queryset):
+    def four(modeladmin, request, queryset):
         for obj in queryset:
             obj.category = Sharer.Category.MEDIA
             obj.save()
