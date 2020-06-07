@@ -77,13 +77,17 @@ class SharerAdmin(ScanvineAdmin):
             sharer_id = add_sharer(twitter_id)
             return (Sharer.objects.filter(id=sharer_id), False)
         if (search_term.startswith("weighted")):
-            category = search_term.rpartition(":")[2]
-            queryset = Sharer.objects.annotate(
+            terms = search_term.partition(" ")
+            base_term = terms[2]
+            (base_results, bool) = super().get_search_results(request, queryset, base_term)
+            weight_term = terms[0]
+            category = weight_term.partition(":")[2]
+            queryset = base_results.annotate(
                 list_weights = KeyTextTransform('list_weights', 'metadata')
             ).annotate(
                 weight = KeyTextTransform(category, 'list_weights')
             ).filter(weight__gt=0).filter(status=Sharer.Status.RECOMMENDED).order_by("-weight")
-            return (queryset, False)
+            return (queryset, bool)
         return super().get_search_results(request, queryset, search_term)
 
     def get_actions(self, request):
