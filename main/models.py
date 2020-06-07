@@ -37,6 +37,7 @@ class Sharer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     metadata = JSONField(default=emptydict)
+    protected = models.BooleanField(default=False)
 
     def __str__(self):
         return "%s (%s)" % (self.twitter_screen_name, self.id)
