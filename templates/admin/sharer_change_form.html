@@ -3,4 +3,6 @@
 {% block submit_buttons_bottom %}
     {{ block.super }}
     <a href="/admin/main/share/?sharer__id={{object_id}}">Shares</a>
+    <a href="https://twitter.com/{{adminform.form.instance.twitter_screen_name}}">Twitter</a>
+
 {% endblock %}
