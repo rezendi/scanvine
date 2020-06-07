@@ -24,7 +24,7 @@ class SharerAdmin(ScanvineAdmin):
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
     list_filter = ('status', 'category', 'created_at', 'updated_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
-    actions = ['deselect','list']
+    actions = ['deselect','list','select','health','science','tech','business','media']
     readonly_fields= ('created_at','updated_at')
     fields = (
         ('status','category'),
@@ -44,6 +44,36 @@ class SharerAdmin(ScanvineAdmin):
     def list(modeladmin, request, queryset):
         for obj in queryset:
             obj.status = Sharer.Status.LISTED
+            obj.save()
+
+    def select(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.status = Sharer.Status.SELECTED
+            obj.save()
+
+    def health(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.category = Sharer.Category.HEALTH
+            obj.save()
+
+    def science(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.category = Sharer.Category.SCIENCE
+            obj.save()
+
+    def tech(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.category = Sharer.Category.TECH
+            obj.save()
+
+    def business(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.category = Sharer.Category.BUSINESS
+            obj.save()
+
+    def media(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.category = Sharer.Category.MEDIA
             obj.save()
 
     def get_search_results(self, request, queryset, search_term):
