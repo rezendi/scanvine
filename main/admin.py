@@ -53,12 +53,11 @@ class SharerAdmin(ScanvineAdmin):
             return (Sharer.objects.filter(id=sharer_id), False)
         if (search_term.startswith("weighted")):
             category = search_term.rpartition(":")[2]
-            print("category %s" % category)
             queryset = Sharer.objects.annotate(
                 list_weights = KeyTextTransform('list_weights', 'metadata')
             ).annotate(
                 weight = KeyTextTransform(category, 'list_weights')
-            ).filter(weight__gt=0).filter(status=Sharer.Status.SUGGESTED).order_by("-weight")
+            ).filter(weight__gt=0).filter(status=Sharer.Status.RECOMMENDED).order_by("-weight")
             return (queryset, False)
         return super().get_search_results(request, queryset, search_term)
 
