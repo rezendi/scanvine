@@ -158,7 +158,7 @@ def weight_sharers():
         key = 'cat_%s' % category
         weighted_lists = List.objects.annotate(
             weight = Cast(KeyTextTransform(key, 'metadata'), IntegerField()),
-        ).filter(weight__gt=3)
+        ).filter(weight__gt=2)
         for list in weighted_lists:
             category_lists[category][list.twitter_id] = list.weight
 
