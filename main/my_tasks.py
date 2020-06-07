@@ -65,9 +65,10 @@ def fetch_my_back_shares(user_id):
             sharers = Sharer.objects.filter(twitter_id=t.user.id)
             if sharers:
                 sharer = sharers[0]
+                update_sharer(sharer, t.user)
             else:
                 sharer = Sharer(status=Sharer.Status.CREATED, category=Sharer.Category.PERSONAL, twitter_id=t.user.id, name=t.user.name, 
-                                twitter_screen_name=t.user.screen_name, profile = t.user.description, verified = t.user.verified)
+                                twitter_screen_name=t.user.screen_name, profile = t.user.description, verified = t.user.verified, protected = t.user.protected)
                 sharer.save()
             share = Share(source=1, status = Share.Status.CREATED, category=Sharer.Category.PERSONAL, language='en',
                           sharer_id = sharer.id, twitter_id = t.id, text=t.full_text, url=t.urls[0])
@@ -136,7 +137,7 @@ def fetch_my_shares(user_id):
                 sharer = sharers[0]
             else:
                 sharer = Sharer(status=Sharer.Status.CREATED, category=Sharer.Category.PERSONAL, twitter_id=t.user.id, name=t.user.name, 
-                                twitter_screen_name=t.user.screen_name, profile = t.user.description, verified = t.user.verified)
+                                twitter_screen_name=t.user.screen_name, profile = t.user.description, verified = t.user.verified, protected = t.user.protected)
                 sharer.save()
             share = Share(source=1, status = Share.Status.CREATED, category=Sharer.Category.PERSONAL, language='en',
                           sharer_id = sharer.id, twitter_id = t.id, text=t.full_text, url=t.urls[0])

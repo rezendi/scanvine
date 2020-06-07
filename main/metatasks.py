@@ -36,7 +36,7 @@ def get_potential_sharers():
         log_job(job, "New sharers: %s" % len(new))
         for n in new:
             s = Sharer(status=Sharer.Status.CREATED, twitter_id=n.id, twitter_screen_name = n.screen_name.replace('\x00',''),
-                       name=n.name.replace('\x00',''), profile=n.description.replace('\x00',''), category=-1, verified=True)
+                       name=n.name.replace('\x00',''), profile=n.description.replace('\x00',''), category=-1, verified=n.verified, protected=n.protected)
             s.save()
         log_job(job, "New sharers: %s" % len(new), Job.Status.COMPLETED)
         log_job(job, "%s" % verified_cursor, Job.Status.COMPLETED)
@@ -95,7 +95,7 @@ def get_list_members():
                     sharer.metadata['external_lists'].append(list.twitter_id)
             else:
                 sharer = Sharer(status=Sharer.Status.SUGGESTED, twitter_id=l.id, twitter_screen_name=l.screen_name, category=Sharer.Category.NONE,
-                                name=l.name, profile=l.description, verified=l.verified, metadata = {"external_lists":[list.twitter_id]})
+                                name=l.name, profile=l.description, verified=l.verified, protected=l.protected, metadata = {"external_lists":[list.twitter_id]})
             sharer.save()
         list.status = 1
         list.save()

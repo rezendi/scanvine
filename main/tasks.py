@@ -87,12 +87,17 @@ def refresh_sharers():
     category = timezone.now().microsecond % len(LIST_IDS)
     (next, prev, listed) = api.GetListMembersPaged(list_id=LIST_IDS[category], count=5000, include_entities=False, skip_status=True)
     log_job(job, "total in category %s %s" % (category, len(listed)))
-    new = [l for l in listed if len(Sharer.objects.filter(twitter_id=l.id))==0]
-    for n in new:
-        s = Sharer(status=Sharer.Status.LISTED, twitter_id=n.id, twitter_list_id=LIST_IDS[category], category=category,
-                   twitter_screen_name=n.screen_name, name=n.name, profile=n.description, verified=True)
-        s.save()
-    log_job(job, "New sharers: %s" % len(new))
+    new = 0
+    for l in listed:
+        existing = Sharer.objects.filter(twitter_id=l.id)
+        if existing:
+            update_sharer(existing[0], l)
+        else:
+            new += 1
+            s = Sharer(status=Sharer.Status.LISTED, twitter_id=l.id, twitter_list_id=LIST_IDS[category], category=category,
+                       twitter_screen_name=l.screen_name, name=l.name, profile=l.description, verified=l.verified, protected=l.protected)
+            s.save()
+    log_job(job, "New sharers: %s" % new)
 
     # move those not actually listed to selected
     ids =[l.id for l in listed]
@@ -160,6 +165,7 @@ def fetch_shares():
                 log_job(job, "Sharer not found %s %s" % (tweet.user.id, tweet.user.screen_name))
                 continue
             sharer = sharer[0]
+            update_sharer(sharer, tweet.user)
 
             # get existing share, if any, for idempotency
             existing = Share.objects.filter(twitter_id=tweet.id)
@@ -631,6 +637,23 @@ def timeline_to_tweets(timeline):
             t.urls = urls
             tweets.append(t)
     return tweets
+
+def update_sharer(sharer, tuser):
+    updated = False
+    if sharer.verified != tuser.verified:
+        sharer.verified = tuser.verified
+        updated = True
+    if sharer.protected != tuser.protected:
+        sharer.protected = tuser.protected
+        updated = True
+    if sharer.profile != tuser.description:
+        sharer.profile = tuser.description
+        updated = True
+    if sharer.twitter_screen_name != tuser.screen_name:
+        sharer.twitter_screen_name = tuser.screen_name
+        updated = True
+    if updated:
+        sharer.save()
 
 def clean_up_url(url, contents=None):
     cleaned = do_clean_url(str(url), contents)

@@ -31,7 +31,7 @@ class SharerAdmin(ScanvineAdmin):
         'twitter_screen_name',
         'name',
         'profile',
-        ('twitter_id','twitter_list_id','verified'),
+        ('twitter_id','twitter_list_id','verified','protected'),
         ('created_at','updated_at'),
         'metadata'
     )
@@ -385,7 +385,7 @@ def add_sharer(arg):
         sharer = existing[0]
     else:
         user = api.GetUser(user_id=sharer_id, screen_name=screen_name, include_entities=False)
-        sharer = Sharer(twitter_id=user.id, name=user.name, twitter_screen_name = user.screen_name,
+        sharer = Sharer(twitter_id=user.id, name=user.name, twitter_screen_name = user.screen_name, protected=user.protected,
                         profile=user.description, verified=user.verified, status=Sharer.Status.CREATED, category=-1)
         sharer.save()
     return sharer.id if sharer else None
