@@ -406,9 +406,9 @@ def analyze_sentiment():
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def allocate_credibility(when=time.time(), days=7):
+def allocate_credibility(when=datetime.datetime.utcnow(), days=7):
     job = launch_job("allocate_credibility")
-    end_date = datetime.datetime.utcfromtimestamp(when) + datetime.timedelta(days=1)
+    end_date = when + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     cred_per_point = 1008
@@ -455,9 +455,9 @@ def allocate_credibility(when=time.time(), days=7):
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(when=time.time(), days=30):
+def set_scores(when=datetime.datetime.utcnow(), days=30):
     job = launch_job("set_scores")
-    end_date = datetime.datetime.utcfromtimestamp(when) + datetime.timedelta(days=1)
+    end_date = when + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     articles_dict = {}
@@ -533,9 +533,9 @@ def set_scores(when=time.time(), days=30):
 
 
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def do_publication_aggregates(when=time.time(), days=30):
+def do_publication_aggregates(when=datetime.datetime.utcnow(), days=30):
     job = launch_job("do_publication_aggregates")
-    end_date = datetime.datetime.utcfromtimestamp(when) + datetime.timedelta(days=1)
+    end_date = when + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days+1)
     log_job(job, "date range %s - %s" % (start_date, end_date))
     try:
