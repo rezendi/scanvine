@@ -22,7 +22,7 @@ class ScanvineAdmin(admin.ModelAdmin):
 class SharerAdmin(ScanvineAdmin):
     change_form_template = "admin/sharer_change_form.html"
     list_display = ('id', 'twitter_screen_name', 'name', 'profile')
-    list_filter = ('status', 'category', 'created_at', 'updated_at')
+    list_filter = ('status', 'category', 'protected', 'created_at', 'updated_at')
     search_fields = ('twitter_screen_name', 'name', 'profile')
     actions = ['deselect','select','health','science','tech','business','four']
     readonly_fields= ('created_at','updated_at')
