@@ -85,7 +85,7 @@ class SharerAdmin(ScanvineAdmin):
             queryset = base_results.annotate(
                 list_weights = KeyTextTransform('list_weights', 'metadata')
             ).annotate(
-                weight = KeyTextTransform(category, 'list_weights')
+                weight = Cast(KeyTextTransform(category, 'list_weights'), IntegerField())
             ).filter(weight__gt=0).filter(status=Sharer.Status.RECOMMENDED).order_by("-weight")
             return (queryset, bool)
         return super().get_search_results(request, queryset, search_term)
