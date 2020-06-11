@@ -455,7 +455,7 @@ def allocate_credibility(when=datetime.datetime.utcnow(), days=7):
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def set_scores(when=datetime.datetime.utcnow(), days=30):
+def set_scores(when=datetime.datetime.utcnow(), days=90):
     job = launch_job("set_scores")
     end_date = when + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days+1)
@@ -465,7 +465,8 @@ def set_scores(when=datetime.datetime.utcnow(), days=30):
     total_quantity = 0
     total_tranches = 0
     try:
-        #TODO do this as a big three-table join?
+        # TODO do this as a big three-table join?
+        # TODO only get shares from the last week, but get all shares for those articles
         shares = Share.objects.filter(
             source=0, status=Share.Status.CREDIBILITY_ALLOCATED, created_at__range=(start_date, end_date)
         ).values('id','sharer_id','article_id')
@@ -533,7 +534,7 @@ def set_scores(when=datetime.datetime.utcnow(), days=30):
 
 
 @shared_task(rate_limit="1/m", soft_time_limit=1800)
-def do_publication_aggregates(when=datetime.datetime.utcnow(), days=30):
+def do_publication_aggregates(when=datetime.datetime.utcnow(), days=90):
     job = launch_job("do_publication_aggregates")
     end_date = when + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=days+1)
@@ -541,7 +542,9 @@ def do_publication_aggregates(when=datetime.datetime.utcnow(), days=30):
     try:
         publications = Publication.objects.all()
         for publication in publications:
-            articles = Article.objects.filter(publication_id=publication.id).values('total_credibility','scores')
+            articles = Article.objects.annotate (
+                score = Cast(KeyTextTransform('total', 'scores'), IntegerField()),
+            ).filter(publication_id=publication.id, score__gt=0).values('total_credibility','scores')
             total_articles = articles.count()
             total_credibility = articles.aggregate(Sum('total_credibility'))['total_credibility__sum']
             publication.total_credibility = int(total_credibility if total_credibility else 0)
