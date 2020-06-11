@@ -2,28 +2,35 @@
 {% block title %}{{base_author.name}} | Scanvine{% endblock %}
 {% block main %}
 <section>
-{% for author in authors %}
-<div id="authors_names">
-    <a href="/main/author/{{author.id}}"><b>{{author.name}}</b></a>{% if not forloop.last%}, {% endif %}
-</div>
-{% endfor %}
-<hr/>
-Tracked articles {{ article_count }} {% if not collaboration %} Credibility {{base_author.total_cred}} Average {{base_author.average_cred}} {% endif %}
-<table>
-    <tr>
-        <th>Score</th>
-        <th>Article</th>
-        <th>Publication</th>
-        <th>Date</th>
-    </tr>
-    {% for article in articles %}
-        <tr>
-            <td>{{article.credibility}}</td>
-            <td><a href="{{article.url}}">{{article.title}}</a></td>
-            <td><a href="/main/publication/{{article.publication_id}}">{{article.publication}}</a></td>
-            <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
-        <tr>
+    {% for author in authors %}
+        <div id="authors_names">
+            <a href="/main/author/{{author.id}}"><b>{{author.name}}</b></a>{% if not forloop.last%}, {% endif %}
+        </div>
     {% endfor %}
-</table>
+            <th></th>
+
+    <p><b>Stats</b></p>
+    <div id="stats">
+        <div class="statbox">
+            <span class="statlabel"><a href="/admin/main/author/{{base_author.id}}">Tracked</a> articles</span> <span class="statval">{{article_count}}</span>
+        </div>
+        {% if not collaboration %}
+            <div class="statbox">
+                <span class="statlabel">Credibility</span> <span class="statval">{{base_author.total_cred}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Average</span> <span class="statval">{{base_author.average_cred}}</span>
+            </div>
+        {% endif %}
+    </div>
+    
+    <p><b>Articles</b></p>
+
+    <div class="article-list">
+        {% for article in articles %}
+            {% include "main/article-entry.html" with article=article scored=article %}
+        {% endfor %}
+    </div>
+
 </section>
 {% endblock %}

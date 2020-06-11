@@ -2,24 +2,30 @@
 {% block title %}{{publication}} | Scanvine{% endblock %}
 {% block main %}
 <section>
-<H2>{{publication}}</H2>
-<p>Tracked articles {{ article_count }} | Authors <a href="/main/authors/publication/{{publication.id}}/">{{author_count}}</a> |
-Average credibility {{publication.average_cred}} | Total credibility {{publication.total_cred}}</p>
-<table>
-    <tr>
-        <th>Score</th>
-        <th>Article</th>
-        <th>Author</th>
-        <th>Date</th>
-    </tr>
-    {% for article in articles %}
-        <tr>
-            <td>{{article.credibility}}</td>
-            <td><a href="{{article.url}}">{{article.title}}</a></td>
-            <td><a href="/main/author/{{article.author_id}}">{{article.author}}</a></td>
-            <td><a href="/main/article/{{article.id}}">{{article.created_at}}</a></td>
-        <tr>
-    {% endfor %}
-</table>
+    <p><b>{{publication}}</b></p>
+    <div id="stats">
+        <div class="statbox">
+            <span class="statlabel"><a href="/admin/main/author/{{base_author.id}}">Tracked</a> articles</span> <span class="statval">{{article_count}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Authors</span> <span class="statval">{{author_count}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Credibility</span> <span class="statval">{{publication.total_cred}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Average</span> <span class="statval">{{publication.average_cred}}</span>
+        </div>
+    </div>
+    
+    <p><b>Articles</b></p>
+
+    <div class="article-list">
+        {% for article in articles %}
+            {% include "main/article-entry.html" with article=article scored=article %}
+        {% endfor %}
+    </div>
+
+
 </section>
 {% endblock %}

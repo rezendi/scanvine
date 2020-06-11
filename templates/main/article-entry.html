@@ -24,5 +24,16 @@
                 <br/>publication {{article.publication.scores}}
             {% endifequal %}
         </span>
+        {% if scored %}
+            <div id="stats">
+                <div class="statbox">
+                    <span class="statlabel">Score</span> <span class="statval">{{scored.credibility}}</span>
+                </div>
+                <div class="statbox">
+                    <span class="statlabel">Shares</span>
+                    <span class="statval">{{scored.scores.health_shares}}, {{scored.scores.science_shares}}, {{scored.scores.tech_shares}}, {{scored.scores.business_shares}}, {{scored.scores.media_shares}}</span>
+                </div>
+            </div>
+        {% endif %}
     </div>
 </article>
