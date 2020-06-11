@@ -1,11 +1,9 @@
 <article>
     <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:120}}</a>
     <div class="article-bottom">
-        {% if article.thumbnail_url %}
-            <div class="article-image" title="{{article.score}}">
-                <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
-            </div>
-        {% endif %}
+        <div class="article-image" title="{{article.score}}">
+            <a href="{{article.url}}"><img src="{% if article.thumbnail_url %}{{article.thumbnail_url}}{% else %}/static/Scanvine_S.png{% endif %}" height="55" width="auto"/></a>
+        </div>
         <span class="article-info">
             <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
             {% if not article.shares %}

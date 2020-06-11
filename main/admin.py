@@ -192,7 +192,8 @@ class PublicationAdmin(ScanvineAdmin):
         'url_policy',
         'parser_rules',
         ('average_credibility', 'total_credibility'),
-        ('created_at','updated_at')
+        ('created_at','updated_at'),
+        'scores'
     )
 
     def response_change(self, request, obj):

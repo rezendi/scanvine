@@ -9,22 +9,16 @@
 a {
     text-decoration: none;
     color:black;
+    font-size:x-large;
 }
 a:hover {
     text-decoration: none;
     color:blue;
 }
 
-@media only screen and (max-width: 1200px) {
+@media only screen and (min-width: 1200px) {
     a {
-        font-size:x-large;
-    }
-    .nav-text, #aggregate-links {
-        font-size:x-large;
-    }
-    #logo {
-        width:30px;
-        height:30px;
+        font-size:medium;
     }
 }
 
@@ -45,6 +39,12 @@ header {
 #home {
     display:flex;
 }
+@media only screen and (max-width: 1200px) {
+    #logo {
+        width:30px;
+        height:30px;
+    }
+}
 
 #nav {
     margin-left:10px;
@@ -64,15 +64,20 @@ header {
     display:flex;
     justify-content:flex-start;
 }
+@media only screen and (max-width: 1200px) {
+    .nav-text, #aggregate-links {
+        font-size:x-large;
+    }
+}
 
-#filter-category-short {
+#filter-category-short, #filter-timing-short {
     display:none;
 }
 @media only screen and (max-width: 1200px) {
-    #filter-category {
+    #filter-category, #filter-timing {
         display:none;
     }
-    #filter-category-short {
+    #filter-category-short, #filter-timing-short {
         display:block;
     }
 }
@@ -101,7 +106,7 @@ section {
 @media only screen and (max-width: 1200px) {
     #filter-menu {
         flex-direction:row;
-    justify-content:space-between;
+        justify-content:space-between;
     }
 }
 
@@ -115,13 +120,12 @@ article {
 }
 
 .article-title {
-    font-size:larger;
+    font-size:xx-large;;
     padding-bottom:5px;
 }
-@media only screen and (max-width: 1200px) {
+@media only screen and (min-width: 1200px) {
     .article-title {
-        font-size:xx-large;;
-        padding-bottom:5px;
+        font-size:larger;
     }
 }
 
@@ -133,13 +137,14 @@ article {
 
 .article-bottom {
     display:flex;
-    align-content:space-between;
+    padding: 5px;
+    align-items:center;
 }
 
 .article-info {
-    padding:5px;
     display:flex;
     flex-direction:column;
+    padding-left:5px;
 }
 
 .article-scores {
@@ -200,6 +205,11 @@ article {
             </div>
             <div id="filter-timing" class="filter">
                 {% for link in timing_links %}
+                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                {% endfor %}
+            </div>
+            <div id="filter-timing-short" class="filter">
+                {% for link in short_timing_links %}
                 <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
                 {% endfor %}
             </div>

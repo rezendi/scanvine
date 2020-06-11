@@ -81,6 +81,8 @@ def index_view(request, category=None, scoring=None, days=None):
     
     short = {"Science":"Sci", "Business": "Biz"}
     short_links = [dict(c, **{"name":short[c['name']]}) if c['name'] in short else c for c in category_links]
+    short = {"30 hours":"30"}
+    short_timing_links = [dict(t, **{"name":short[t['name']]}) if t['name'] in short else t for t in timing_links]
 
     context = {
         'category': category.title(),
@@ -89,6 +91,7 @@ def index_view(request, category=None, scoring=None, days=None):
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,
+        'short_timing_links' : short_timing_links,
         'short_links': short_links,
         'articles': articles,
     }
