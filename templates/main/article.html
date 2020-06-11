@@ -17,50 +17,65 @@
 
   return t;
 }(document, "script", "twitter-wjs"));</script>
+
+<style>
+#stats {
+    display:flex;
+    justify-content:space-around;
+}
+.statbox {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:5px;
+}
+.statlabel {
+    font-style:italic;
+}
+</style>
+
 {% endblock %}
 {% block main %}
 <section>
     
     <div class="article-list">
-        <article>
-            <a class="article-title" href="{{article.url}}">{{article.title|truncatechars:94}}</a>
-            <div class="article-bottom">
-                {% if article.thumbnail_url %}
-                    <div class="article-image" title="{{article.score}}">
-                        <a href="{{article.url}}"><img src="{{article.thumbnail_url}}" height="60" width="auto"/></a>
-                    </div>
-                {% endif %}
-                <span class="article-info">
-                    <a href="/main/author/{{article.author_id}}">{{article.author|truncatechars:80}}</a>
-                    <em><a href="/main/publication/{{article.publication_id}}">{{article.publication|truncatechars:40}}</a></em>
-                    <a href="/main/article/{{article.id}}">{{article.display_date|timesince}} ago</a>
-                    {% ifequal request.GET.svd "true" %}
-                        <a href="/admin/main/article/{{article.id}}/change/">article</a> total {{article.total_credibility}} | score {{article.score}} | buzz {{article.buzz}} | odd {{article.odd}} | {{article.scores}}
-                        <a href="/admin/main/publication/{{publicationpublication.id}}/change/">publication</a> total {{article.publication.total_credibility}} | average {{article.publication.average_credibility}} | {{article.publication.scores}}
-                    {% endifequal %}
-                </span>
-            </div>
-        </article>
-        <p><i>URL</i>: <a href="{{article.url}}">{{article.url}}</a></p>
-        <p><i>Score</i>:  {{ article.credibility }}
-        <p><i>Published</i>:  {{ article.published_at }}
-        <p><i>Fetched</i>:  {{ article.created_at }}
-        <p><i>Author total score</i>:  {{ article.author.total_cred }}
-        <p><i>Author average score</i>:  {{ article.author.average_cred }}
-        <p><i>Publication total score</i>:  {{ article.publication.total_cred }}
-        <p><i>Publication average score</i>:  {{ article.publication.average_cred }}
+        {% include "main/article-entry.html" with article=article %}
     </div>
 
+    <b>Stats</b>
+    <div id="stats">
+        <div class="statbox">
+            <span class="statlabel">Fetched</span> <span class="statval">{{article.created_at}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Score</span> <span class="statval">{{article.credibility}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Author score</span> <span class="statval">{{article.author.total_cred}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Author average</span> <span class="statval">{{article.author.average_cred}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Publication score</span> <span class="statval">{{article.publication.total_cred}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Publication average</span> <span class="statval">{{article.publication.average_cred}}</span>
+        </div>
+        <div class="statbox">
+            <span class="statlabel">Shares</span>
+            <span class="statval">{{article.scores.health_shares}}, {{article.scores.science_shares}}, {{article.scores.tech_shares}}, {{article.scores.business_shares}}, {{article.scores.media_shares}}</span>
+        </div>
+    </div>
 
-    <h3>Shared by</h3>
+    <p><b>Shared by</b></p>
     <div id="article-sharers">
         {% for share in shares %}
-        <a title="{{share.category}}" href="https://twitter.com/{{share.sharer.twitter_screen_name}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
+        <a title="{{share.category}}" href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
         {% endfor %}
     </div>
     
-    <hr/>
-    <h3>Tweets</h3>
+    <p><b>Tweets</b></p>
     {% for share in shares %}
         <div id="tweet-container-{{share.twitter_id}}"/>
     {% endfor %}
