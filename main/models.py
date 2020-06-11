@@ -171,6 +171,7 @@ class Share(models.Model):
         SENTIMENT_ERROR = -3
         SELF_SHARE = -4
         DUPLICATE_SHARE = -5
+        UNSUPPORTED_LANGUAGE = -6
 
     sharer = models.ForeignKey(Sharer, on_delete=models.PROTECT)
     article = models.ForeignKey(Article, null=True, blank=True, on_delete = models.SET_NULL)
