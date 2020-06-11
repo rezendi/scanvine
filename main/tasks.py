@@ -1,5 +1,5 @@
 import datetime, os, time, traceback
-import html, json, urllib3
+import html, json, urllib3, re
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from django.utils import timezone
 from django.db.models import Q, Sum, Avg, IntegerField
@@ -349,8 +349,13 @@ def parse_article_metadata(article_id):
 
         article.metadata = metadata if metadata else article.metadata
         article.title = html.unescape(metadata['sv_title'].strip()) if 'sv_title' in metadata and metadata['sv_title'] else article.title
-        article.published_at = datetime.datetime.fromisoformat(metadata['sv_pub_date']) if 'sv_pub_date' in metadata else article.published_at
         article.thumbnail_url = metadata['sv_image'] if 'sv_image' in metadata and len(metadata['sv_image'])<1024 else ''
+        article.published_at = datetime.datetime.fromisoformat(metadata['sv_pub_date']) if 'sv_pub_date' in metadata else article.published_at
+        if not article.published_at:
+            url_date = re.findall(r'/(\d{4})/(\d{1,2})/(\d{1,2})/', article.url)
+            if url_date:
+                d = url_date[0]
+                article.published_at = datetime.datetime( int(d[0]), int(d[1]), int(d[2]), 0, 0, 0)
         author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
