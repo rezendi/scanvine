@@ -16,7 +16,7 @@
             <td>{%if category%}{{author.category_score}}{%else%}{{author.total_cred}}{%endif%}</td>
             <td><a href="/main/author/{{author.id}}">{{author.name}}</a></td>
             <td>{{author.article_count}}{%if author.collaboration_count%}+{{author.collaboration_count}}{%endif%}</td>
-            <td>“<a href="{{author.top.url}}">{{author.top.title}}</a>” by
+            <td>“<a href="/main/article/{{author.top.id}}">{{author.top.title}}</a>” by
             <a href="/main/publication/{{author.top.publication_id}}">{{author.top.publication}}</a></td>
             <td>{%if category%}{{author.average_score}}{%else%}{{author.average_cred}}{%endif%}</td>
         <tr>
