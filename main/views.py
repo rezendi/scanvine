@@ -250,7 +250,7 @@ def publication_view(request, publication_id):
 def publications_view(request, category=None):
     page_size = int(request.GET.get('s', '100'))
     page_size = 20 if page_size > 256 else page_size
-    sort = request.GET.get('o', '-average_credibility')
+    sort = request.GET.get('o', '-total_credibility')
     min = int(request.GET.get('min', '2'))
     publications = Publication.objects.annotate(article_count=Count('article', distinct=True))
     if category:

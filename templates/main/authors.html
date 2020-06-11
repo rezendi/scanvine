@@ -2,9 +2,8 @@
 {% block title %}Authors | Scanvine{% endblock %}
 {% block main %}
 <section>
-<H1><a href="/">Scanvine</a></H1>
-<H2>Ranked Authors</H2>
-<table>
+<H3>Ranked Authors</H3>
+<table cellpadding=2>
     <tr>
         <th>Score</th>
         <th>Name</th>
@@ -17,7 +16,7 @@
             <td>{%if category%}{{author.category_score}}{%else%}{{author.total_cred}}{%endif%}</td>
             <td><a href="/main/author/{{author.id}}">{{author.name}}</a></td>
             <td>{{author.article_count}}{%if author.collaboration_count%}+{{author.collaboration_count}}{%endif%}</td>
-            <td><a href="{{author.top.url}}">{{author.top.title}}</a> ||
+            <td>“<a href="{{author.top.url}}">{{author.top.title}}</a>” by
             <a href="/main/publication/{{author.top.publication_id}}">{{author.top.publication}}</a></td>
             <td>{%if category%}{{author.average_score}}{%else%}{{author.average_cred}}{%endif%}</td>
         <tr>
