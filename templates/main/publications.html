@@ -1,29 +1,51 @@
 {% extends "main/base.html" %}
 {% block title %}Publications | Scanvine{% endblock %}
-{% block main %}
+{% block startjs %}
+<style>
+.publication-info {
+    display:flex;
+    flex-direction:column;
+    padding:5px;
+    margin:5px;
+    border-top:1px solid lavender;
+}
+.publication-info:nth-child(10n+1) {
+    border-top:2px solid lavender;
+}
+.publication-top {
+    display:flex;
+}
+.publication-name a {
+    font-size:larger;
+}
+</style>
+{% endblock %}{% block main %}
 <section>
 <H3>Ranked Publications</H3>
-<table>
-    <tr>
-        <th>Score</th>
-        <th>Name</th>
-        <th>Articles</th>
-        <th>Top</th>
-        <th>Average</th>
-    </tr>
+    <div class="publication-list">
     {% for publication in publications %}
-        <tr>
-            <td>{%if category%}{{publication.category_score}}{%else%}{{publication.total_cred}}{%endif%}</td>
-            <td><a href="/main/publication/{{publication.id}}">{{publication}}</a></td>
-            <td>{{publication.article_count}}</td>
-            <td>{% if publication.top %}
-                “<a href="/main/article/{{publication.top.id}}">{{publication.top.title}}</a>” <a href="/main/authors/publication/{{publication.id}}">by</a>
-                <a href="/main/author/{{publication.top.author_id}}">{{publication.top.author}}</a>
-                {% endif %}
-            </td>
-            <td>{%if category%}{{publication.average_score}}{%else%}{{publication.average_cred}}{%endif%}</td>
-        <tr>
+        <div class="publication-info">
+            <div class="publication-top">
+                
+                <span class="publication-name"><a href="/main/publication/{{publication.id}}">{{ forloop.counter }}. {{publication}}</a></span>
+                <div class="publication-stats rightmost">
+                    <span class="publication-articles">
+                        <i>articles</i> {{publication.article_count}}
+                    </span>
+                    <span class="credibility">
+                        <i>average score</i> {%if category%}{{publication.average_score}}{%else%}{{publication.average_cred}}{%endif%}
+                        <i>total</i> {%if category%}{{publication.category_score}}{%else%}{{publication.total_cred}}{%endif%}
+                    </span>
+                </div>
+            </div>
+            <span class="top-article">
+                <i>top article</i>
+                “<a href="/main/article/{{publication.top.id}}">{{publication.top.title}}</a>”
+                <a href="/main/authors/publication/{{publication.id}}">by</a>
+                <a href="/main/publication/{{publication.top.publication_id}}">{{publication.top.author}}</a>
+            </span>
+        </div>
     {% endfor %}
-</table>
+    </div>
 </section>
 {% endblock %}
