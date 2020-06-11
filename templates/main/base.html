@@ -16,7 +16,7 @@ a:hover {
     color:blue;
 }
 
-@media only screen and (min-width: 1200px) {
+@media (orientation: landscape) {
     a {
         font-size:medium;
     }
@@ -28,7 +28,7 @@ header {
     justify-content:space-around;
     padding:10px 50px 10px 50px;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     header {
         justify-content:space-between;
         flex-direction:column;
@@ -39,7 +39,7 @@ header {
 #home {
     display:flex;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     #logo {
         width:30px;
         height:30px;
@@ -52,7 +52,7 @@ header {
     flex-direction:column;
     align-content:center;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     #nav {
         width:100%;
         flex-direction:row;
@@ -64,7 +64,7 @@ header {
     display:flex;
     justify-content:flex-start;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     .nav-text, #aggregate-links {
         font-size:x-large;
     }
@@ -73,7 +73,7 @@ header {
 #filter-category-short, #filter-timing-short {
     display:none;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     #filter-category, #filter-timing {
         display:none;
     }
@@ -94,7 +94,7 @@ section {
     align-items:center;
     width:66%;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     section {
         width:100%;
     }
@@ -103,7 +103,7 @@ section {
     display:flex;
     flex-direction:column;
 }
-@media only screen and (max-width: 1200px) {
+@media (orientation: portrait) {
     #filter-menu {
         flex-direction:row;
         justify-content:space-between;
@@ -123,7 +123,7 @@ article {
     font-size:xx-large;;
     padding-bottom:5px;
 }
-@media only screen and (min-width: 1200px) {
+@media (orientation: landscape) {
     .article-title {
         font-size:larger;
     }
