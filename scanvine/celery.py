@@ -25,21 +25,21 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'task': 'main.tasks.fetch_shares',
             'schedule': 30.0,
         },
-        'add-every-150-seconds': {
+        'add-every-60-seconds': {
             'task': 'main.tasks.analyze_sentiment',
-            'schedule': 151.0,
+            'schedule': 61.0,
         },
-        'add-every-180-seconds': {
+        'add-every-240-seconds': {
             'task': 'main.my_tasks.launch_fetch_my_shares',
-            'schedule': 187.0,
+            'schedule': 247.0,
         },
         'add-every-300-seconds': {
             'task': 'main.tasks.associate_articles',
             'schedule': 303.0,
         },
-        'add-every-900-seconds': {
+        'add-every-450-seconds': {
             'task': 'main.tasks.reparse_articles',
-            'schedule': 919.0,
+            'schedule': 459.0,
         },
         'add-every-1200-seconds': {
             'task': 'main.tasks.allocate_credibility',
@@ -61,11 +61,11 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'task': 'main.tasks.ingest_sharers',
             'schedule': 10801.0,
         },
+        'add-every-12000-seconds-3': {
+            'task': 'main.tasks.regurgitate_sharers',
+            'schedule': 12199.0,
+        },
     }
-#        'add-every-9000-seconds-3': {
-#            'task': 'main.tasks.regurgitate_sharers',
-#            'schedule': 90199.0,
-#        },
 else:
     app.conf.beat_schedule = {
         'add-every-30-seconds': {
