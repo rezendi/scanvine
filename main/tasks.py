@@ -206,6 +206,7 @@ def associate_articles():
 @shared_task(rate_limit="1/s")
 def associate_article(share_id, force_refetch=False):
     job = launch_job("associate_article")
+    log_job(job, "share %s refresh %s" % (share_id, force_refetch))
 
     share = Share.objects.get(id=share_id)
     non_ascii =[x for x in share.text if ord(x) > 127]
