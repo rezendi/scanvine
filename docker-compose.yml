@@ -37,7 +37,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=twitter,scoring,default", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime

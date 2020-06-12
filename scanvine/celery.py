@@ -19,6 +19,23 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
+app.conf.task_routes = {
+    'main.tasks.ingest_sharers' : {'queue': 'twitter'},
+    'main.tasks.regurgitate_sharers' : {'queue': 'twitter'},
+    'main.tasks.refresh_sharers' : {'queue': 'twitter'},
+    'main.tasks.fetch_shares' : {'queue': 'twitter'},
+    'main.tasks.associate_articles' : {'queue': 'default'},
+    'main.tasks.associate_article' : {'queue': 'default'},
+    'main.tasks.parse_unparsed_articles' : {'queue': 'default'},
+    'main.tasks.reparse_articles' : {'queue': 'default'},
+    'main.tasks.reparse_publication_articles' : {'queue': 'default'},
+    'main.tasks.parse_article_metadata' : {'queue': 'default'},
+    'main.tasks.analyze_sentiment' : {'queue': 'scoring'},
+    'main.tasks.allocate_credibility' : {'queue': 'scoring'},
+    'main.tasks.set_scores' : {'queue': 'scoring'},
+    'main.tasks.do_publication_aggregates' : {'queue': 'scoring'},
+}
+
 if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
     app.conf.beat_schedule = {
         'add-every-30-seconds': {
