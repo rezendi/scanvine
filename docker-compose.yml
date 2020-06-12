@@ -37,7 +37,20 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=twitter,scoring,default", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=default", "--loglevel=INFO"]
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
+    depends_on:
+      - rabbitmq
+
+  worker2:
+    build: .
+    image: *scanvine
+    restart: unless-stopped
+    env_file: .env
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker2@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=twitter,scoring", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
