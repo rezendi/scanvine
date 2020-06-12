@@ -269,11 +269,14 @@ def associate_article(share_id, force_refetch=False):
 @shared_task()
 def parse_unparsed_articles():
     job = launch_job("parse_unparsed_articles")
-    articles = Article.objects.filter(status__lte=Article.Status.CREATED)
-    for article in articles:
-        s = parse_article_metadata.signature((article.id,))
-        s.apply_async()
-    log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
+    try:
+        articles = Article.objects.filter(status__lte=Article.Status.CREATED)
+        for article in articles:
+            s = parse_article_metadata.signature((article.id,))
+            s.apply_async()
+        log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, "Reparse articles error %s" % ex, Job.Status.ERROR)
         
 
 @shared_task()
