@@ -325,6 +325,7 @@ class JobAdmin(ScanvineAdmin):
             return redirect('/admin/main/job/')
 
     def parse_unparsed(self, request):
+        print("here");
         if request.user.is_superuser:
             parse_unparsed_articles.delay()
             return redirect('/admin/main/job/')

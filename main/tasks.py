@@ -270,7 +270,7 @@ def associate_article(share_id, force_refetch=False):
 def parse_unparsed_articles():
     job = launch_job("parse_unparsed_articles")
     try:
-        articles = Article.objects.filter(status__lte=Article.Status.CREATED)
+        articles = Article.objects.filter(status=Article.Status.CREATED).order_by("-created_at")
         for article in articles:
             s = parse_article_metadata.signature((article.id,))
             s.apply_async()
