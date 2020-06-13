@@ -24,7 +24,7 @@ app.conf.task_routes = {
     'main.tasks.regurgitate_sharers'            : {'queue': 'twitter'},
     'main.tasks.refresh_sharers'                : {'queue': 'twitter'},
     'main.tasks.fetch_shares'                   : {'queue': 'twitter'},
-    'main.tasks.associate_article'              : {'queue': 'default'},
+    'main.tasks.associate_article'              : {'queue': 'fetch'},
     'main.tasks.associate_articles'             : {'queue': 'orchestrate'},
     'main.tasks.parse_unparsed_articles'        : {'queue': 'orchestrate'},
     'main.tasks.reparse_articles'               : {'queue': 'internal'},

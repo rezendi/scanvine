@@ -37,7 +37,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=default,internal", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=fetch,internal", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
@@ -46,6 +46,19 @@ services:
       - rabbitmq
 
   worker2:
+    build: .
+    image: *scanvine
+    restart: unless-stopped
+    env_file: .env
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=fetch,internal", "--loglevel=INFO"]
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime
+      - /etc/timezone:/etc/timezone
+    depends_on:
+      - rabbitmq
+
+  worker3:
     build: .
     image: *scanvine
     restart: unless-stopped
@@ -74,7 +87,7 @@ services:
   flower:
     image: mher/flower
     restart: unless-stopped
-    command: ["flower", "--broker=amqp://guest:guest@rabbitmq:5672"]
+    command: ["flower", "--url-prefix=flower ", "--broker=amqp://guest:guest@rabbitmq:5672"]
     ports:
       - "5555:5555"
     depends_on:
