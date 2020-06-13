@@ -37,6 +37,7 @@ app.conf.task_routes = {
 }
 
 if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
+    app.conf.task_always_eager = False
     app.conf.beat_schedule = {
         'add-every-30-seconds': {
             'task': 'main.tasks.fetch_shares',
@@ -44,7 +45,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
         },
         'add-every-180-seconds': {
             'task': 'main.tasks.analyze_sentiment',
-            'schedule': 183.0,
+            'schedule': 18.0,
         },
         'add-every-240-seconds': {
             'task': 'main.my_tasks.launch_fetch_my_shares',
@@ -84,6 +85,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
         },
     }
 else:
+    app.conf.task_always_eager = True
     app.conf.beat_schedule = {
         'add-every-30-seconds': {
             'task': 'main.my_tasks.launch_fetch_my_shares',
