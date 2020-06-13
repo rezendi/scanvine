@@ -37,7 +37,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=fetch,internal", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker@%h", "--queues=fetch,internal", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
@@ -50,7 +50,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker2@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=fetch,internal", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker2@%h", "--autoscale=10,3", "--queues=fetch,internal", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
@@ -63,7 +63,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker3@%h", "--soft-time-limit=180", "--time-limit=7200", "--queues=twitter,scoring,orchestrate", "--loglevel=INFO"]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker3@%h", "--autoscale=10,3", "--queues=twitter,scoring,orchestrate", "--soft-time-limit=180", "--time-limit=7200", "--loglevel=INFO"]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
