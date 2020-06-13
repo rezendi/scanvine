@@ -87,7 +87,7 @@ services:
   flower:
     image: mher/flower
     restart: unless-stopped
-    command: ["flower", "--url_prefix=flower", "--basic_auth=flower:vine", "--broker=amqp://guest:guest@rabbitmq:5672"]
+    command: ["flower", "--url_prefix=flower", "--broker=amqp://guest:guest@rabbitmq:5672"]
     ports:
       - "5555:5555"
     depends_on:
