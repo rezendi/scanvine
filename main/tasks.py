@@ -210,6 +210,7 @@ def associate_article(share_id, force_refetch=False):
 
     share = Share.objects.get(id=share_id)
     non_ascii =[x for x in share.text if ord(x) > 127]
+    non_ascii =[x for x in non_ascii if x not in "–—“”‘’ʻ"]
     if len(non_ascii) > 8:
         share.status = Share.Status.UNSUPPORTED_LANGUAGE
         share.save()
