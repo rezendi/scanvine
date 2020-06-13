@@ -9,8 +9,7 @@ services:
       - "443:443"
     volumes:
       - ./server/nginx.conf.https:/etc/nginx/nginx.conf
-      - /etc/nginx/.htpasswd:/etc/nginx/.htpasswd
-      - ./data/cache:/cache
+      - ./data/.htpasswd:/etc/nginx/.htpasswd
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
       - ./data/static:/static
