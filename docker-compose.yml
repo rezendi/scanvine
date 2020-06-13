@@ -9,10 +9,10 @@ services:
       - "443:443"
     volumes:
       - ./server/nginx.conf.https:/etc/nginx/nginx.conf
+      - ./data/.htpasswd:/etc/nginx/.htpasswd
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
       - ./data/static:/static
-      - ./data/.htpasswd:/tmp/.htpasswd
     depends_on:
       - django
       - certbot
