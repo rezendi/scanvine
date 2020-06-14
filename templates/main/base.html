@@ -15,8 +15,7 @@ a:hover {
     text-decoration: none;
     color:blue;
 }
-
-@media (orientation: landscape) {
+@media (min-width:75rem) {
     a {
         font-size:medium;
     }
@@ -26,20 +25,20 @@ header {
     display:flex;
     align-content:flex-start;
     justify-content:space-around;
-    padding:10px 50px 10px 50px;
+    padding:0.5rem 3rem 0.5rem 3rem;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     header {
         justify-content:space-between;
         flex-direction:column;
-        padding:10px;
+        padding:0.5rem;
     }
 }
 
 #home {
     display:flex;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     #logo {
         width:30px;
         height:30px;
@@ -47,12 +46,12 @@ header {
 }
 
 #nav {
-    margin-left:10px;
+    margin-left:0.5rem;
     display:flex;
     flex-direction:column;
     align-content:center;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     #nav {
         width:100%;
         flex-direction:row;
@@ -64,7 +63,7 @@ header {
     display:flex;
     justify-content:flex-start;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     .nav-text, #aggregate-links {
         font-size:x-large;
     }
@@ -73,7 +72,7 @@ header {
 #filter-category-short, #filter-timing-short {
     display:none;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     #filter-category, #filter-timing {
         display:none;
     }
@@ -85,7 +84,7 @@ header {
 main {
     display:flex;
     justify-content:space-around;
-    padding:0px 10px 0px 10px;
+    padding:0 0.5rem 0 0.5rem;
 }
 
 section {
@@ -94,16 +93,16 @@ section {
     align-items:center;
     width:66%;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     section {
-        width:100%;
+        width:96%;
     }
 }
 #filter-menu {
     display:flex;
     flex-direction:column;
 }
-@media (orientation: portrait) {
+@media (max-width:75rem) {
     #filter-menu {
         flex-direction:row;
         justify-content:space-between;
@@ -121,7 +120,7 @@ article {
 
 .article-title {
     font-size:xx-large;;
-    padding-bottom:5px;
+    padding-bottom:0.25rem;
 }
 @media (orientation: landscape) {
     .article-title {
@@ -137,18 +136,18 @@ article {
 
 .article-bottom {
     display:flex;
-    padding: 5px;
+    padding: 0.25rem;
     align-items:center;
 }
 
 .article-info {
     display:flex;
     flex-direction:column;
-    padding-left:5px;
+    padding-left:0.25rem;
 }
 
 .article-scores {
-    padding:5px;
+    padding:0.25rem;
 }
 
 #authors-names {
@@ -160,14 +159,14 @@ article {
 .stats {
     display:flex;
     justify-content:space-around;
-    margin-left:10px;
-    margin-right:10px;
+    margin-left:0.5rem;
+    margin-right:0.5rem;
 }
 .statbox {
     display:flex;
     flex-direction:column;
     align-items:center;
-    padding:5px;
+    padding:0.25rem;
 }
 .statlabel {
     font-style:italic;
@@ -175,7 +174,7 @@ article {
 .rightmost {
     margin-left:auto;
 }
-@media (orientation: portrait) {
+ @media (max-width:75rem) {
     .top-article a {
         font-size:large;
     }
