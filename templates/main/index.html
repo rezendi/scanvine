@@ -2,7 +2,7 @@
 {% block title %}{{scoring}} {{category}} Stories | Scanvine{% endblock %}
 {% block main %}
 <section>
-    <H2>{{scoring}} {{category}} Stories</H2>
+    <H3>{{scoring}} {{category}} Stories</H3>
     <div class="article-list">
         {% for article in articles %}
             {% include "main/article-entry.html" with article=article %}

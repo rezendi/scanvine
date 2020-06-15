@@ -10,13 +10,13 @@
 a {
     text-decoration: none;
     color:black;
-    font-size:x-large;
+    font-size:large;
 }
 a:hover {
     text-decoration: none;
     color:blue;
-}
-@media (min-width:75rem) {
+}   
+@media (min-width:72rem) {
     a {
         font-size:medium;
     }
@@ -28,7 +28,7 @@ header {
     justify-content:space-around;
     padding:0.5rem 3rem 0.5rem 3rem;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
     header {
         justify-content:space-between;
         flex-direction:column;
@@ -39,10 +39,13 @@ header {
 #home {
     display:flex;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
+    #home {
+        align-items:top;
+    }
     #logo {
-        width:30px;
-        height:30px;
+        width:25px;
+        height:25px;
     }
 }
 
@@ -52,11 +55,14 @@ header {
     flex-direction:column;
     align-content:center;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
     #nav {
-        width:100%;
+        width:95%;
         flex-direction:row;
         justify-content:space-around;
+    }
+    #search-form {
+        display:none;
     }
 }
 
@@ -64,16 +70,19 @@ header {
     display:flex;
     justify-content:flex-start;
 }
-@media (max-width:75rem) {
-    .nav-text, #aggregate-links {
-        font-size:x-large;
+@media (max-width:72rem) {
+    .nav-text, .nav-text a {
+        font-size:medium;
+    }
+    #aggregate-links, #aggregate-links a {
+        font-size:large;
     }
 }
 
 #filter-category-short, #filter-timing-short {
     display:none;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
     #filter-category, #filter-timing {
         display:none;
     }
@@ -85,7 +94,6 @@ header {
 main {
     display:flex;
     justify-content:space-around;
-    padding:0 0.5rem 0 0.5rem;
 }
 
 section {
@@ -94,7 +102,7 @@ section {
     align-items:center;
     width:66%;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
     section {
         width:96%;
     }
@@ -103,29 +111,39 @@ section {
     display:flex;
     flex-direction:column;
 }
-@media (max-width:75rem) {
+@media (max-width:72rem) {
     #filter-menu {
         flex-direction:row;
         justify-content:space-between;
+    }
+    .filter {
+        padding:0.1rem;
     }
 }
 
 article {
     border-top:1px solid lavender;
-    border-style:thin;
+    border-width:thin;
     display:flex;
     flex-direction:column;
     width:100%;
-    padding:10px;
+    padding:0.5rem 0rem 0.5rem 0rem;
+    margin:0rem 0.5rem 0rem 0.5rem;
+}
+@media (max-width:72rem) {
+    article {
+        padding:0.25rem 0rem 0.25rem 0rem;
+        margin:0rem 0.25rem 0rem 0.25rem;
+    }
 }
 
 .article-title {
-    font-size:xx-large;;
+    font-size:x-large;;
     padding-bottom:0.25rem;
 }
-@media (min-width:75rem) {
+@media (min-width:72rem) {
     .article-title {
-        font-size:larger;
+        font-size:x-large;
     }
 }
 
@@ -175,7 +193,7 @@ article {
 .rightmost {
     margin-left:auto;
 }
- @media (max-width:75rem) {
+ @media (max-width:72rem) {
     .top-article a {
         font-size:large;
     }
@@ -205,7 +223,7 @@ article {
                 <div id="aggregate-links">
                     <a href="/main/">Stories</a>&nbsp;|&nbsp;<a href="/main/authors">Authors</a>&nbsp;|&nbsp;<a href="/main/publications">Publications</a>
                 </div>
-                <form action ='/main/'>
+                <form action ='/main/' id="search-form">
                     <input type="search" placeholder="Search" name="search" value="{{search}}">
                     <button type="submit">Search</button>
                 </form>
@@ -214,27 +232,27 @@ article {
         <div id="filter-menu">
             <div id="filter-scoring" class="filter">
                 {% for link in scoring_links %}
-                <span class="scoring nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="scoring nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
             <div id="filter-category" class="filter">
                 {% for link in category_links %}
-                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
             <div id="filter-category-short" class="filter">
                 {% for link in short_links %}
-                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
             <div id="filter-timing" class="filter">
                 {% for link in timing_links %}
-                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
             <div id="filter-timing-short" class="filter">
                 {% for link in short_timing_links %}
-                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}</span>{% if not forloop.last%} |{% endif %}
+                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
         </div>
