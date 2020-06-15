@@ -14,16 +14,17 @@
 }
 .publication-top {
     display:flex;
+    align-items:center;
 }
 .publication-name a {
     font-size:larger;
 }
 @media (max-width:75rem) {
     .publication-name a {
-        font-size:xx-large;
+        font-size:large;
     }
     .publication-articles, credibility {
-        font-size:large;
+        font-size:medium;
     }
 }
 </style>
@@ -34,22 +35,21 @@
     {% for publication in publications %}
         <div class="publication-info">
             <div class="publication-top">
-                
                 <span class="publication-name"><a href="/main/publication/{{publication.id}}">{{ forloop.counter }}. {{publication}}</a></span>
                 <div class="publication-stats rightmost">
                     <span class="publication-articles">
                         <i>articles</i> {{publication.article_count}}
                     </span>
                     <span class="credibility">
-                        <i>average score</i> {%if category%}{{publication.average_score}}{%else%}{{publication.average_cred}}{%endif%}
+                        <i>average</i> {%if category%}{{publication.average_score}}{%else%}{{publication.average_cred}}{%endif%}
                         <i>total</i> {%if category%}{{publication.category_score}}{%else%}{{publication.total_cred}}{%endif%}
                     </span>
                 </div>
             </div>
             <span class="top-article">
-                <i>top article</i>
+                <i>top</i>
                 “<a href="/main/article/{{publication.top.id}}">{{publication.top.title}}</a>”
-                <a href="/main/authors/publication/{{publication.id}}">by</a>
+                <a class="by-link" href="/main/authors/publication/{{publication.id}}">by</a>
                 <a href="/main/publication/{{publication.top.publication_id}}">{{publication.top.author}}</a>
             </span>
         </div>

@@ -14,16 +14,17 @@
 }
 .author-top {
     display:flex;
+    align-items:center;
 }
 .author-name a {
     font-size:larger;
 }
 @media (max-width:75rem) {
     .author-name a {
-        font-size:xx-large;
+        font-size:large;
     }
     .author-articles, credibility {
-        font-size:large;
+        font-size:medium;
     }
 }
 </style>
@@ -35,21 +36,20 @@
     {% for author in authors %}
         <div class="author-info">
             <div class="author-top">
-                
                 <span class="author-name"><a href="/main/author/{{author.id}}">{{ forloop.counter }}. {{author.name}}</a></span>
                 <div class="author-stats rightmost">
                     <span class="author-articles">
                         <i>articles</i> {{author.article_count}}{%if author.collaboration_count%}+{{author.collaboration_count}}{%endif%}
                     </span>
                     <span class="credibility">
-                        <i>average score</i> {%if category%}{{author.average_score}}{%else%}{{author.average_cred}}{%endif%}
+                        <i>average</i> {%if category%}{{author.average_score}}{%else%}{{author.average_cred}}{%endif%}
                         <i>total</i> {%if category%}{{author.category_score}}{%else%}{{author.total_cred}}{%endif%}
                     </span>
                 </div>
             </div>
             <span class="top-article">
-                <i>top article</i>
-                “<a href="/main/article/{{author.top.id}}">{{author.top.title}}</a>” in
+                <i>top</i>
+                <a href="/main/article/{{author.top.id}}">“{{author.top.title}}”</a> in
                 <a href="/main/publication/{{author.top.publication_id}}">{{author.top.publication}}</a>
             </span>
         </div>
