@@ -2,6 +2,9 @@
 {% block title %}Authors | Scanvine{% endblock %}
 {% block startjs %}
 <style>
+.author-list {
+    width:100%;
+}
 .author-info {
     display:flex;
     flex-direction:column;
@@ -15,16 +18,25 @@
 .author-top {
     display:flex;
     align-items:center;
+    justify-content:space-between;
+    padding-bottom:0.25rem;
 }
 .author-name a {
     font-size:larger;
 }
 @media (max-width:75rem) {
+    .author-top {
+        flex-direction:column;
+        align-items:baseline;
+    }
     .author-name a {
         font-size:large;
     }
-    .author-articles, credibility {
+    .author-articles, .credibility {
         font-size:medium;
+    }
+    .rightmost {
+        margin-left:none;
     }
 }
 </style>
@@ -36,8 +48,8 @@
     {% for author in authors %}
         <div class="author-info">
             <div class="author-top">
-                <span class="author-name"><a href="/main/author/{{author.id}}">{{ forloop.counter }}. {{author.name}}</a></span>
-                <div class="author-stats rightmost">
+                <div class="author-name"><a href="/main/author/{{author.id}}">{{ forloop.counter }}. {{author.name}}</a></div>
+                <div class="author-stats">
                     <span class="author-articles">
                         <i>articles</i> {{author.article_count}}{%if author.collaboration_count%}+{{author.collaboration_count}}{%endif%}
                     </span>
@@ -47,11 +59,11 @@
                     </span>
                 </div>
             </div>
-            <span class="top-article">
+            <div class="top-article">
                 <i>top story</i>
                 <a href="/main/article/{{author.top.id}}">“{{author.top.title}}”</a> in
                 <a href="/main/publication/{{author.top.publication_id}}"><i>{{author.top.publication}}</i></a>
-            </span>
+            </div>
         </div>
     {% endfor %}
     </div>

@@ -2,6 +2,9 @@
 {% block title %}Publications | Scanvine{% endblock %}
 {% block startjs %}
 <style>
+.publication-list {
+    width:100%;
+}
 .publication-info {
     display:flex;
     flex-direction:column;
@@ -15,15 +18,21 @@
 .publication-top {
     display:flex;
     align-items:center;
+    justify-content:space-between;
+    padding-bottom:0.25rem;
 }
 .publication-name a {
     font-size:larger;
 }
 @media (max-width:75rem) {
+    .publication-top {
+        flex-direction:column;
+        align-items:baseline;
+    }
     .publication-name a {
         font-size:large;
     }
-    .publication-articles, credibility {
+    .publication-articles, .credibility {
         font-size:medium;
     }
     a.by-link {
@@ -38,8 +47,8 @@
     {% for publication in publications %}
         <div class="publication-info">
             <div class="publication-top">
-                <span class="publication-name"><a href="/main/publication/{{publication.id}}">{{ forloop.counter }}. {{publication}}</a></span>
-                <div class="publication-stats rightmost">
+                <div class="publication-name"><a href="/main/publication/{{publication.id}}">{{ forloop.counter }}. {{publication}}</a></div>
+                <div class="publication-stats">
                     <span class="publication-articles">
                         <i>articles</i> {{publication.article_count}}
                     </span>
@@ -49,12 +58,12 @@
                     </span>
                 </div>
             </div>
-            <span class="top-article">
+            <div class="top-article">
                 <i>top story</i>
                 “<a href="/main/article/{{publication.top.id}}">{{publication.top.title}}</a>”
                 <a class="by-link" href="/main/authors/publication/{{publication.id}}">by</a>
                 <a href="/main/publication/{{publication.top.publication_id}}">{{publication.top.author}}</a>
-            </span>
+            </div>
         </div>
     {% endfor %}
     </div>
