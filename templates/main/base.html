@@ -38,14 +38,12 @@ header {
 
 #home {
     display:flex;
+    align-items:top;
 }
 @media (max-width:72rem) {
-    #home {
-        align-items:top;
-    }
     #logo {
-        width:25px;
-        height:25px;
+        width:24px;
+        height:24px;
     }
 }
 
@@ -69,24 +67,25 @@ header {
 #aggregate-links {
     display:flex;
     justify-content:flex-start;
+    align-items:center;
 }
 @media (max-width:72rem) {
     .nav-text, .nav-text a {
-        font-size:medium;
+        font-size:small;
     }
     #aggregate-links, #aggregate-links a {
-        font-size:large;
+        font-size:medium;
     }
 }
 
-#filter-category-short, #filter-timing-short {
+#filter-category-short, #filter-timing-short, #filter-scoring-short {
     display:none;
 }
 @media (max-width:72rem) {
-    #filter-category, #filter-timing {
+    #filter-category, #filter-timing, #filter-scoring {
         display:none;
     }
-    #filter-category-short, #filter-timing-short {
+    #filter-category-short, #filter-timing-short, #filter-scoring-short {
         display:block;
     }
 }
@@ -115,6 +114,7 @@ section {
     #filter-menu {
         flex-direction:row;
         justify-content:space-between;
+        padding-top:0.25rem;
     }
     .filter {
         padding:0.1rem;
@@ -138,7 +138,7 @@ article {
 }
 
 .article-title {
-    font-size:x-large;;
+    font-size:large;;
     padding-bottom:0.25rem;
 }
 @media (min-width:72rem) {
@@ -235,6 +235,11 @@ article {
                 <span class="scoring nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
                 {% endfor %}
             </div>
+            <div id="filter-scoring-short" class="filter">
+                {% for link in scoring_links %}
+                <span class="scoring nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} {% endif %}</span>
+                {% endfor %}
+            </div>
             <div id="filter-category" class="filter">
                 {% for link in category_links %}
                 <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
@@ -242,7 +247,7 @@ article {
             </div>
             <div id="filter-category-short" class="filter">
                 {% for link in short_links %}
-                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
+                <span class="category nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} {% endif %}</span>
                 {% endfor %}
             </div>
             <div id="filter-timing" class="filter">
@@ -252,7 +257,7 @@ article {
             </div>
             <div id="filter-timing-short" class="filter">
                 {% for link in short_timing_links %}
-                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} |{% endif %}</span>
+                <span class="timing nav-text">{% ifequal link.href "no" %}<b>{{link.name}}</b>{%else %}<a href="/main/{{link.href}}">{{link.name}}</a>{% endifequal %}{% if not forloop.last%} {% endif %}</span>
                 {% endfor %}
             </div>
         </div>
