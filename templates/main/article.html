@@ -28,27 +28,31 @@
 
     <b>Stats</b>
     <div class="stats">
-        <div class="statbox">
-            <span class="statlabel">Fetched</span> <span class="statval">{{article.created_at}}</span>
+        <div class="statbox-container">
+            <div class="statbox">
+                <span class="statlabel">Fetched</span> <span class="statval">{{article.created_at}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Score</span> <span class="statval">{{article.credibility}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Author score</span> <span class="statval">{{article.author.total_cred}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Author average</span> <span class="statval">{{article.author.average_cred}}</span>
+            </div>
         </div>
-        <div class="statbox">
-            <span class="statlabel">Score</span> <span class="statval">{{article.credibility}}</span>
-        </div>
-        <div class="statbox">
-            <span class="statlabel">Author score</span> <span class="statval">{{article.author.total_cred}}</span>
-        </div>
-        <div class="statbox">
-            <span class="statlabel">Author average</span> <span class="statval">{{article.author.average_cred}}</span>
-        </div>
-        <div class="statbox">
-            <span class="statlabel">Publication score</span> <span class="statval">{{article.publication.total_cred}}</span>
-        </div>
-        <div class="statbox">
-            <span class="statlabel">Publication average</span> <span class="statval">{{article.publication.average_cred}}</span>
-        </div>
-        <div class="statbox">
-            <span class="statlabel">Shares</span>
-            <span class="statval">{{article.scores.health_shares}}, {{article.scores.science_shares}}, {{article.scores.tech_shares}}, {{article.scores.business_shares}}, {{article.scores.media_shares}}</span>
+        <div class="statbox-container">
+            <div class="statbox">
+                <span class="statlabel">Publication score</span> <span class="statval">{{article.publication.total_cred}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Publication average</span> <span class="statval">{{article.publication.average_cred}}</span>
+            </div>
+            <div class="statbox">
+                <span class="statlabel">Shares</span>
+                <span class="statval">{{article.scores.health_shares}}, {{article.scores.science_shares}}, {{article.scores.tech_shares}}, {{article.scores.business_shares}}, {{article.scores.media_shares}}</span>
+            </div>
         </div>
     </div>
 
@@ -60,9 +64,11 @@
     </div>
     
     <p><b>Tweets</b></p>
-    {% for share in shares %}
-        <div id="tweet-container-{{share.twitter_id}}"/>
-    {% endfor %}
+    <div class="tweets">
+        {% for share in shares %}
+            <div id="tweet-container-{{share.twitter_id}}"/>
+        {% endfor %}
+    </div>
 </section>
 {% endblock %}
 

@@ -179,6 +179,16 @@ article {
     justify-content:space-around;
     margin-left:0.5rem;
     margin-right:0.5rem;
+    align-items:center;
+}
+.statbox-container {
+    display:flex;
+    align-items:center;
+}
+@media (max-width:72rem) {
+  .statbox-container {
+     flex-direction:column;
+  }
 }
 .statbox {
     display:flex;
@@ -186,19 +196,18 @@ article {
     align-items:center;
     padding:0.25rem;
 }
-.statlabel {
+.statlabel, .statlabel a {
     font-style:italic;
+    font-size:medium;
+}
+.tweets {
+    width:96%;
 }
 .rightmost {
     margin-left:auto;
 }
 .top-article {
     align-items:center;
-}
- @media (max-width:72rem) {
-    .top-article a {
-        font-size:large;
-    }
 }
 
 </style>
