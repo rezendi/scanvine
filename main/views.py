@@ -310,13 +310,13 @@ def publications_view(request, category=None, scoring=None):
 def get_publications_links(category, scoring, publication_id=None):
     base = 'publications'
     category_links = [{'name':c.title(), 'href': 'no' if category==c else '%s/%s' % (base,c)} for c in CATEGORIES]
+    category_links = [] # for now, need debugging
     if category is not None:
         base += '/%s' % category
     scoring_links = [
         {'name':'Top', 'href': 'no' if scoring=='top' else "%s/top" % base},
         {'name':'Average', 'href': 'no' if scoring=='average' else "%s/average" % base},
     ]
-    scoring_links = [] # for now, need debugging
     timing_links = []
     return (category_links, scoring_links, timing_links)
 
