@@ -238,6 +238,8 @@ def get_authors_links(category, scoring, publication_id=None):
         {'name':'Top', 'href': 'no' if scoring=='top' else "%s/top" % base},
         {'name':'Average', 'href': 'no' if scoring=='average' else "%s/average" % base},
     ]
+    if category is not None:
+        scoring_links = [] # need to debug averages
     timing_links = []
     return (category_links, scoring_links, timing_links)
 
@@ -314,6 +316,7 @@ def get_publications_links(category, scoring, publication_id=None):
         {'name':'Top', 'href': 'no' if scoring=='top' else "%s/top" % base},
         {'name':'Average', 'href': 'no' if scoring=='average' else "%s/average" % base},
     ]
+    scoring_links = [] # for now, need debugging
     timing_links = []
     return (category_links, scoring_links, timing_links)
 
