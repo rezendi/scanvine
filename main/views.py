@@ -194,7 +194,6 @@ def authors_view(request, category=None, scoring = None, publication_id = None):
         category = None
     scoring = 'top' if scoring is None else scoring
     sort = '-average_credibility' if scoring=='average' else sort
-    print("here %s" % publication_id)
 
     if category:
         sort ="-category_score"
@@ -243,7 +242,6 @@ def get_authors_links(category, scoring, publication_id=None):
     return (category_links, scoring_links, timing_links)
 
 
-
 def publication_view(request, publication_id):
     page_size = int(request.GET.get('s', '20'))
     page_size = 20 if page_size > 256 else page_size
@@ -270,20 +268,26 @@ def publication_view(request, publication_id):
     return render(request, 'main/publication.html', context)
 
 
-def publications_view(request, category=None):
+def publications_view(request, category=None, scoring=None):
     page_size = int(request.GET.get('s', '100'))
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-total_credibility')
     min = int(request.GET.get('min', '2'))
-    publications = Publication.objects.annotate(article_count=Count('article', distinct=True))
+    publications = Publication.objects
+    if category in ["top","average"]:
+        scoring = category
+        category = None
+    scoring = 'top' if scoring is None else scoring
+    sort = '-average_credibility' if scoring=='average' else sort
+
     if category:
         sort ="-average_score"
         publications = publications.annotate(
             category_score = Sum(Cast(KeyTextTransform(category, 'article__scores'), IntegerField())),
-            article_count = Greatest(article_count,1),
+            article_count = Greatest(Count('article', distinct=True),1),
             average_score = F('category_score') / F('article_count')
         ).filter(category_score__isnull=False)
-    publications = publications.filter(article_count__gte=min).order_by(sort)[:page_size]
+    publications = publications.annotate(article_count=Count('article', distinct=True)).filter(article_count__gte=min).order_by(sort)[:page_size]
     for publication in publications:
         if category:
             publication.category_score = publication.category_score // 1000
@@ -291,7 +295,7 @@ def publications_view(request, category=None):
         top = Article.objects.filter(publication_id=publication.id).order_by('-total_credibility')[:1]
         publication.top = top[0] if top else None
 
-    (category_links, scoring_links, timing_links) = get_links()
+    (category_links, scoring_links, timing_links) = get_publications_links(category, scoring)
     context = {
         'category': category,
         'publications': publications,
@@ -301,6 +305,17 @@ def publications_view(request, category=None):
     }
     return render(request, 'main/publications.html', context)
 
+def get_publications_links(category, scoring, publication_id=None):
+    base = 'publications'
+    category_links = [{'name':c.title(), 'href': 'no' if category==c else '%s/%s' % (base,c)} for c in CATEGORIES]
+    if category is not None:
+        base += '/%s' % category
+    scoring_links = [
+        {'name':'Top', 'href': 'no' if scoring=='top' else "%s/top" % base},
+        {'name':'Average', 'href': 'no' if scoring=='average' else "%s/average" % base},
+    ]
+    timing_links = []
+    return (category_links, scoring_links, timing_links)
 
 def search_view(request):
     query = request.GET.get('search', '').strip()
