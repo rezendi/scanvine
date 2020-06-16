@@ -241,7 +241,7 @@ class ShareAdmin(ScanvineAdmin):
 class TrancheAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'tags')
     list_display = ('id', 'quantity', 'tags', 'sender', 'receiver', 'created_at',)
-    search_fields = ('tags',)
+    search_fields = ('tags','receiver')
 
 
 @admin.register(Job)
