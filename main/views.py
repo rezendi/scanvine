@@ -172,7 +172,7 @@ def author_view(request, author_id):
     return render(request, 'main/author.html', context)
 
 
-def authors_view(request, category=None, publication_id = None):
+def authors_view(request, category=None, scoring = None, publication_id = None):
     page_size = int(request.GET.get('s', '100'))
     page_size = 20 if page_size > 256 else page_size
     sort = request.GET.get('o', '-total_credibility')
@@ -183,11 +183,19 @@ def authors_view(request, category=None, publication_id = None):
         collaboration_count = Count('collaborations__pk', distinct=True),
         total_count = F('article_count') + F('collaboration_count'),
     )
+
     if not all:
         authors = authors.filter(is_collective=False)
     if publication_id:
         pub_author_ids = Article.objects.filter(publication_id=publication_id).distinct('author_id').values('author_id')
         authors = authors.filter(id__in=pub_author_ids)
+    if category in ["top","average"]:
+        scoring = category
+        category = None
+    scoring = 'top' if scoring is None else scoring
+    sort = '-average_credibility' if scoring=='average' else sort
+    print("here %s" % publication_id)
+
     if category:
         sort ="-category_score"
         authors = authors.annotate(
@@ -210,7 +218,7 @@ def authors_view(request, category=None, publication_id = None):
         if top:
             author.top = top[0]
 
-    (category_links, scoring_links, timing_links) = get_links()
+    (category_links, scoring_links, timing_links) = get_authors_links(category, scoring, publication_id)
     context = {
         'authors': authors,
         'category': category,
@@ -219,6 +227,21 @@ def authors_view(request, category=None, publication_id = None):
         'timing_links' : timing_links,
     }
     return render(request, 'main/authors.html', context)
+
+def get_authors_links(category, scoring, publication_id=None):
+    base = 'authors'
+    if publication_id is not None:
+        base = 'publication_authors/%s' % publication_id
+    category_links = [{'name':c.title(), 'href': 'no' if category==c else '%s/%s' % (base,c)} for c in CATEGORIES]
+    if category is not None:
+        base += '/%s' % category
+    scoring_links = [
+        {'name':'Top', 'href': 'no' if scoring=='top' else "%s/top" % base},
+        {'name':'Average', 'href': 'no' if scoring=='average' else "%s/average" % base},
+    ]
+    timing_links = []
+    return (category_links, scoring_links, timing_links)
+
 
 
 def publication_view(request, publication_id):
