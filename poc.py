@@ -46,7 +46,5 @@ if not settings.configured:
     django.setup()
     celery = Celery('scanvine', backend='rpc://')
 
-from django.db import connection
-with connection.cursor() as cursor:
-    cursor.execute("UPDATE main_sharer SET metadata='{}' WHERE status < 2")
-    cursor.execute("DELETE FROM main_list WHERE id > 0")
+from main.metatasks import *
+clean_up_jobs()

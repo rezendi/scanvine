@@ -110,13 +110,22 @@ def get_list_members():
 
 
 @shared_task(rate_limit="1/m")
-def clean_up_jobs(date=datetime.datetime.utcnow().date(), days=7):
+def clean_up_jobs(date=datetime.datetime.utcnow(), days=7):
     job = launch_job("clean_up_jobs")
     cutoff = date - datetime.timedelta(days=days)
-    to_delete = Job.objects.filter(created_at__lte=cutoff)
+    to_delete = Job.objects.filter(created_at__lt=cutoff)
     log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_delete.count()))
     to_delete.delete()
-    # TODO maybe Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
+
+    # now, clear out the contents for articles more than 30 days old.
+    # (We already have the metadata and can re-fetch and are not an archive.)
+    # TODO maybe alsso Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    to_truncate = Article.objects.filter(created_at__lt=cutoff)
+    log_job(job, "cutoff %s truncating %s articles" % (cutoff, to_truncate.count()))
+    for article in to_truncate:
+        article.contents = ''
+        article.save()
     log_job(job, "cleanup complete", Job.Status.COMPLETED)
 
 
