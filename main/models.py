@@ -36,7 +36,7 @@ class Sharer(models.Model):
     profile = models.CharField(max_length=1023)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    metadata = JSONField(default=emptydict)
+    metadata = JSONField(default=emptydict, blank=True)
     protected = models.BooleanField(default=False)
 
     def __str__(self):
