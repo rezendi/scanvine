@@ -5,16 +5,16 @@
     <div class="section-header">
         <div class="empty">
             {% if only_free %}
-                <a href="{{path}}">View all stories 🔒</a><
+                <a href="{{path}}">View all 🔒</a><
             {% else %}
-                <a href="{{path}}?pw=no">View free stories only 🔒</a>
+                <a href="{{path}}?pw=no">View free 🔒</a>
             {% endif %}
         </div>
         <div class="section-title">{{scoring}} {{category}} Stories</div>
         {% if only_free %}
-            <div class="free-link"><a href="{{path}}">View all stories 🔒</a></div>
+            <div class="free-link"><a href="{{path}}">View all 🔒</a></div>
         {% else %}
-            <div class="free-link"><a href="{{path}}?pw=no">View free stories only 🔒</a></div>
+            <div class="free-link"><a href="{{path}}?pw=no">View free 🔒</a></div>
         {% endif %}
     </div>
     <div class="article-list">
