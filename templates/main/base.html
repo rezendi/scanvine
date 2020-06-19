@@ -94,17 +94,6 @@ main {
     justify-content:space-around;
 }
 
-section {
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    width:66%;
-}
-@media (max-width:72rem) {
-    section {
-        width:96%;
-    }
-}
 #filter-menu {
     display:flex;
     flex-direction:column;
@@ -118,6 +107,28 @@ section {
     .filter {
         padding:0.1rem;
     }
+}
+
+section {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:66%;
+}
+@media (max-width:72rem) {
+    section {
+        width:96%;
+    }
+}
+
+.section-header {
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+}
+.section-title {
+    font-weight:bold;
+    font-size:larger;
 }
 
 article {
@@ -208,7 +219,9 @@ article {
 .rightmost {
     margin-left:auto;
 }
-
+.empty {
+    visibility: hidden;
+}
 </style>
 
 <!-- Global site tag (gtag.js) - Google Analytics -->

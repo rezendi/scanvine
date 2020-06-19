@@ -15,6 +15,7 @@ def index_view(request, category=None, scoring=None, days=None):
     if query:
         return search_view(request)
 
+    only_free = request.GET.get('pw', '')=='no'
     page_size = int(request.GET.get('s', '20'))
     page_size = 20 if page_size > 256 else page_size
     delta = int(scoring) if scoring and not days and scoring.isnumeric() else days
@@ -35,6 +36,8 @@ def index_view(request, category=None, scoring=None, days=None):
         odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
     ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND])
+    if only_free:
+        query = query.filter(publication__is_paywalled=False)
     if scoring not in ["odd","latest","new"] and request.GET.get('single','')!="true":
         query = query.filter(share_count__gt=1)
     if scoring != "latest":
@@ -87,13 +90,14 @@ def index_view(request, category=None, scoring=None, days=None):
     context = {
         'category': category.title(),
         'scoring' : scoring.title(),
-        'days' : days,
         'category_links': category_links,
         'scoring_links' : scoring_links,
         'timing_links' : timing_links,
         'short_timing_links' : short_timing_links,
         'short_links': short_links,
         'articles': articles,
+        'only_free' : only_free,
+        'path' : request.path,
     }
     return render(request, 'main/index.html', context)
 
