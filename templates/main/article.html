@@ -18,6 +18,12 @@
   return t;
 }(document, "script", "twitter-wjs"));</script>
 
+<style>
+#article-sharers {
+    width:90%;
+    align-items:baseline;
+}
+</style>
 {% endblock %}
 {% block main %}
 <section>
@@ -58,15 +64,24 @@
 
     <p><b>Shared by</b></p>
     <div id="article-sharers">
-        {% for share in shares %}
-        <a title="{{share.category}}" href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
+        {% for category in categories %}
+            {% if category.shares %}
+                <div class="category_shares">
+                    <b>{{category.name}}:</b>
+                    {% for share in category.shares %}
+                        <a title="{{share.category}}" href="https://twitter.com/{{share.sharer.twitter_screen_name}}/status/{{share.twitter_id}}">{{share.sharer.name}}</a>{% if not forloop.last%}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
         {% endfor %}
     </div>
     
     <p><b>Tweets</b></p>
     <div class="tweets">
-        {% for share in shares %}
-            <div id="tweet-container-{{share.twitter_id}}"/>
+        {% for category in categories %}
+            {% for share in category.shares %}
+                <div id="tweet-container-{{share.twitter_id}}"/>
+            {% endfor %}
         {% endfor %}
     </div>
 </section>
@@ -75,11 +90,13 @@
 {% block endjs %}
 <script>
 setTimeout(function(){
-{% for share in shares %}
-twttr.widgets.createTweet(
-  '{{share.twitter_id}}',
-  document.getElementById('tweet-container-{{share.twitter_id}}'),
-);
+{% for category in categories %}
+    {% for share in category.shares %}
+    twttr.widgets.createTweet(
+      '{{share.twitter_id}}',
+      document.getElementById('tweet-container-{{share.twitter_id}}'),
+    );
+    {% endfor %}
 {% endfor %}
 }, 1000);
 </script>
