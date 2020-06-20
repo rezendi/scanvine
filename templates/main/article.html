@@ -3,11 +3,11 @@
 {% block meta %}
 <meta name="description" content="{{article.description}}"/>
 <meta name="author" content="{{article.author}}"/>
-<meta property="og:title" content="{{article.title}} | {{publication.name}} | Scanvine">
+<meta property="og:title" content="{{article.title}} | {{article.publication}} | Scanvine">
 <meta property="og:description" content="{{article.description}}"/>
 <meta property="og:image" content="{{article.thumbnail_url}}"/>
 <meta property="og:url" content="{{article.url}}"/>
-<meta name="twitter:title" content="{{article.title}}">
+<meta name="twitter:title" content="{{article.title}} | {{article.publication}} | Scanvine">
 <meta name="twitter:description" content="{{article.description}}"/>
 <meta name="twitter:image" content="{{article.thumbnail_url}}"/>
 {% endblock %}
