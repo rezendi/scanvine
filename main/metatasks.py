@@ -110,8 +110,8 @@ def get_list_members():
 
 
 @shared_task(rate_limit="1/m")
-def clean_up_jobs(date=datetime.datetime.utcnow(), days=7):
-    job = launch_job("clean_up_jobs")
+def clean_up(date=datetime.datetime.utcnow(), days=7):
+    job = launch_job("clean_up")
     cutoff = date - datetime.timedelta(days=days)
     to_delete = Job.objects.filter(created_at__lt=cutoff)
     log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_delete.count()))

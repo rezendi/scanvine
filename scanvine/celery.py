@@ -68,7 +68,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'schedule': 2448.0,
         },
         'add-every-9000-seconds': {
-            'task': 'main.metatasks.clean_up_jobs',
+            'task': 'main.metatasks.clean_up',
             'schedule': 9009.0,
         },
         'add-every-9000-seconds-2': {
