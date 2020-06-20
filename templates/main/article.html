@@ -1,5 +1,16 @@
 {% extends "main/base.html" %}
-{% block title %}{{article.title}} | {{publication.name}} | Scanvine{% endblock %}
+{% block title %}{{article.title}} | {{article.publication}} | Scanvine{% endblock %}
+{% block meta %}
+<meta name="description" content="{{article.description}}"/>
+<meta name="author" content="{{article.author}}"/>
+<meta property="og:title" content="{{article.title}} | {{publication.name}} | Scanvine">
+<meta property="og:description" content="{{article.description}}"/>
+<meta property="og:image" content="{{article.thumbnail_url}}"/>
+<meta property="og:url" content="{{article.url}}"/>
+<meta name="twitter:title" content="{{article.title}}">
+<meta name="twitter:description" content="{{article.description}}"/>
+<meta name="twitter:image" content="{{article.thumbnail_url}}"/>
+{% endblock %}
 {% block startjs %}
 <script>window.twttr = (function(d, s, id) {
   var js, fjs = d.getElementsByTagName(s)[0],
@@ -48,7 +59,7 @@
     <div class="stats">
         <div class="statbox-container">
             <div class="statbox">
-                <span class="statlabel">Fetched</span> <span class="statval">{{article.created_at}}</span>
+                <span class="statlabel"><a href="/admin/main/article/{{article.id}}/">Fetched</a></span> <span class="statval">{{article.created_at}}</span>
             </div>
             <div class="statbox">
                 <span class="statlabel">Score</span> <span class="statval">{{article.credibility}}</span>

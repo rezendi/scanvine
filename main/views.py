@@ -1,4 +1,4 @@
-import datetime, math
+import ast, datetime, math
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.db.models import F, Q, IntegerField, Subquery, Count, Sum, Case, When
@@ -137,7 +137,14 @@ def article_view(request, article_id):
         categories.append({'name':category.title(),'shares':[]})
     for share in shares:
         categories[share.category]['shares'].append(share)
-        
+    
+    if article.metadata:
+        try:
+            meta = ast.literal_eval(article.metadata)
+            article.description = meta['description'] if 'description' in meta else 'n/a'
+        except Exception as ex:
+            print("JSON exception %s" % ex)
+
     context = {
         'article': article,
         'categories' : categories,
