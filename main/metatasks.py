@@ -119,13 +119,14 @@ def clean_up(date=datetime.datetime.utcnow(), days=7):
 
     # now, clear out the contents for articles more than 30 days old.
     # (We already have the metadata and can re-fetch and are not an archive.)
-    # TODO maybe alsso Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
+    # TODO maybe also Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
     to_truncate = Article.objects.filter(created_at__lt=cutoff)
     log_job(job, "cutoff %s truncating %s articles" % (cutoff, to_truncate.count()))
     for article in to_truncate:
-        article.contents = ''
-        article.save()
+        if article.contents != '':
+            article.contents = ''
+            article.save()
     log_job(job, "cleanup complete", Job.Status.COMPLETED)
 
 
