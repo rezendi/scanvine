@@ -1,8 +1,7 @@
 {% extends "main/base.html" %}
-{% block title %}{{article.title}} | {{publication.name}} | Scanvine{% endblock %}
+{% block title %}Shares | Scanvine{% endblock %}
 {% block main %}
 <section>
-    
     <h3>{{category}} Shares</h3>
     <div class="article-list">
         {% for share in shares %}

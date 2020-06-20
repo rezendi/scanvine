@@ -1,5 +1,10 @@
 {% extends "main/base.html" %}
 {% block title %}{{base_author.name}} | Scanvine{% endblock %}
+<meta property="og:title" content="{{base_author.name}} | Scanvine">
+<meta name="twitter:title" content="{{base_author.name}} | Scanvine">
+<meta name="description" content="Stories by {{base_author.name}} ranked by social media link sharing frequency and sentiment."/>
+<meta property="og:description" content="Stories by {{base_author.name}} ranked by social media link sharing frequency and sentiment."/>
+<meta name="twitter:description" content="Stories by {{base_author.name}} ranked by social media link sharing frequency and sentiment."/>
 {% block main %}
 <section>
     {% for author in authors %}

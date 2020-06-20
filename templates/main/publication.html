@@ -1,5 +1,10 @@
 {% extends "main/base.html" %}
 {% block title %}{{publication}} | Scanvine{% endblock %}
+<meta property="og:title" content="{{publication}} | Scanvine">
+<meta name="twitter:title" content="{{publication}} | Scanvine">
+<meta name="description" content="{{publication}} stories ranked by social media link sharing frequency and sentiment."/>
+<meta property="og:description" content="{{publication}} stories ranked by social media link sharing frequency and sentiment."/>
+<meta name="twitter:description" content="{{publication}} stories ranked by social media link sharing frequency and sentiment."/>
 {% block main %}
 <section>
     <p><b>{{publication}}</b></p>
