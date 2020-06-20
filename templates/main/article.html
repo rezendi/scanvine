@@ -24,11 +24,13 @@
     align-items:baseline;
 }
 .tweets {
-    max-width:96%;
     width:96%;
     display:flex;
     flex-direction:column;
     align-items:center;
+}
+.tweet-container {
+    width:96%;
 }
 </style>
 {% endblock %}
@@ -87,7 +89,7 @@
     <div class="tweets">
         {% for category in categories %}
             {% for share in category.shares %}
-                <div id="tweet-container-{{share.twitter_id}}"/>
+                <div class="tweet-container" id="tweet-container-{{share.twitter_id}}"/>
             {% endfor %}
         {% endfor %}
     </div>
