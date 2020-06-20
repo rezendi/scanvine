@@ -108,7 +108,6 @@ def get_list_members():
         raise ex
 
 
-
 @shared_task(rate_limit="1/m")
 def clean_up(date=datetime.datetime.utcnow(), days=7):
     job = launch_job("clean_up")
@@ -129,6 +128,14 @@ def clean_up(date=datetime.datetime.utcnow(), days=7):
             article.contents = ''
             article.save()
     log_job(job, "cleanup complete", Job.Status.COMPLETED)
+
+
+@shared_task(rate_limit="5/h")
+def auto_tweet():
+    job = launch_job("auto_tweet")
+    # get ID of last autotweeted article
+    # check latest top article
+    # if different, tweet new one
 
 
 # Utility functions
