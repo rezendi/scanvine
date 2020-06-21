@@ -360,7 +360,10 @@ def parse_article_metadata(article_id):
             url_date = re.findall(r'/(\d{4})/(\d{1,2})/(\d{1,2})/', article.url)
             if url_date:
                 d = url_date[0]
-                article.published_at = datetime.datetime( int(d[0]), int(d[1]), int(d[2]), 0, 0, 0)
+                try:
+                    article.published_at = datetime.datetime( int(d[0]), int(d[1]), int(d[2]), 0, 0, 0)
+                except Exception as date_ex:
+                    log_job(job, "Could not parse URL date %s" % d)
         author = article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
