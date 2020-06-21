@@ -24,12 +24,18 @@ app.conf.task_routes = {
     'main.tasks.regurgitate_sharers'            : {'queue': 'twitter'},
     'main.tasks.refresh_sharers'                : {'queue': 'twitter'},
     'main.tasks.fetch_shares'                   : {'queue': 'twitter'},
+    'main.metatasks.auto_tweet'                 : {'queue': 'twitter'},
+
     'main.tasks.associate_article'              : {'queue': 'fetch'},
+
     'main.tasks.associate_articles'             : {'queue': 'orchestrate'},
     'main.tasks.parse_unparsed_articles'        : {'queue': 'orchestrate'},
+
     'main.tasks.reparse_articles'               : {'queue': 'internal'},
     'main.tasks.reparse_publication_articles'   : {'queue': 'internal'},
     'main.tasks.parse_article_metadata'         : {'queue': 'internal'},
+    'main.metatasks.clean_up'                   : {'queue': 'internal'},
+
     'main.tasks.analyze_sentiment'              : {'queue': 'scoring'},
     'main.tasks.allocate_credibility'           : {'queue': 'scoring'},
     'main.tasks.set_scores'                     : {'queue': 'scoring'},
