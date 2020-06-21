@@ -283,7 +283,9 @@ def meta_parser(soup):
             idx = 1 if keys[0]=='content' else 0
             metadata[attrs[keys[idx]]] = attrs['content']
 
-    if 'author' in metadata:
+    if 'Author' in metadata:
+        metadata['sv_author'] = metadata['Author']
+    elif 'author' in metadata:
         metadata['sv_author'] = metadata['author']
     else:
         metanames = ["article:author", "OG:author", "twitter:author", "sailthru:author", "DCSext.author", "DC.Contributor", "DC.Creator", "DCterms.creator"]
@@ -306,6 +308,7 @@ def meta_parser(soup):
             if author_name:
                 metadata['sv_author'] = author_name
 
+    print("here %s" % metadata['sv_author'])
     # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
