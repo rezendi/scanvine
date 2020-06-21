@@ -27,50 +27,42 @@ def index_view(request, category=None, scoring=None, days=None):
         delta = int(days) if days else 3
         start_date = end_date - datetime.timedelta(hours=delta)
     category = 'total' if not category or category not in CATEGORIES else category
-    query = Article.objects.select_related('publication').annotate(
-        score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
-        share_count = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
-        pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
-        pub_article_count = Greatest( Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()), 1),
-        buzz = F('score') - F('pub_average_score'),
-        odd = F('buzz') / F('pub_article_count'),
-        our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND])
+
+    query = get_article_query(category)
+
+    # filter
     if only_free:
         query = query.filter(publication__is_paywalled=False)
-    if scoring not in ["odd","latest","new"] and request.GET.get('single','')!="true":
+    if scoring not in ["odd","latest","new"] and request.GET.get('single','') != "true":
         query = query.filter(share_count__gt=1)
     if scoring != "latest":
         query = query.filter(our_date__range=(start_date,end_date))
-    query = query.defer('contents','metadata')
 
+    # order
     articles = []
-
     if scoring=='latest':
         articles = query.order_by("-our_date")[:page_size]
-
     if scoring=='shares':
         articles = query.order_by("-share_count")[:page_size]
-
     if scoring=='raw' or scoring=='new':
         articles = query.order_by("-score")[:page_size]
-
     if scoring=='odd':
         articles = query.order_by("-odd")[:page_size]
         for article in articles:
             article.raw = article.score
             article.score = article.odd
-
     if scoring=='top':
         articles = query.order_by("-buzz")[:page_size]
         for article in articles:
             article.raw = article.score
             article.score = article.buzz
 
+    # links, category to display
     category = 'all' if category=='total' else category
     (category_links, scoring_links, timing_links) = get_links(category, scoring, delta)
     category = '' if category=='all' else category
-    
+
+    # link suffixes
     if request.GET.get('svd','')=='t':
         for array in [category_links, scoring_links, timing_links]:
             for vals in array:
@@ -81,7 +73,8 @@ def index_view(request, category=None, scoring=None, days=None):
         for array in [category_links, scoring_links, timing_links]:
             for vals in array:
                 vals['href'] = vals['href'] + suffix if vals['href']!='no' else vals['href']
-    
+
+    # shorter mobile links    
     short = {"Science":"Sci", "Business": "Biz"}
     short_links = [dict(c, **{"name":short[c['name']]}) if c['name'] in short else c for c in category_links]
     short = {"30 hours":"30", "3 days":""}
@@ -101,15 +94,17 @@ def index_view(request, category=None, scoring=None, days=None):
     }
     return render(request, 'main/index.html', context)
 
-def alt_buzz(article, category):
-    if article.score <= 0 or article.publication.average_credibility==0:
-        return 0
-    total_pub_articles = article.publication.total_credibility / article.publication.average_credibility
-    total_pub_category_score = total_pub_articles * article.publication.scores[category]
-    if total_pub_category_score == 0:
-        return article.score
-    fraction = article.score / total_pub_category_score
-    return math.sqrt(fraction) * article.score
+def get_article_query(category='total'):
+    query = Article.objects.select_related('publication').annotate(
+        score = Cast(KeyTextTransform(category, 'scores'), IntegerField()),
+        share_count = Cast(KeyTextTransform('%s_shares' % category, 'scores'), IntegerField()),
+        pub_average_score = Cast(KeyTextTransform(category, 'publication__scores'), IntegerField()),
+        pub_article_count = Greatest( Cast(KeyTextTransform('%s_count' % category, 'publication__scores'), IntegerField()), 1),
+        buzz = F('score') - F('pub_average_score'),
+        odd = F('buzz') / F('pub_article_count'),
+        our_date = Coalesce(F('published_at'), F('created_at')),
+    ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND]).defer('contents','metadata')
+    return query
 
 def get_links(category='all', scoring='top', days=1):
     scoring_links = [

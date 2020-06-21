@@ -2,6 +2,7 @@ import datetime, os, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
 from .models import *
+from .views import get_article_query
 
 # Launch Twitter API
 api = twitter.Api(consumer_key=os.getenv('TWITTER_API_KEY', ''),
@@ -132,10 +133,30 @@ def clean_up(date=datetime.datetime.utcnow(), days=7):
 
 @shared_task(rate_limit="5/h")
 def auto_tweet():
-    job = launch_job("auto_tweet")
     # get ID of last autotweeted article
+    job = launch_job("auto_tweet")
+    last_id = None
+    previous_jobs = Job.objects.filter(status=Job.Status.COMPLETED).filter(name="auto_tweet").order_by("-created_at")[0:10]
+    if previous_jobs:
+        for action in previous_jobs[0].actions.split("\n"):
+            if action.startswith("article_id="):
+                last_id = int(action.partition("=")[2])
+    log_job(job, "last_id=%s" % last_id)
+
     # check latest top article
+    query = get_article_query()
+    top = query.order_by("-buzz")[:1]
+    if not top:
+        log_job(job, "No top article found!", Job.Status.ERROR)
+        return
+    article = top[0]
+    
     # if different, tweet new one
+    if article.id != last_id:
+        status_text = "“%s” %s by %s in %s via scanvine.com" % (article.title, article.url, article.author, article.publication)
+        status = api.PostUpdate(status_text)
+        log_job(job, "tweet_id=%s" % status.id)
+        log_job(job, "article_id=%s" % article.id, Job.Status.COMPLETED)
 
 
 # Utility functions
