@@ -122,7 +122,7 @@ def clean_up(date=datetime.datetime.utcnow(), days=7):
     # TODO maybe also Article.objects.annotate(shares=Count('share__pk', distinct=True)).filter(shares=0).delete()
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
     to_truncate = Article.objects.filter(created_at__lt=cutoff).exclude(contents='')
-    log_job(job, "cutoff %s deleting %s jobs" % (cutoff, to_truncate.count()))
+    log_job(job, "cutoff %s truncating %s articles" % (cutoff, to_truncate.count()))
     fetcher = lazy_bulk_fetch(100, to_truncate.count(), lambda: to_truncate)
     for batch in fetcher:
         for article in batch:
