@@ -380,6 +380,7 @@ def parse_article_metadata(article_id):
                     share.save()
 
     except Exception as ex2:
+        log_job(job, traceback.format_exc())
         log_job(job, "Article parse error %s" % ex2, Job.Status.ERROR)
         article.status = Article.Status.METADATA_PARSE_ERROR
         article.save()

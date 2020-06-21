@@ -308,7 +308,6 @@ def meta_parser(soup):
             if author_name:
                 metadata['sv_author'] = author_name
 
-    print("here %s" % metadata['sv_author'])
     # if nothing else, search for tags by class...
     if not 'sv_author' in metadata or metadata['sv_author'].startswith('http'):
         byline = ''
