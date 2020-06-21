@@ -463,6 +463,7 @@ def youtube_parser(soup):
 
 def nyt_parser(soup):
     base = json_ld_parser(soup)
-    if type(base['sv_author']) == dict and '@id' in base['sv_author'] and base['sv_author']['@id'] == "https://www.nytimes.com/#publisher":
-        base.update({'sv_author': 'New York Times'})
+    if 'sv_author' in base and type(base['sv_author']) == dict and '@id' in base['sv_author']:
+        if base['sv_author']['@id'] == "https://www.nytimes.com/#publisher":
+            base.update({'sv_author': 'New York Times'})
     return base
