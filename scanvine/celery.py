@@ -24,7 +24,7 @@ app.conf.task_routes = {
     'main.tasks.regurgitate_sharers'            : {'queue': 'twitter'},
     'main.tasks.refresh_sharers'                : {'queue': 'twitter'},
     'main.tasks.fetch_shares'                   : {'queue': 'twitter'},
-    'main.tasks.auto_tweet'                     : {'queue': 'twitter'},
+    'main.metatasks.auto_tweet'                 : {'queue': 'twitter'},
 
     'main.tasks.associate_article'              : {'queue': 'fetch'},
 
@@ -34,7 +34,7 @@ app.conf.task_routes = {
     'main.tasks.reparse_articles'               : {'queue': 'internal'},
     'main.tasks.reparse_publication_articles'   : {'queue': 'internal'},
     'main.tasks.parse_article_metadata'         : {'queue': 'internal'},
-    'main.tasks.clean_up'                       : {'queue': 'internal'},
+    'main.metatasks.clean_up'                   : {'queue': 'internal'},
 
     'main.tasks.analyze_sentiment'              : {'queue': 'scoring'},
     'main.tasks.allocate_credibility'           : {'queue': 'scoring'},
@@ -66,7 +66,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'schedule': 1212.0,
         },
         'add-every-1200-seconds-2': {
-            'task': 'main.tasks.auto_tweet',
+            'task': 'main.metatasks.auto_tweet',
             'schedule': 1223.0,
         },
         'add-every-2400-seconds': {
@@ -74,7 +74,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
             'schedule': 2448.0,
         },
         'add-every-9000-seconds': {
-            'task': 'main.tasks.clean_up',
+            'task': 'main.metatasks.clean_up',
             'schedule': 9009.0,
         },
         'add-every-9000-seconds-2': {
