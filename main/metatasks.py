@@ -1,4 +1,4 @@
-import datetime, os, traceback
+import datetime, os, timezone, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from celery import shared_task, group, signature
 from .models import *
@@ -144,8 +144,10 @@ def auto_tweet():
     log_job(job, "last_id=%s" % last_id)
 
     # check latest top article
+    end_date = timezone.now() + datetime.timedelta(minutes=5)
+    start_date = end_date - datetime.timedelta(days=1)
     query = get_article_query()
-    top = query.order_by("-buzz")[:1]
+    top = query.filter(our_date__range=(start_date,end_date)).order_by("-buzz")[:1]
     if not top:
         log_job(job, "No top article found!", Job.Status.ERROR)
         return
