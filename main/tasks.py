@@ -657,6 +657,7 @@ def timeline_to_tweets(timeline):
         urls += t.quoted_status.urls if t.quoted_status else []
         urls += t.retweeted_status.urls if t.retweeted_status else []
         urls = [u.expanded_url for u in urls]
+        urls = list(set(urls))
         urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
         if urls:
             t.urls = urls
