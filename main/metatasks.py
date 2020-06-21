@@ -1,5 +1,6 @@
-import datetime, os, timezone, traceback
+import datetime, os, traceback
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
+from django.utils import timezone
 from celery import shared_task, group, signature
 from .models import *
 from .views import get_article_query
