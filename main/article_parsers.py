@@ -55,7 +55,7 @@ def get_author_for(metadata, publication):
         if existing:
             return existing[0] # TODO handle multiple matches
         else:
-            author=Author(status=Author.Status.CREATED, name=name, twitter_id=twitter_id, twitter_screen_name=twitter_name,
+            author=Author(status=Author.Status.CREATED, name=name, twitter_id=twitter_id, twitter_screen_name=twitter_name[0:63],
                           is_collaboration=False, metadata='{}', current_credibility=0, total_credibility=0)
             author.save()
             return author
