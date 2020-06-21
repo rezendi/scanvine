@@ -68,6 +68,7 @@ def get_thread_for(twitter_id):
     sr = api.GetSearch(term=term, since=since_str, until=until_str, since_id=t.id, count=100, result_type="recent", lang='en', include_entities = True)
     # reverse search results
     # assemble list of tweets based on in_reply_to_status_id values
+    # 3 tweets or more means a viable thread, for now
     return sr
 
 t = api.GetStatus(POC_TWEET_ID, include_entities=True)
@@ -82,6 +83,7 @@ if possibles and possibles[0].startswith("https://twitter.com/"):
     if existing:
         print("thread already found")
     id = possibles[0].rpartition("/")[2]
+    # this will be a job, max every 10 s
     thread = get_thread_for(id)
     if thread:
         # create article, add that to metadata as 'sv_thread_list'
