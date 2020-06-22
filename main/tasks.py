@@ -197,13 +197,15 @@ def fetch_shares():
         raise ex
 
 
+MIN_RETWEETS = 10
+MIN_THREAD_TWEETS =3
+
 def handle_twitter_link(tweet, job):
     url = tweet.urls[0]
     existing = Article.objects.filter(url = url)
     if existing:
         log_job(job, "thread article already found %s" % url)
         return
-
     retweets = 0
     retweets += tweet.quoted_status.retweet_count if tweet.quoted_status else 0
     retweets += tweet.retweeted_status.retweet_count if tweet.retweeted_status else 0
@@ -214,21 +216,30 @@ def handle_twitter_link(tweet, job):
 
 @shared_task(rate_limit="6/m")
 def get_twitter_thread(tweet_id):
-    t = api.GetStatus(twitter_id, include_entities=True)
-    if not t:
+    tweet = api.GetStatus(twitter_id, include_entities=True)
+    if not tweet:
         return None
-    handle = t.user.screen_name
+    handle = tweet.user.screen_name
     term = "from:%s to:%s" % (handle, handle)
-    since = dateparser.parse(t.created_at.rpartition(" ")[0])
+    since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
+    since = since - datetime.timedelta(minutes=30)
     since_str = since.strftime('%Y-%m-%d')
     until = since + datetime.timedelta(days=1)
     until_str = until.strftime('%Y-%m-%d')
-    sr = api.GetSearch(term=term, since=since_str, until=until_str, since_id=t.id, count=100, result_type="recent", lang='en', include_entities = True)
-    # reverse search results
-    # assemble list of tweets based on in_reply_to_status_id values
-    # 3 tweets or more means a viable thread, for now
-    # create article with custom metadata
-    return sr
+    results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
+    thread = [tweet]
+    # O(n^2) but who cares
+    for i in range(0, len(result)):
+        for result in results:
+            if result.in_reply_to_status_id == thread[:-1].id_str:
+                thread.append(result)
+            if result.id_str == thread[:0].in_reply_to_status_id:
+                thread.prepend(result)
+
+    # OK, we have the thread in order
+    if len(thread) > MIN_THREAD_TWEETS:
+        # create article with custom metadata
+        print("min thread")
 
 
 @shared_task
