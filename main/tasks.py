@@ -223,12 +223,12 @@ def handle_twitter_link(job, sharer, tweet):
 def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root_tweet_url):
     job = launch_job("get_twitter_thread")
     tweet = api.GetStatus(tweet_id, include_entities=True)
-    log_job(job, "got tweet %s" % tweet)
     if not tweet:
         log_job(job, "No tweet", Job.Status.COMPLETED)
         return None
 
     handle = tweet.user.screen_name
+    log_job(job, "got tweet %s %s from %s" % (tweet.id, tweet.full_text, handle))
     term = "from:%s to:%s" % (handle, handle)
     since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
     since = since - datetime.timedelta(minutes=30)
