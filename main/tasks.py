@@ -229,7 +229,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
             log_job(job, "No tweet", Job.Status.COMPLETED)
             return None
     
-        sharer = Sharer.objects.all().get(id=sharer_id)
+        sharer = Sharer.objects.get(id=sharer_id)
         handle = tweet.user.screen_name
         log_job(job, "got tweet https://twitter.com/%s/status/%s text %s from %s" % (handle, tweet.id, tweet.full_text, sharer))
         term = "from:%s to:%s" % (handle, handle)
