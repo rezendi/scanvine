@@ -253,7 +253,9 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
                     thread.append(result)
                 if result.id == thread[0].in_reply_to_status_id:
                     thread.insert(0,result)
+
         # OK, we have the thread in order
+        log_job(job, "Thread %s" % thread)
         if len(thread) < MIN_THREAD_TWEETS:
             log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
             return
