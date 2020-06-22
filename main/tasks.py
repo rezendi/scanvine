@@ -202,6 +202,7 @@ MIN_RETWEETS = 10
 MIN_THREAD_TWEETS =3
 
 def handle_twitter_link(job, sharer, tweet):
+    log_job(job, "tweet urls %s" % tweet.urls)
     try:
         url = tweet.urls[0]
         existing = Article.objects.filter(url = url)
