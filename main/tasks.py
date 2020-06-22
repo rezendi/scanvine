@@ -158,6 +158,9 @@ def fetch_shares():
         for tweet in tweets:
             # TODO: handle multiple viable URLs by picking best one
             url = tweet.urls[0]
+            if url.startswith("https://twitter.com/"):
+                handle_twitter_link(tweet)
+                continue
         
             # get corresponding listed sharer, or bail if there is none
             sharer = Sharer.objects.filter(twitter_id=tweet.user.id, status=Sharer.Status.LISTED)
@@ -192,6 +195,11 @@ def fetch_shares():
         log_job(job, traceback.format_exc())
         log_job(job, "Fetch shares error %s" % ex, Job.Status.ERROR)
         raise ex
+
+
+def handle_twitter_link(tweet):
+    print("twitter link %s" % tweet.urls)
+
 
 @shared_task
 def associate_articles():
@@ -657,8 +665,11 @@ def timeline_to_tweets(timeline):
         urls += t.quoted_status.urls if t.quoted_status else []
         urls += t.retweeted_status.urls if t.retweeted_status else []
         urls = [u.expanded_url for u in urls]
+        urls = [u.replace("https://mobile.twitter.com/", "https://twitter.com/") for u in urls]
         urls = list(set(urls))
-        urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
+        twitter_urls = [clean_up_url(u) for u in urls if u.startswith("https://twitter.com/")]
+        non_twitter_urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/")]
+        urls = non_witter_urls + twitter_urls
         if urls:
             t.urls = urls
             tweets.append(t)

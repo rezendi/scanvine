@@ -53,6 +53,10 @@ def fetch_my_back_shares(user_id):
         # Store new shares to DB
         count = 0
         for t in tweets:
+            # for now skip threads
+            if t.urls[0].startswith("https://twitter.com/"):
+                continue
+
             existing_shares = Share.objects.filter(twitter_id=t.id)
             if existing_shares.id:
                 existing_feeds = FeedShare.objects.filter(user_id=user_id, share_id=existing_shares[0].id)
@@ -70,6 +74,7 @@ def fetch_my_back_shares(user_id):
                 sharer = Sharer(status=Sharer.Status.CREATED, category=Sharer.Category.PERSONAL, twitter_id=t.user.id, name=t.user.name, 
                                 twitter_screen_name=t.user.screen_name, profile = t.user.description, verified = t.user.verified, protected = t.user.protected)
                 sharer.save()
+
             share = Share(source=1, status = Share.Status.CREATED, category=Sharer.Category.PERSONAL, language='en',
                           sharer_id = sharer.id, twitter_id = t.id, text=t.full_text, url=t.urls[0])
             share.save()
@@ -128,6 +133,9 @@ def fetch_my_shares(user_id):
         # Store new shares to DB
         count = 0
         for t in tweets:
+            # for now skip threads
+            if t.urls[0].startswith("https://twitter.com/"):
+                continue
             existing = Share.objects.filter(twitter_id=t.id, category=Sharer.Category.PERSONAL)
             if existing:
                 log_job(job, "Share already found %s" % t.id)
