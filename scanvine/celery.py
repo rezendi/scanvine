@@ -24,6 +24,7 @@ app.conf.task_routes = {
     'main.tasks.regurgitate_sharers'            : {'queue': 'twitter'},
     'main.tasks.refresh_sharers'                : {'queue': 'twitter'},
     'main.tasks.fetch_shares'                   : {'queue': 'twitter'},
+    'main.tasks.get_twitter_thread'             : {'queue': 'twitter'},
     'main.metatasks.auto_tweet'                 : {'queue': 'twitter'},
 
     'main.tasks.associate_article'              : {'queue': 'fetch'},
