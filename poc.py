@@ -50,14 +50,12 @@ import dateparser
 from main.metatasks import *
 from main.tasks import clean_up_url
 
-POC_TWEET_ID = '1274784880757538822'
+POC_TWEET_ID = '1274913786785222657'
 MIN_RETWEETS = 10
 
 def get_thread_for(twitter_id):
     t = api.GetStatus(twitter_id, include_entities=True)
     if not t:
-        return None
-    if t.retweet_count < MIN_RETWEETS:
         return None
     handle = t.user.screen_name
     term = "from:%s to:%s" % (handle, handle)
@@ -71,14 +69,12 @@ def get_thread_for(twitter_id):
     # 3 tweets or more means a viable thread, for now
     return sr
 
-t = api.GetStatus(POC_TWEET_ID, include_entities=True)
+
 possibles = [clean_up_url(u.expanded_url) for u in t.urls]
 possibles = [p.replace("https://mobile.twitter.com", "https://twitter.com") for p in possibles]
 possibles = list(set(possibles))
-print("possibles %s" % possibles)
 if possibles and possibles[0].startswith("https://twitter.com/"):
     possible = possibles[0]
-    print ("possible %s" % possible)
     existing = Article.objects.filter(url = possible)
     if existing:
         print("thread already found")

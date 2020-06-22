@@ -1,5 +1,5 @@
 import datetime, os, time, traceback
-import html, json, urllib3, re
+import dateparser, html, json, urllib3, re
 import twitter # https://raw.githubusercontent.com/bear/python-twitter/master/twitter/api.py
 from django.utils import timezone
 from django.db.models import Q, Sum, Avg, IntegerField
@@ -159,7 +159,7 @@ def fetch_shares():
             # TODO: handle multiple viable URLs by picking best one
             url = tweet.urls[0]
             if url.startswith("https://twitter.com/"):
-                handle_twitter_link(tweet)
+                handle_twitter_link(tweet, job)
                 continue
         
             # get corresponding listed sharer, or bail if there is none
@@ -197,8 +197,38 @@ def fetch_shares():
         raise ex
 
 
-def handle_twitter_link(tweet):
-    print("twitter link %s" % tweet.urls)
+def handle_twitter_link(tweet, job):
+    url = tweet.urls[0]
+    existing = Article.objects.filter(url = url)
+    if existing:
+        log_job(job, "thread article already found %s" % url)
+        return
+
+    retweets = 0
+    retweets += tweet.quoted_status.retweet_count if tweet.quoted_status else 0
+    retweets += tweet.retweeted_status.retweet_count if tweet.retweeted_status else 0
+    if retweets >= MIN_RETWEETS:
+        tweet_id = url.rpartition("/")[2]
+        get_twitter_thread.signature(tweet_id).apply_async()
+
+
+@shared_task(rate_limit="6/m")
+def get_twitter_thread(tweet_id):
+    t = api.GetStatus(twitter_id, include_entities=True)
+    if not t:
+        return None
+    handle = t.user.screen_name
+    term = "from:%s to:%s" % (handle, handle)
+    since = dateparser.parse(t.created_at.rpartition(" ")[0])
+    since_str = since.strftime('%Y-%m-%d')
+    until = since + datetime.timedelta(days=1)
+    until_str = until.strftime('%Y-%m-%d')
+    sr = api.GetSearch(term=term, since=since_str, until=until_str, since_id=t.id, count=100, result_type="recent", lang='en', include_entities = True)
+    # reverse search results
+    # assemble list of tweets based on in_reply_to_status_id values
+    # 3 tweets or more means a viable thread, for now
+    # create article with custom metadata
+    return sr
 
 
 @shared_task
