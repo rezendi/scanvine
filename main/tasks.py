@@ -227,8 +227,9 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "No tweet", Job.Status.COMPLETED)
         return None
 
+    sharer = Sharer.objects.get(sharer_id)
     handle = tweet.user.screen_name
-    log_job(job, "got tweet %s %s from %s" % (tweet.id, tweet.full_text, handle))
+    log_job(job, "got tweet https://twitter.com/%s/status/%s text %s from %s" % (handle, tweet.id, tweet.full_text, sharer))
     term = "from:%s to:%s" % (handle, handle)
     since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
     since = since - datetime.timedelta(minutes=30)
@@ -278,7 +279,6 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
     article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = thread[0].text, metadata=metadata, contents='',
                       initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
     article.save()
-    sharer = Sharer.objects.get(sharer_id)
     share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
                   sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url, article_id = article.id)
     share.save()
