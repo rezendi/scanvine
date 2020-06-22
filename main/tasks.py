@@ -223,8 +223,11 @@ def handle_twitter_link(job, sharer, tweet):
 def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root_tweet_url):
     job = launch_job("get_twitter_thread")
     tweet = api.GetStatus(tweet_id, include_entities=True)
+    log_job(job, "got tweet %s" % tweet)
     if not tweet:
+        log_job(job, "No tweet", Job.Status.COMPLETED)
         return None
+
     handle = tweet.user.screen_name
     term = "from:%s to:%s" % (handle, handle)
     since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
@@ -232,21 +235,26 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
     since_str = since.strftime('%Y-%m-%d')
     until = since + datetime.timedelta(days=1)
     until_str = until.strftime('%Y-%m-%d')
+    log_job(job, "term %s since %s until %s" % (term, since_str, until_str))
     results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
+    if len(results) == 0:
+        log_job(job, "No search results", Job.Status.COMPLETED)
+        return
+
     thread = [tweet]
     # O(n^2) but who cares
     for i in range(0, len(result)):
         for result in results:
-            if result.in_reply_to_status_id == thread[:-1].id_str:
+            if result.in_reply_to_status_id == thread[-1].id_str:
                 thread.append(result)
             if result.id_str == thread[:0].in_reply_to_status_id:
-                thread.prepend(result)
-
+                thread.insert(0,result)
     # OK, we have the thread in order
     if len(thread) < MIN_THREAD_TWEETS:
-        log_job(job, "Not enough tweets for a thread", Job.Status.COMPLETED)
+        log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
         return
     
+    log_job(job, "Creating thread article")
     #save article
     metadata = {
         'sv_author'         : "@%s" % thread[0].user.screen_name,
