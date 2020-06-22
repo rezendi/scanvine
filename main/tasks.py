@@ -213,7 +213,7 @@ def handle_twitter_link(job, sharer, tweet):
         retweets += tweet.retweeted_status.retweet_count if tweet.retweeted_status else 0
         if retweets >= MIN_RETWEETS:
             thread_tweet_id = url.rpartition("/")[2]
-            get_twitter_thread.signature(thread_tweet_id, sharer.id, tweet.id, tweet.full_text, url).apply_async()
+            get_twitter_thread.signature((thread_tweet_id, sharer.id, tweet.id, tweet.full_text, url)).apply_async()
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Handle twitter link error %s" % ex)
