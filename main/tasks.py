@@ -255,6 +255,14 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         return
     
     log_job(job, "Creating thread article")
+
+    #lazy init Twitter
+    existing = Publication.objects.filter(domain__iexact="twitter.com")
+    if not existing:
+        Publication(status=0, name='Twitter', domain='twitter.com', average_credibility=0, total_credibility=0).save()
+        existing = Publication.objects.filter(domain__iexact="twitter.com")
+    publication = existing[0]
+
     #save article
     metadata = {
         'sv_author'         : "@%s" % thread[0].user.screen_name,
@@ -267,7 +275,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
     }
     root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
     article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = thread[0].text, metadata=metadata, contents='',
-                      initial_url = root_tweet_url, url = root_thread_url, author_id = None)
+                      initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
     article.save()
     sharer = Sharer.objects.get(sharer_id)
     share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
