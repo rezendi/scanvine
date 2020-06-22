@@ -271,17 +271,19 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         publication = existing[0]
     
         #save article
+        title = thread[0].full_text.rpartition("http")[0]
+        title = title[0:254]
         metadata = {
             'sv_author'         : "@%s" % thread[0].user.screen_name,
             'twitter:creator'   : thread[0].user.screen_name,
             'twitter:creator:id': thread[0].user.id,
-            'sv_title'          : thread[0].text,
+            'sv_title'          : title,
             'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
             'sv_tweets'         : thread,
             'sv_user'           : thread[0].user,
         }
         root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
-        article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = thread[0].text, metadata=metadata, contents='',
+        article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = title, metadata=metadata, contents='',
                           initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
         article.save()
         share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
