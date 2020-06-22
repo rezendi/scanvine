@@ -745,7 +745,7 @@ def timeline_to_tweets(timeline):
         urls = list(set(urls))
         twitter_urls = [clean_up_url(u) for u in urls if u.startswith("https://twitter.com/")]
         non_twitter_urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/")]
-        urls = non_witter_urls + twitter_urls
+        urls = non_twitter_urls + twitter_urls
         if urls:
             t.urls = urls
             tweets.append(t)
