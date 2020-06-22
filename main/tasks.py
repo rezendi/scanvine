@@ -241,13 +241,14 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "No search results", Job.Status.COMPLETED)
         return
 
+    log_job(job, "results %s" % results)
     thread = [tweet]
     # O(n^2) but who cares
-    for i in range(0, len(result)):
+    for i in range(len(result)):
         for result in results:
             if result.in_reply_to_status_id == thread[-1].id_str:
                 thread.append(result)
-            if result.id_str == thread[:0].in_reply_to_status_id:
+            if result.id_str == thread[0].in_reply_to_status_id:
                 thread.insert(0,result)
     # OK, we have the thread in order
     if len(thread) < MIN_THREAD_TWEETS:
