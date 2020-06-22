@@ -156,12 +156,6 @@ def fetch_shares():
         # Store new shares to DB
         count = 0
         for tweet in tweets:
-            # TODO: handle multiple viable URLs by picking best one
-            url = tweet.urls[0]
-            if url.startswith("https://twitter.com/"):
-                handle_twitter_link(tweet, job)
-                continue
-        
             # get corresponding listed sharer, or bail if there is none
             sharer = Sharer.objects.filter(twitter_id=tweet.user.id, status=Sharer.Status.LISTED)
             if not sharer:
@@ -170,7 +164,6 @@ def fetch_shares():
             sharer = sharer[0]
             update_sharer(sharer, tweet.user)
 
-            # get existing share, if any, for idempotency
             existing = Share.objects.filter(twitter_id=tweet.id)
             if existing:
                 log_job(job, "Share already found %s" % tweet.id)
@@ -180,6 +173,14 @@ def fetch_shares():
                     old_share.category = sharer.category
                     old_share.save()
                 continue
+
+            # TODO: handle multiple viable URLs by picking best one
+            url = tweet.urls[0]
+            if url.startswith("https://twitter.com/"):
+                handle_twitter_link(job, sharer, tweet)
+                continue
+        
+            # get existing share, if any, for idempotency
             s = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
                       sharer_id=sharer.id, twitter_id=tweet.id, text=tweet.full_text, url=url)
             s.save()
@@ -200,7 +201,7 @@ def fetch_shares():
 MIN_RETWEETS = 10
 MIN_THREAD_TWEETS =3
 
-def handle_twitter_link(tweet, job):
+def handle_twitter_link(job, sharer, tweet):
     url = tweet.urls[0]
     existing = Article.objects.filter(url = url)
     if existing:
@@ -210,13 +211,14 @@ def handle_twitter_link(tweet, job):
     retweets += tweet.quoted_status.retweet_count if tweet.quoted_status else 0
     retweets += tweet.retweeted_status.retweet_count if tweet.retweeted_status else 0
     if retweets >= MIN_RETWEETS:
-        tweet_id = url.rpartition("/")[2]
-        get_twitter_thread.signature(tweet_id).apply_async()
+        thread_tweet_id = url.rpartition("/")[2]
+        get_twitter_thread.signature(thread_tweet_id, sharer.id, tweet.id, tweet.full_text, url).apply_async()
 
 
 @shared_task(rate_limit="6/m")
-def get_twitter_thread(tweet_id):
-    tweet = api.GetStatus(twitter_id, include_entities=True)
+def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root_tweet_url):
+    job = launch_job("get_twitter_thread")
+    tweet = api.GetStatus(tweet_id, include_entities=True)
     if not tweet:
         return None
     handle = tweet.user.screen_name
@@ -237,9 +239,46 @@ def get_twitter_thread(tweet_id):
                 thread.prepend(result)
 
     # OK, we have the thread in order
-    if len(thread) > MIN_THREAD_TWEETS:
-        # create article with custom metadata
-        print("min thread")
+    if len(thread) < MIN_THREAD_TWEETS:
+        log_job(job, "Not enough tweets for a thread", Job.Status.COMPLETED)
+        return
+
+    sharer = Sharer.objects.get(sharer_id)
+    share = Share(source=0, language='en', status=Share.Status.CREATED, category=sharer.category,
+                  sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url)
+    share.save()
+    
+    #save article
+    metadata = {
+        'sv_author'         : "@%s" % thread[0].user.screen_name,
+        'twitter:creator'   : thread[0].user.screen_name,
+        'twitter:creator:id': thread[0].user.id,
+        'sv_title'          : thread[0].text,
+        'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
+        'sv_tweets'         : thread,
+        'sv_user'           : thread[0].user,
+    }
+    root_thread_url = "https://twitter.com/%s/%s/" % (thread[0].user.screen_name, thread[0].id)
+    article = Article(status=Article.Status.CREATED, language='en', title = thread[0].text, metadata=metadata, contents='',
+                      initial_url = root_tweet_url, url = root_thread_url)
+    article.save()
+    share.article_id = article.id
+    share.status = Share.Status.ARTICLE_ASSOCIATED
+    share.save()
+
+    # find and associate author
+    existing = Author.objects.filter(twitter_screen_name__iexact=twitter_name)
+    author = existing[0] if existing else article_parsers.get_author_for(metadata, article.publication)
+    if author:
+        article.author_id = author.id
+        article.status = Article.Status.AUTHOR_ASSOCIATED
+        log_job(job, "Author %s associated to article %s" % (author.name, article.url))
+    else:
+        article.author_id = None
+        article.status = Article.Status.AUTHOR_NOT_FOUND if article.author == None else Article.Status.AUTHOR_ASSOCIATED
+    article.save()
+
+    log_job(job, "Thread article created %s" % article.id, Job.Status.COMPLETED)
 
 
 @shared_task
