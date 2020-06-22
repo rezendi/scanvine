@@ -247,7 +247,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "results %s" % results)
         thread = [tweet]
         # O(n^2) but who cares
-        for i in range(len(result)):
+        for i in range(len(results)):
             for result in results:
                 if result.in_reply_to_status_id == thread[-1].id_str:
                     thread.append(result)
