@@ -222,76 +222,81 @@ def handle_twitter_link(job, sharer, tweet):
 @shared_task(rate_limit="6/m")
 def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root_tweet_url):
     job = launch_job("get_twitter_thread")
-    tweet = api.GetStatus(tweet_id, include_entities=True)
-    if not tweet:
-        log_job(job, "No tweet", Job.Status.COMPLETED)
-        return None
-
-    sharer = Sharer.objects.get(sharer_id)
-    handle = tweet.user.screen_name
-    log_job(job, "got tweet https://twitter.com/%s/status/%s text %s from %s" % (handle, tweet.id, tweet.full_text, sharer))
-    term = "from:%s to:%s" % (handle, handle)
-    since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
-    since = since - datetime.timedelta(minutes=30)
-    since_str = since.strftime('%Y-%m-%d')
-    until = since + datetime.timedelta(days=1)
-    until_str = until.strftime('%Y-%m-%d')
-    log_job(job, "term %s since %s until %s" % (term, since_str, until_str))
-    results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
-    if len(results) == 0:
-        log_job(job, "No search results", Job.Status.COMPLETED)
-        return
-
-    log_job(job, "results %s" % results)
-    thread = [tweet]
-    # O(n^2) but who cares
-    for i in range(len(result)):
-        for result in results:
-            if result.in_reply_to_status_id == thread[-1].id_str:
-                thread.append(result)
-            if result.id_str == thread[0].in_reply_to_status_id:
-                thread.insert(0,result)
-    # OK, we have the thread in order
-    if len(thread) < MIN_THREAD_TWEETS:
-        log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
-        return
+    try:
+        log_job(job, "sharer_id %s" % sharer_id)
+        tweet = api.GetStatus(tweet_id, include_entities=True)
+        if not tweet:
+            log_job(job, "No tweet", Job.Status.COMPLETED)
+            return None
     
-    log_job(job, "Creating thread article")
-
-    #lazy init Twitter
-    existing = Publication.objects.filter(domain__iexact="twitter.com")
-    if not existing:
-        Publication(status=0, name='Twitter', domain='twitter.com', average_credibility=0, total_credibility=0).save()
+        sharer = Sharer.objects.all().get(id=sharer_id)
+        handle = tweet.user.screen_name
+        log_job(job, "got tweet https://twitter.com/%s/status/%s text %s from %s" % (handle, tweet.id, tweet.full_text, sharer))
+        term = "from:%s to:%s" % (handle, handle)
+        since = dateparser.parse(tweet.created_at.rpartition(" ")[0])
+        since = since - datetime.timedelta(minutes=30)
+        since_str = since.strftime('%Y-%m-%d')
+        until = since + datetime.timedelta(days=1)
+        until_str = until.strftime('%Y-%m-%d')
+        log_job(job, "term %s since %s until %s" % (term, since_str, until_str))
+        results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
+        if len(results) == 0:
+            log_job(job, "No search results", Job.Status.COMPLETED)
+            return
+    
+        log_job(job, "results %s" % results)
+        thread = [tweet]
+        # O(n^2) but who cares
+        for i in range(len(result)):
+            for result in results:
+                if result.in_reply_to_status_id == thread[-1].id_str:
+                    thread.append(result)
+                if result.id_str == thread[0].in_reply_to_status_id:
+                    thread.insert(0,result)
+        # OK, we have the thread in order
+        if len(thread) < MIN_THREAD_TWEETS:
+            log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
+            return
+        
+        log_job(job, "Creating thread article")
+    
+        #lazy init Twitter
         existing = Publication.objects.filter(domain__iexact="twitter.com")
-    publication = existing[0]
-
-    #save article
-    metadata = {
-        'sv_author'         : "@%s" % thread[0].user.screen_name,
-        'twitter:creator'   : thread[0].user.screen_name,
-        'twitter:creator:id': thread[0].user.id,
-        'sv_title'          : thread[0].text,
-        'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
-        'sv_tweets'         : thread,
-        'sv_user'           : thread[0].user,
-    }
-    root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
-    article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = thread[0].text, metadata=metadata, contents='',
-                      initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
-    article.save()
-    share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
-                  sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url, article_id = article.id)
-    share.save()
-
-    # find and associate author
-    existing = Author.objects.filter(twitter_screen_name__iexact=twitter_name)
-    author = existing[0] if existing else article_parsers.get_author_for(metadata, article.publication)
-    if author:
-        article.author_id = author.id
-        article.status = Article.Status.AUTHOR_ASSOCIATED
-        log_job(job, "Author %s associated to article %s" % (author.name, article.url))
+        if not existing:
+            Publication(status=0, name='Twitter', domain='twitter.com', average_credibility=0, total_credibility=0).save()
+            existing = Publication.objects.filter(domain__iexact="twitter.com")
+        publication = existing[0]
+    
+        #save article
+        metadata = {
+            'sv_author'         : "@%s" % thread[0].user.screen_name,
+            'twitter:creator'   : thread[0].user.screen_name,
+            'twitter:creator:id': thread[0].user.id,
+            'sv_title'          : thread[0].text,
+            'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
+            'sv_tweets'         : thread,
+            'sv_user'           : thread[0].user,
+        }
+        root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
+        article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = thread[0].text, metadata=metadata, contents='',
+                          initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
         article.save()
-    log_job(job, "Thread article created %s" % article.id, Job.Status.COMPLETED)
+        share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
+                      sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url, article_id = article.id)
+        share.save()
+    
+        # find and associate author
+        existing = Author.objects.filter(twitter_screen_name__iexact=twitter_name)
+        author = existing[0] if existing else article_parsers.get_author_for(metadata, article.publication)
+        if author:
+            article.author_id = author.id
+            article.status = Article.Status.AUTHOR_ASSOCIATED
+            log_job(job, "Author %s associated to article %s" % (author.name, article.url))
+            article.save()
+        log_job(job, "Thread article created %s" % article.id, Job.Status.COMPLETED)
+    except Exception as ex:
+        log_job(job, traceback.format_exc())
+        log_job(job, "Get twitter thread error %s" % ex, Jon.Status.ERROR)
 
 
 @shared_task

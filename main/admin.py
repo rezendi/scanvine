@@ -385,16 +385,20 @@ def add_tweet(tweet_id):
     # print("tweet %s" % tweet)
     urls = []
     if tweet.urls:
-        urls += [u.expanded_url for u in tweet.urls]
-    if tweet.quoted_status and tweet.quoted_status.urls:
-        urls += [u.expanded_url for u in tweet.quoted_status.urls]
-    if tweet.retweeted_status and tweet.retweeted_status.urls:
-        urls += [u.expanded_url for u in tweet.retweeted_status.urls]
-    urls = [u for u in urls if not u.startswith("https://twitter.com/") and not u.startswith("https://mobile.twitter.com/")]
+        urls = tweet.urls
+        urls += tweet.quoted_status.urls if tweet.quoted_status else []
+        urls += tweet.retweeted_status.urls if tweet.retweeted_status else []
+        urls = [u.expanded_url for u in urls]
+        urls = [u.replace("https://mobile.twitter.com/", "https://twitter.com/") for u in urls]
+        urls = list(set(urls))
+        twitter_urls = [clean_up_url(u) for u in urls if u.startswith("https://twitter.com/")]
+        non_twitter_urls = [clean_up_url(u) for u in urls if not u.startswith("https://twitter.com/")]
+        urls = non_twitter_urls + twitter_urls
     if not urls:
         print("No URL in share, bailing out")
         return
 
+    # print("urls %s" % urls)
     shares = Share.objects.filter(twitter_id=tweet.id)
     share = shares[0] if shares else Share(source=0, language='en', status=Share.Status.CREATED, twitter_id = tweet.id)
     share.url = urls[0]
