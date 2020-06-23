@@ -227,7 +227,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "sharer_id %s" % sharer_id)
         tweet = api.GetStatus(tweet_id, include_entities=True)
         if not tweet:
-            log_job(job, "No tweet", Job.Status.COMPLETED)
+            log_job(job, "No tweet")
             return None
     
         sharer = Sharer.objects.get(id=sharer_id)
@@ -242,7 +242,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "term %s since %s until %s" % (term, since_str, until_str))
         results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
         if len(results) == 0:
-            log_job(job, "No search results", Job.Status.COMPLETED)
+            log_job(job, "No search results")
             return
     
         log_job(job, "results %s" % results)
@@ -258,7 +258,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         # OK, we have the thread in order
         log_job(job, "Thread %s" % thread)
         if len(thread) < MIN_THREAD_TWEETS:
-            log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
+            log_job(job, "Not enough tweets - %s - for a thread" % len(results))
             return
         
         log_job(job, "Creating thread article")
@@ -303,6 +303,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Get twitter thread error %s" % ex, Jon.Status.ERROR)
+        raise ex
 
 
 @shared_task
