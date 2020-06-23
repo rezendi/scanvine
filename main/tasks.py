@@ -277,7 +277,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         publication = existing[0]
     
         #save article
-        title = thread[0].full_text[0:80]
+        title = thread[0].full_text[0:127].rpartition(" ")[0]
         screen_name = thread[0].user.screen_name
         metadata = {
             'sv_author'         : "@%s" % screen_name,
@@ -291,7 +291,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
         
         article = None
-        existing = Article.objects.filter(url = url).order_by("created_at")
+        existing = Article.objects.filter(url = root_thread_url).order_by("created_at")
         if existing:
             article = existing[0]
         else:
