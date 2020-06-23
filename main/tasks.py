@@ -198,6 +198,8 @@ def fetch_shares():
         raise ex
 
 
+# TODO clean up this kind of hyperactive mess
+
 MIN_RETWEETS = 10
 MIN_THREAD_TWEETS =3
 
@@ -249,7 +251,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
             log_job(job, "No search results")
             return
     
-        log_job(job, "results %s" % results)
+        # log_job(job, "results %s" % results)
         thread = [tweet]
         # O(n^2) but who cares
         for i in range(len(results)):
@@ -260,7 +262,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
                     thread.insert(0,result)
 
         # OK, we have the thread in order
-        log_job(job, "Thread %s" % thread)
+        # log_job(job, "Thread %s" % thread)
         if len(thread) < MIN_THREAD_TWEETS:
             log_job(job, "Not enough tweets - %s - for a thread" % len(results))
             return
