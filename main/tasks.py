@@ -273,9 +273,10 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         #save article
         title = thread[0].full_text.rpartition("http")[0]
         title = title[0:254]
+        screen_name = thread[0].user.screen_name
         metadata = {
-            'sv_author'         : "@%s" % thread[0].user.screen_name,
-            'twitter:creator'   : thread[0].user.screen_name,
+            'sv_author'         : "@%s" % screen_name,
+            'twitter:creator'   : screen_name,
             'twitter:creator:id': thread[0].user.id,
             'sv_title'          : title,
             'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
@@ -291,7 +292,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         share.save()
     
         # find and associate author
-        existing = Author.objects.filter(twitter_screen_name__iexact=twitter_name)
+        existing = Author.objects.filter(twitter_screen_name__iexact=screen_name)
         author = existing[0] if existing else article_parsers.get_author_for(metadata, article.publication)
         if author:
             article.author_id = author.id
