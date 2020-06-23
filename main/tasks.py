@@ -283,13 +283,14 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
             if where > 32:
                 title = title[0:where+1]
         screen_name = thread[0].user.screen_name
+        pub_date = dateparser.parse(thread[0].created_at.rpartition(" ")[0])
         metadata = {
             'sv_author'         : "@%s" % screen_name,
             'twitter:creator'   : screen_name,
             'twitter:creator:id': thread[0].user.id_str,
             'sv_title'          : title,
             'sv_publication'    : 'Twitter',
-            'sv_pub_date'       : dateparser.parse(thread[0].created_at.rpartition(" ")[0]).isoformat(),
+            'sv_pub_date'       : pub_date.isoformat(),
             'sv_tweets'         : thread,
             'sv_user'           : thread[0].user,
             'sv_image'          : "https://www.vectorlogo.zone/logos/twitter/twitter-official.svg",
@@ -302,7 +303,8 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
             article = existing[0]
         else:
             article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = title, metadata=metadata, contents='',
-                              initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication = publication)
+                              initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication = publication,
+                              thumbnail_url = metadata['sv_image'], published_at = pub_date)
             article.save()
 
             # find and associate author
