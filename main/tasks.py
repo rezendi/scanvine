@@ -278,19 +278,25 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
     
         #save article
         title = thread[0].full_text[0:127].rpartition(" ")[0]
+        for char in ".?!":
+            where = title.find(char)
+            if where > 32:
+                title = title[0:where+1]
         screen_name = thread[0].user.screen_name
         metadata = {
             'sv_author'         : "@%s" % screen_name,
             'twitter:creator'   : screen_name,
             'twitter:creator:id': thread[0].user.id_str,
             'sv_title'          : title,
+            'sv_publication'    : 'Twitter',
             'sv_pub_date'       : dateparser.parse(thread[0].created_at.rpartition(" ")[0]).isoformat(),
             'sv_tweets'         : thread,
             'sv_user'           : thread[0].user,
+            'sv_image'          : "https://www.vectorlogo.zone/logos/twitter/twitter-official.svg",
         }
-        root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
-        
+
         article = None
+        root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
         existing = Article.objects.filter(url = root_thread_url).order_by("created_at")
         if existing:
             article = existing[0]
