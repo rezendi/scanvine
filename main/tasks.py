@@ -277,9 +277,9 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         metadata = {
             'sv_author'         : "@%s" % screen_name,
             'twitter:creator'   : screen_name,
-            'twitter:creator:id': thread[0].user.id,
+            'twitter:creator:id': thread[0].user.id_str,
             'sv_title'          : title,
-            'sv_publication'    : dateparser.parse(thread[0].created_at.rpartition(" ")[0]),
+            'sv_pub_date'       : dateparser.parse(thread[0].created_at.rpartition(" ")[0]).isoformat(),
             'sv_tweets'         : thread,
             'sv_user'           : thread[0].user,
         }
