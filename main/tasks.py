@@ -285,7 +285,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         }
         root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
         article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = title, metadata=metadata, contents='',
-                          initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication_id = publication.id)
+                          initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication = publication)
         article.save()
         share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
                       sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url, article_id = article.id)
