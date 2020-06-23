@@ -277,8 +277,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         publication = existing[0]
     
         #save article
-        title = thread[0].full_text.rpartition("http")[0]
-        title = title[0:254]
+        title = thread[0].full_text[0:80]
         screen_name = thread[0].user.screen_name
         metadata = {
             'sv_author'         : "@%s" % screen_name,
