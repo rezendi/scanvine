@@ -205,9 +205,13 @@ def handle_twitter_link(job, sharer, tweet):
     log_job(job, "tweet urls %s" % tweet.urls)
     try:
         url = tweet.urls[0]
-        existing = Article.objects.filter(url = url)
+        existing = Article.objects.filter(url = url).order_by("created_at")
         if existing:
             log_job(job, "thread article already found %s" % url)
+            article = existing[0]
+            share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
+                          sharer_id=sharer.id, twitter_id=tweet.id, text=tweet.full_text, url=url, article_id = article.id)
+            share.save()
             return
         retweets = 0
         retweets += tweet.quoted_status.retweet_count if tweet.quoted_status else 0
@@ -285,23 +289,18 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         }
         root_thread_url = "https://twitter.com/%s/status/%s" % (thread[0].user.screen_name, thread[0].id)
         
-        article = None
-        existing = Article.objects.filter(url=root_thread_url)
-        if existing:
-            article = existing[0]
-        else:
-            article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = title, metadata=metadata, contents='',
-                              initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication = publication)
+        article = Article(status=Article.Status.AUTHOR_NOT_FOUND, language='en', title = title, metadata=metadata, contents='',
+                          initial_url = root_tweet_url, url = root_thread_url, author_id = None, publication = publication)
+        article.save()
+        # find and associate author
+        existing_auth = Author.objects.filter(twitter_screen_name__iexact=screen_name)
+        author = existing_auth[0] if existing_auth else article_parsers.get_author_for(metadata, article.publication)
+        if author:
+            article.author_id = author.id
+            article.status = Article.Status.AUTHOR_ASSOCIATED
+            log_job(job, "Author %s associated to article %s" % (author.name, article.url))
             article.save()
-            # find and associate author
-            existing_auth = Author.objects.filter(twitter_screen_name__iexact=screen_name)
-            author = existing_auth[0] if existing_auth else article_parsers.get_author_for(metadata, article.publication)
-            if author:
-                article.author_id = author.id
-                article.status = Article.Status.AUTHOR_ASSOCIATED
-                log_job(job, "Author %s associated to article %s" % (author.name, article.url))
-                article.save()
-            log_job(job, "Thread article created %s" % article.id, Job.Status.COMPLETED)
+        log_job(job, "Thread article created %s" % article.id, Job.Status.COMPLETED)
 
         share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
                       sharer_id=sharer.id, twitter_id=root_tweet_id, text=root_tweet_text, url=root_tweet_url, article_id = article.id)
