@@ -611,7 +611,7 @@ def allocate_credibility(when=datetime.datetime.utcnow(), past=7, future=30):
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
-@shared_task(rate_limit="1/m", soft_time_limit=1800)
+@shared_task(rate_limit="1/m", soft_time_limit=3000)
 def set_scores(when=datetime.datetime.utcnow(), past=90, future=30):
     job = launch_job("set_scores")
     end_date = when + datetime.timedelta(days=future)
@@ -650,7 +650,7 @@ def set_scores(when=datetime.datetime.utcnow(), past=90, future=30):
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
-        for article in Article.objects.filter(author_id__isnull=False).defer('url','initial_url','title','contents','metadata','thumbnail_url'):
+        for article in Article.objects.filter(author_id__isnull=False, created_at__range=(start_date, end_date)).defer('url','initial_url','title','contents','metadata','thumbnail_url'):
             if not article.id in articles_dict:
                 continue
             amount = articles_dict[article.id]['total']
