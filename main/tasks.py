@@ -209,7 +209,7 @@ def handle_twitter_link(job, sharer, tweet):
         url = tweet.urls[0]
         existing = Article.objects.filter(url = url).order_by("created_at")
         if existing:
-            log_job(job, "thread article already found %s" % url)
+            log_job(job, "thread article already found %s" % url, Job.Status.COMPLETED)
             article = existing[0]
             share = Share(source=0, language='en', status=Share.Status.ARTICLE_ASSOCIATED, category=sharer.category,
                           sharer_id=sharer.id, twitter_id=tweet.id, text=tweet.full_text, url=url, article_id = article.id)
@@ -221,6 +221,7 @@ def handle_twitter_link(job, sharer, tweet):
         if retweets >= MIN_RETWEETS:
             thread_tweet_id = url.rpartition("/")[2]
             get_twitter_thread.signature((thread_tweet_id, sharer.id, tweet.id, tweet.full_text, url)).apply_async()
+        log_job(job, "Twitter link handled", Job.Status.COMPLETED)
     except Exception as ex:
         log_job(job, traceback.format_exc())
         log_job(job, "Handle twitter link error %s" % ex)
@@ -233,7 +234,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "sharer_id %s" % sharer_id)
         tweet = api.GetStatus(tweet_id, include_entities=True)
         if not tweet:
-            log_job(job, "No tweet")
+            log_job(job, "No tweet", Job.Status.COMPLETED)
             return None
     
         sharer = Sharer.objects.get(id=sharer_id)
@@ -248,7 +249,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         log_job(job, "term %s since %s until %s" % (term, since_str, until_str))
         results = api.GetSearch(term=term, since=since_str, until=until_str, count=100, result_type="recent", lang='en', include_entities = True)
         if len(results) == 0:
-            log_job(job, "No search results")
+            log_job(job, "No search results", Job.Status.COMPLETED)
             return
     
         # log_job(job, "results %s" % results)
@@ -264,7 +265,7 @@ def get_twitter_thread(tweet_id, sharer_id, root_tweet_id, root_tweet_text, root
         # OK, we have the thread in order
         # log_job(job, "Thread %s" % thread)
         if len(thread) < MIN_THREAD_TWEETS:
-            log_job(job, "Not enough tweets - %s - for a thread" % len(results))
+            log_job(job, "Not enough tweets - %s - for a thread" % len(results), Job.Status.COMPLETED)
             return
         
         log_job(job, "Creating thread article")
