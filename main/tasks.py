@@ -612,7 +612,7 @@ def allocate_credibility(when=datetime.datetime.utcnow(), past=7, future=30):
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
 @shared_task(rate_limit="1/m", soft_time_limit=3000)
-def set_scores(when=datetime.datetime.utcnow(), past=14, future=30):
+def set_scores(when=datetime.datetime.utcnow(), past=30, future=30):
     job = launch_job("set_scores")
     end_date = when + datetime.timedelta(days=future)
     start_date = end_date - datetime.timedelta(days=past+future)
