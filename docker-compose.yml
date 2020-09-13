@@ -35,7 +35,7 @@ services:
 
   django2:
     build: .
-    image: &scanvine scanvine
+    image: *scanvine
     restart: unless-stopped
     env_file: .env
     command: gunicorn scanvine.wsgi:application --bind 0.0.0.0:8081
@@ -50,7 +50,7 @@ services:
 
   django3:
     build: .
-    image: &scanvine scanvine
+    image: *scanvine
     restart: unless-stopped
     env_file: .env
     command: gunicorn scanvine.wsgi:application --bind 0.0.0.0:8082
