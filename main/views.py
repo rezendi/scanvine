@@ -36,7 +36,9 @@ def index_view(request, category=None, scoring=None, days=None):
     if scoring not in ["odd","latest","new"] and request.GET.get('single','') != "true":
         query = query.filter(share_count__gt=1)
     if scoring != "latest":
-        query = query.filter(our_date__range=(start_date,end_date))
+        query = query.filter(Q(published_at__range=(start_date,end_date)) | (Q(published_at__isnull=True) & Q(created_at__range=(start_date,end_date))) )
+
+    print("explain: %s" % query.explain())
 
     # order
     articles = []
@@ -103,7 +105,7 @@ def get_article_query(category='total'):
         buzz = F('score') - F('pub_average_score'),
         odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status__in=[Article.Status.AUTHOR_ASSOCIATED, Article.Status.AUTHOR_NOT_FOUND]).defer('contents','metadata')
+    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).defer('contents','metadata')
     return query
 
 def get_links(category='all', scoring='top', days=1):
