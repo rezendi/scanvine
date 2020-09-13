@@ -622,8 +622,7 @@ def set_scores(when=datetime.datetime.utcnow(), past=90, future=30):
     total_quantity = 0
     total_tranches = 0
     try:
-        # TODO do this as a big three-table join?
-        # TODO only get shares from the last week, but get all shares for those articles
+        # TODO only get shares from the last week, but get all shares for those articles?
         shares = Share.objects.filter(
             source=0, status=Share.Status.CREDIBILITY_ALLOCATED, created_at__range=(start_date, end_date)
         ).values('id','sharer_id','article_id')
@@ -650,36 +649,42 @@ def set_scores(when=datetime.datetime.utcnow(), past=90, future=30):
             total_quantity += tranche.quantity
     
         log_job(job, "articles %s" % len(articles_dict))
-        for article in Article.objects.filter(author_id__isnull=False, created_at__range=(start_date, end_date)).defer('url','initial_url','title','contents','metadata','thumbnail_url'):
-            if not article.id in articles_dict:
-                continue
-            amount = articles_dict[article.id]['total']
-            article.total_credibility = amount
-            article.scores = articles_dict[article.id]
-            article.save()
+        for article_id in articles_dict.keys():
+            try:
+                article = Article.objects.defer('url','initial_url','title','contents','metadata','thumbnail_url','language','created_at','updated_at').get(pk=article_id)
+                amount = articles_dict[article.id]['total']
+                article.total_credibility = amount
+                article.scores = articles_dict[article.id]
+                article.save()
 
-            # allocate author scores
-            author_id = article.author_id
-            author_ids = [author_id]
-            author_amount = amount
-            collaborators = Collaboration.objects.filter(partnership_id=author_id)
-            if collaborators:
-                author_ids = [c.individual_id for c in collaborators]
-                author_ids = [author_id] if not author_ids else author_ids
-                author_amount = amount / len(author_ids)
-            for author_id in author_ids:
-                if not author_id in authors_dict:
-                    authors_dict[author_id] = {'c':0,'t':0}
-                authors_dict[author_id]['t'] = authors_dict[author_id]['t'] + author_amount
-                authors_dict[author_id]['c'] = authors_dict[author_id]['c'] + 1
+                # allocate author scores
+                author_id = article.author_id
+                author_ids = [author_id]
+                author_amount = amount
+                collaborators = Collaboration.objects.filter(partnership_id=author_id)
+                if collaborators:
+                    author_ids = [c.individual_id for c in collaborators]
+                    author_ids = [author_id] if not author_ids else author_ids
+                    author_amount = amount / len(author_ids)
+                for author_id in author_ids:
+                    if not author_id in authors_dict:
+                        authors_dict[author_id] = {'c':0,'t':0}
+                    authors_dict[author_id]['t'] = authors_dict[author_id]['t'] + author_amount
+                    authors_dict[author_id]['c'] = authors_dict[author_id]['c'] + 1
+            except Exception as inner_ex:
+                log_job(job, "Article exception %s id %s" % (inner_ex, article_id))
 
         log_job(job, "authors %s" % len(authors_dict))
-        for author in Author.objects.filter(id__in=authors_dict.keys()).defer('name','twitter_id','twitter_screen_name','metadata'):
-            author.total_credibility = authors_dict[author.id]['t']
-            author.current_credibility = authors_dict[author.id]['t'] # TODO spendability
-            total_articles = authors_dict[author.id]['c']
-            author.average_credibility = 0 if total_articles==0 else author.total_credibility / total_articles
-            author.save()
+        for author_id in authors_dict.keys():
+            try:
+                author = Author.objects.defer('name','twitter_id','twitter_screen_name','metadata').get(pk=author_id)
+                author.total_credibility = authors_dict[author.id]['t']
+                author.current_credibility = authors_dict[author.id]['t'] # TODO spendability
+                total_articles = authors_dict[author.id]['c']
+                author.average_credibility = 0 if total_articles==0 else author.total_credibility / total_articles
+                author.save()
+            except Exception as inner_ex:
+                log_job(job, "Author exception %s id %s" % (inner_ex, author_id))
 
         log_job(job, "Allocated %s total %s tranches" % (total_quantity, total_tranches), Job.Status.COMPLETED)
         do_publication_aggregates.signature().apply_async()

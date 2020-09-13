@@ -13,7 +13,7 @@ admin.site.site_header = admin.site.site_title = "Scanvine"
 admin.site.index_title = "Administration"
  
 class ScanvineAdmin(admin.ModelAdmin):
-    list_per_page = 100
+    list_per_page = 40
     ordering = ('-created_at',)
     list_filter = ('status', 'created_at', 'updated_at')
 
