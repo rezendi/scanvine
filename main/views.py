@@ -38,23 +38,27 @@ def index_view(request, category=None, scoring=None, days=None):
     if scoring != "latest":
         query = query.filter(Q(published_at__range=(start_date,end_date)) | (Q(published_at__isnull=True) & Q(created_at__range=(start_date,end_date))) )
 
-    print("explain: %s" % query.explain())
-
     # order
     articles = []
     if scoring=='latest':
-        articles = query.order_by("-our_date")[:page_size]
+        query = query.order_by("-our_date")
     if scoring=='shares':
-        articles = query.order_by("-share_count")[:page_size]
+        query = query.order_by("-share_count")
     if scoring=='raw' or scoring=='new':
-        articles = query.order_by("-score")[:page_size]
+        query = query.order_by("-score")
     if scoring=='odd':
-        articles = query.order_by("-odd")[:page_size]
+        query = query.order_by("-odd")
+    if scoring=='top':
+        query = query.order_by("-buzz")
+
+    # print("explain: %s" % query.explain())
+    
+    articles = query [:page_size]
+    if scoring=='odd':
         for article in articles:
             article.raw = article.score
             article.score = article.odd
     if scoring=='top':
-        articles = query.order_by("-buzz")[:page_size]
         for article in articles:
             article.raw = article.score
             article.score = article.buzz
@@ -105,7 +109,7 @@ def get_article_query(category='total'):
         buzz = F('score') - F('pub_average_score'),
         odd = F('buzz') / F('pub_article_count'),
         our_date = Coalesce(F('published_at'), F('created_at')),
-    ).filter(status=Article.Status.AUTHOR_ASSOCIATED).defer('contents','metadata')
+    ).filter(Q(status=Article.Status.AUTHOR_ASSOCIATED) | Q(status=Article.Status.AUTHOR_NOT_FOUND)).defer('contents','metadata')
     return query
 
 def get_links(category='all', scoring='top', days=1):
