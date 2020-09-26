@@ -206,7 +206,8 @@ class PublicationAdmin(ScanvineAdmin):
 @admin.register(Share)
 class ShareAdmin(ScanvineAdmin):
     change_form_template = "admin/share_change_form.html"
-    list_display = ('id', 'sharer', 'status', 'net_sentiment', 'created_at', 'url')
+    list_display = ('id', 'status', 'net_sentiment', 'created_at', 'url')
+    list_select_related = ( 'sharer', )
     list_filter = ('status', 'category', 'created_at', 'updated_at')
     search_fields = ('text','url')
     raw_id_fields = ("sharer", 'article')
