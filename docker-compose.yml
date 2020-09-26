@@ -48,21 +48,6 @@ services:
     depends_on:
       - rabbitmq
 
-  django3:
-    build: .
-    image: *scanvine
-    restart: unless-stopped
-    env_file: .env
-    command: gunicorn scanvine.wsgi:application --bind 0.0.0.0:8082
-    ports:
-      - "8082:8082"
-    volumes:
-      - .:/app
-      - /etc/localtime:/etc/localtime
-      - /etc/timezone:/etc/timezone
-    depends_on:
-      - rabbitmq
-
   worker:
     build: .
     image: *scanvine
