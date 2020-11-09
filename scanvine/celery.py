@@ -48,7 +48,7 @@ if 'SCANVINE_ENV' in os.environ and os.environ['SCANVINE_ENV']=='production':
     app.conf.beat_schedule = {
         'add-every-30-seconds': {
             'task': 'main.tasks.fetch_shares',
-            'schedule': 30.0,
+            'schedule': 60.0,
         },
         'add-every-180-seconds': {
             'task': 'main.tasks.analyze_sentiment',

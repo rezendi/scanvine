@@ -43,7 +43,7 @@ USER_AGENTS = [
 LIST_IDS = [1259645675878281217, 1259645744249581569, 1259645776315117568, 1259645804853080064, 1259645832619372544]
 
 # Take users from the DB, add them to our Twitter list if not there already
-@shared_task(rate_limit="30/h")
+@shared_task(rate_limit="10/h")
 def ingest_sharers():
     job = launch_job("ingest_sharers")
     category = timezone.now().microsecond % len(LIST_IDS)
@@ -65,7 +65,7 @@ def ingest_sharers():
         log_job(job, "Ingest sharers error %s" % ex, Job.Status.ERROR)
         raise ex
 
-@shared_task(rate_limit="30/h")
+@shared_task(rate_limit="10/h")
 def regurgitate_sharers():
     job = launch_job("regurgitate_sharers")
     category = timezone.now().microsecond % len(LIST_IDS)
@@ -81,7 +81,7 @@ def regurgitate_sharers():
         log_job(job, "Removed from list %s: %s" % (category, len(deselected)), Job.Status.COMPLETED)
 
 # Get users from our Twitter list, add them to the DB if not there already, fix those tagged as listed
-@shared_task(rate_limit="6/m")
+@shared_task(rate_limit="15/h")
 def refresh_sharers():
     job = launch_job("refresh_sharers")
     category = timezone.now().microsecond % len(LIST_IDS)
@@ -120,7 +120,7 @@ def refresh_sharers():
 
 
 # Get list statuses, filter those with external links
-@shared_task(rate_limit="30/m")
+@shared_task(rate_limit="1/m")
 def fetch_shares():
     job = launch_job("fetch_shares")
     since_id = None
@@ -338,7 +338,7 @@ def associate_articles():
     log_job(job, "associating %s articles" % len(shares), Job.Status.COMPLETED)
 
 
-@shared_task(rate_limit="1/s")
+@shared_task(rate_limit="30/m")
 def associate_article(share_id, force_refetch=False):
     job = launch_job("associate_article")
     # log_job(job, "share %s refresh %s" % (share_id, force_refetch))
@@ -455,7 +455,7 @@ def reparse_publication_articles(publication_id):
     log_job(job, "parsing %s articles" % len(articles), Job.Status.COMPLETED)
         
 
-@shared_task
+@shared_task(rate_limit="1/s")
 def parse_article_metadata(article_id):
     job = launch_job("parse_article_metadata")
     article = Article.objects.get(id=article_id)
@@ -528,7 +528,7 @@ def parse_article_metadata(article_id):
 
 
 # Get sentiment from AWS
-@shared_task(rate_limit="12/m")
+@shared_task(rate_limit="6/m")
 def analyze_sentiment():
     try:
         job = launch_job("analyze_sentiment")
@@ -562,7 +562,7 @@ def analyze_sentiment():
 
 # for each sharer, get list of shares. Shares with +ve or -ve get 2 points, mixed/neutral get 1 point, total N points
 # 5040 credibility/day to allocate for maximum divisibility, N points means 5040/N cred for that share, truncate
-@shared_task(rate_limit="1/m", soft_time_limit=1800)
+@shared_task(rate_limit="10/h", soft_time_limit=1800)
 def allocate_credibility(when=datetime.datetime.utcnow(), past=7, future=30):
     job = launch_job("allocate_credibility")
     end_date = when + datetime.timedelta(days=future)
@@ -611,7 +611,7 @@ def allocate_credibility(when=datetime.datetime.utcnow(), past=7, future=30):
 
 CATEGORIES = ['health', 'science', 'tech', 'business', 'media']
 # for each share with credibility allocated: get publication and author associated with that share, calculate accordingly
-@shared_task(rate_limit="1/m", soft_time_limit=3000)
+@shared_task(rate_limit="10/h", soft_time_limit=3000)
 def set_scores(when=datetime.datetime.utcnow(), past=30, future=30):
     job = launch_job("set_scores")
     end_date = when + datetime.timedelta(days=future)
@@ -692,7 +692,7 @@ def set_scores(when=datetime.datetime.utcnow(), past=30, future=30):
         raise ex
 
 
-@shared_task(rate_limit="1/m", soft_time_limit=1800)
+@shared_task(rate_limit="10/h", soft_time_limit=1800)
 def do_publication_aggregates(when=datetime.datetime.utcnow(), past=90, future=30):
     job = launch_job("do_publication_aggregates")
     end_date = when + datetime.timedelta(days=future)
