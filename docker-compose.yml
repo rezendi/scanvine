@@ -33,21 +33,6 @@ services:
     depends_on:
       - rabbitmq
 
-  django2:
-    build: .
-    image: *scanvine
-    restart: unless-stopped
-    env_file: .env
-    command: gunicorn scanvine.wsgi:application --bind 0.0.0.0:8081
-    ports:
-      - "8081:8081"
-    volumes:
-      - .:/app
-      - /etc/localtime:/etc/localtime
-      - /etc/timezone:/etc/timezone
-    depends_on:
-      - rabbitmq
-
   worker:
     build: .
     image: *scanvine
@@ -66,20 +51,7 @@ services:
     image: *scanvine
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker2@%h", "--concurrency=3", "--autoscale=15,3", "--queues=fetch,internal", "--soft-time-limit=300", "--time-limit=7200", "--loglevel=INFO", "--pidfile="]
-    volumes:
-      - .:/app
-      - /etc/localtime:/etc/localtime
-      - /etc/timezone:/etc/timezone
-    depends_on:
-      - rabbitmq
-
-  worker3:
-    build: .
-    image: *scanvine
-    restart: unless-stopped
-    env_file: .env
-    command: ["celery", "worker", "--app=scanvine", "--hostname=worker3@%h", "--concurrency=3", "--autoscale=10,3", "--queues=twitter,scoring,orchestrate", "--soft-time-limit=300", "--time-limit=7200", "--loglevel=INFO", "--pidfile="]
+    command: ["celery", "worker", "--app=scanvine", "--hostname=worker3@%h", "--concurrency=3", "--autoscale=5,3", "--queues=twitter,scoring,orchestrate", "--soft-time-limit=300", "--time-limit=7200", "--loglevel=INFO", "--pidfile="]
     volumes:
       - .:/app
       - /etc/localtime:/etc/localtime
