@@ -1,0 +1,31 @@
+{% extends "main/base.html" %}
+{% block title %}{{scoring}} {{category}} Stories | Scanvine{% endblock %}
+<meta property="og:title" content="{{scoring}} {{category}} Stories | Scanvine">
+<meta name="twitter:title" content="{{scoring}} {{category}} Stories | Scanvine">
+<meta name="description" content="{{scoring}} {{category}} News ranked by social media link sharing frequency and sentiment."/>
+<meta property="og:description" content="{{scoring}} {{category}} News ranked by social media link sharing frequency and sentiment."/>
+<meta name="twitter:description" content="{{scoring}} {{category}} News ranked by social media link sharing frequency and sentiment."/>
+{% block main %}
+<section>
+    <div class="section-header">
+        <div class="empty">
+            {% if only_free %}
+                <a href="{{path}}">all 🔒</a><
+            {% else %}
+                <a href="{{path}}?pw=no">free 🔓</a>
+            {% endif %}
+        </div>
+        <div class="section-title">{{scoring}} {{category}} Stories</div>
+        {% if only_free %}
+            <div class="free-link"><a href="{{path}}">all 🔒</a></div>
+        {% else %}
+            <div class="free-link"><a href="{{path}}?pw=no">free 🔓</a></div>
+        {% endif %}
+    </div>
+    <div class="article-list">
+        {% for article in articles %}
+            {% include "main/article-entry.html" with article=article %}
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
