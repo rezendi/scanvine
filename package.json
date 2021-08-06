@@ -8,10 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "build-worker": "tsc ./lib/rabbitmq.worker.ts",
-    "run-worker": "node ./lib/rabbitmq.worker.js"
+    "run-worker": "node -r dotenv/config ./lib/rabbitmq.worker.js dotenv_config_path=./.env.local"
   },
   "dependencies": {
     "amqplib": "^0.8.0",
+    "dotenv": "^10.0.0",
     "net": "^1.0.2",
     "next": "11.0.1",
     "next-auth": "^3.27.3",

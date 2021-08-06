@@ -4,7 +4,7 @@ import { connect, Channel, Connection, ConsumeMessage } from 'amqplib';
 export default class VortextWorker {
   private connection?: Connection;
   private channel?: Channel;
-  private queueName = 'ytgif-jobs';
+  private queueName = 'vortext-jobs';
   constructor() {
     this.initializeService();
   }
@@ -22,6 +22,7 @@ export default class VortextWorker {
   }
   private async initializeConnection() {
     try {
+      console.log("rabbitmq url ", process.env.RABBITMQ_URL)
       this.connection = await connect(process.env.RABBITMQ_URL || 'amqp://localhost:5432');
       console.info('Connected to RabbitMQ Server');
     } catch (err) {
@@ -56,13 +57,12 @@ export default class VortextWorker {
       this.queueName,
       async (msg: ConsumeMessage | null) => {
         if (msg) {
-          const job: any = JSON.parse(msg.content.toString());
-          console.info(`Received new job`, job);
+          console.log("Received new msg", msg.content.toString());
           try {
-            let success = await this.handleJob(job);
+            let success = await this.handleJob(msg);
             success ? this.channel?.ack(msg) : this.channel?.reject(msg, false);;
           } catch (err) {
-            console.error('Failed to process job', job, err);
+            console.error('Failed to process msg', msg, err);
             this.channel?.reject(msg, false);
           }
         }
@@ -74,6 +74,7 @@ export default class VortextWorker {
   }
 
   public async handleJob(job:any) {
+    console.log("Handling job", job.content.toString());
     return Promise.resolve(true);
   }
 }
