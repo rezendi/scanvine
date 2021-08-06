@@ -33,3 +33,7 @@ todo.txt
 
 # vercel
 .vercel
+
+#custom
+rabbitmq.worker.js
+
